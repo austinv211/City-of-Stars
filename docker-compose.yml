@@ -1,0 +1,84 @@
+services:
+
+  # ── Development ─────────────────────────────────────────────────────────────
+  # Runs the full Tauri app. The native window is forwarded to the host display
+  # via X11 (XWayland) or Wayland socket passthrough.
+  #
+  # Usage: docker compose up dev
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: dev
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - cargo_registry:/usr/local/cargo/registry
+      - rust_target_linux:/app/target
+      # X11 socket (XWayland on Wayland compositors)
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      # Wayland socket — host XDG_RUNTIME_DIR mapped to /run/user/host
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}:/run/user/host:ro
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-}
+      XDG_RUNTIME_DIR: /run/user/host
+      # Required for WebKitGTK to run inside Docker
+      WEBKIT_DISABLE_SANDBOX: 1
+    security_opt:
+      - seccomp=unconfined
+    ports:
+      - "1420:1420"
+    env_file:
+      - path: .env
+        required: false
+    command: sh -c "npm install && npm run tauri:dev"
+
+  # ── Linux desktop build ──────────────────────────────────────────────────────
+  # Produces AppImage / deb / rpm in src/tauri/target/release/bundle/
+  #
+  # Usage: docker compose --profile build-linux run --rm build-linux
+  build-linux:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: build-linux
+    volumes:
+      - .:/app
+      - node_modules_build:/app/node_modules
+      - cargo_registry:/usr/local/cargo/registry
+      - rust_target_linux:/app/target
+    env_file:
+      - path: .env
+        required: false
+    profiles: ["build-linux"]
+
+  # ── Android build ────────────────────────────────────────────────────────────
+  # Run `tauri android init` once before the first build (generates src/tauri/gen/).
+  # Produces APK/AAB in src/tauri/gen/android/app/build/outputs/
+  #
+  # Init:  docker compose --profile build-android run --rm build-android sh -c "npm ci && npm run tauri:android:init"
+  # Build: docker compose --profile build-android run --rm build-android
+  build-android:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: build-android
+    volumes:
+      - .:/app
+      - node_modules_android:/app/node_modules
+      - cargo_registry:/usr/local/cargo/registry
+      - rust_target_android:/app/target
+    env_file:
+      - path: .env
+        required: false
+    profiles: ["build-android"]
+
+volumes:
+  node_modules:
+  node_modules_build:
+  node_modules_android:
+  # Shared between dev + build-linux (same host architecture, debug/release are separate subdirs)
+  cargo_registry:
+  rust_target_linux:
+  rust_target_android:

@@ -1,0 +1,22 @@
+# Build output
+dist/
+target/
+
+# Node
+node_modules/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Tauri generated
+src/tauri/gen/
