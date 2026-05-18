@@ -1,23 +1,26 @@
 import { useState } from "react";
 import { Button } from "@/core/components/ui/button";
-import { Input } from "@/core/components/ui/input";
-import { Textarea } from "@/core/components/ui/textarea";
-import { Separator } from "@/core/components/ui/separator";
 import { Badge } from "@/core/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { Separator } from "@/core/components/ui/separator";
 import { AbilityScoreBlock } from "./AbilityScoreBlock";
 import { DerivedStatsBar } from "./DerivedStatsBar";
-import { ProficiencyList } from "./ProficiencyList";
+import { HPPanel } from "./HPPanel";
+import { SkillsPanel } from "./SkillsPanel";
 import { InventoryPanel } from "./InventoryPanel";
 import { AttacksPanel } from "./AttacksPanel";
 import { SpellsPanel } from "./SpellsPanel";
+import { PersonalityPanel } from "./PersonalityPanel";
+import { ProficienciesPanel } from "./ProficienciesPanel";
+import { VoidPanel } from "./VoidPanel";
+import { LevelUpWizard } from "./LevelUpWizard";
 import { PortraitUpload } from "./PortraitUpload";
 import { LevelBadge } from "./LevelBadge";
-import { finalAbilityScores, deriveStats } from "../types/character.types";
+import { finalAbilityScores, deriveStats, abilityModifier } from "../types/character.types";
 import { CLASSES } from "../data/dnd2024.constants";
+import { useSpellSlots } from "../hooks/useSpellSlots";
 import { supabase } from "@/lib/supabase";
 import type { AbilityScores, CharacterWithScores, CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
-import { abilityModifier } from "../types/character.types";
 
 interface Props {
   character: CharacterWithScores;
@@ -27,17 +30,25 @@ interface Props {
   onRefreshInventory: () => void;
   onRefreshAttacks: () => void;
   onRefreshSpells: () => void;
+  onRefreshCharacter: () => void;
   isOwn: boolean;
+  isDM?: boolean;
 }
 
-export function CharacterSheet({ character, inventory, attacks, spells, onRefreshInventory, onRefreshAttacks, onRefreshSpells, isOwn }: Props) {
-  const [backstory, setBackstory] = useState(character.backstory ?? "");
-  const [editingBackstory, setEditingBackstory] = useState(false);
-  const [savingBackstory, setSavingBackstory] = useState(false);
+export function CharacterSheet({
+  character, inventory, attacks, spells,
+  onRefreshInventory, onRefreshAttacks, onRefreshSpells, onRefreshCharacter,
+  isOwn, isDM,
+}: Props) {
   const [portraitUrl, setPortraitUrl] = useState(character.portrait_url);
   const [currency, setCurrency] = useState(character.currency_dollars);
   const [editingCurrency, setEditingCurrency] = useState(false);
   const [currencyDraft, setCurrencyDraft] = useState(String(character.currency_dollars));
+  const [levelUpOpen, setLevelUpOpen] = useState(false);
+
+  const { slots, expend, recover, longRest: slotsLongRest } = useSpellSlots(
+    character.id, character.class, character.level
+  );
 
   const scores = character.ability_scores;
   const baseScores: AbilityScores = scores ?? {
@@ -50,7 +61,6 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
     scores?.background_bonus_secondary
   );
   const derived = deriveStats(final, character.level);
-
   const classData = CLASSES.find((c) => c.name === character.class);
 
   // Spell stats
@@ -61,12 +71,13 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
   const spellAttackMod = spellAbility ? derived.proficiencyBonus + spellAbilityMod : 0;
   const spellSaveDc = spellAbility ? 8 + derived.proficiencyBonus + spellAbilityMod : 0;
 
-  async function saveBackstory() {
-    setSavingBackstory(true);
-    await supabase.from("characters").update({ backstory }).eq("id", character.id);
-    setSavingBackstory(false);
-    setEditingBackstory(false);
-  }
+  // Passive Investigation & Insight (with proficiency)
+  const hasInvestigationProf = character.proficiencies.some((p) => p.skill === "Investigation");
+  const hasInsightProf = character.proficiencies.some((p) => p.skill === "Insight");
+  const passiveInvestigation =
+    10 + abilityModifier(final.intelligence) + (hasInvestigationProf ? derived.proficiencyBonus : 0);
+  const passiveInsight =
+    10 + abilityModifier(final.wisdom) + (hasInsightProf ? derived.proficiencyBonus : 0);
 
   async function saveCurrency() {
     const val = Math.max(0, parseInt(currencyDraft, 10) || 0);
@@ -77,7 +88,7 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-start gap-6">
         <div className="relative pb-10">
           {isOwn ? (
@@ -103,6 +114,20 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
             >
               {character.status}
             </Badge>
+            {character.level_up_pending && isOwn && (
+              <button
+                type="button"
+                onClick={() => setLevelUpOpen(true)}
+                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-500 hover:bg-yellow-400 text-black transition-colors cursor-pointer"
+              >
+                Level Up Available! →
+              </button>
+            )}
+            {character.level_up_pending && !isOwn && (
+              <Badge variant="default" className="bg-yellow-500 text-black">
+                Level Up Pending
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground mt-1">
             {character.species} {character.class}
@@ -120,13 +145,30 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
         </div>
       </div>
 
-      {/* Derived stats */}
-      <DerivedStatsBar derived={derived} />
+      {/* ── Derived Stats ── */}
+      <DerivedStatsBar
+        derived={derived}
+        ac={character.ac}
+        speed={character.speed}
+        passiveInvestigation={passiveInvestigation}
+        passiveInsight={passiveInsight}
+      />
 
-      {/* Ability Scores */}
+      {/* ── HP & Death Saves ── */}
+      <HPPanel
+        character={character}
+        constitutionScore={final.constitution}
+        isOwn={isOwn}
+        isDM={isDM}
+        onSlotsLongRest={slotsLongRest}
+        onSlotsShortRest={character.class.toLowerCase() === "warlock" ? slotsLongRest : undefined}
+        onRefresh={onRefreshCharacter}
+      />
+
+      {/* ── Ability Scores ── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Ability Scores
           </CardTitle>
         </CardHeader>
@@ -138,22 +180,51 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
         </CardContent>
       </Card>
 
-      {/* Proficiencies */}
+      {/* ── Skills ── */}
+      <SkillsPanel
+        finalScores={final}
+        proficiencies={character.proficiencies}
+        proficiencyBonus={derived.proficiencyBonus}
+      />
+
+      {/* ── Saving Throws (from class) ── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Proficiencies
+          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Saving Throw Proficiencies
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ProficiencyList
-            proficiencies={character.proficiencies}
-            savingThrows={classData?.savingThrows ?? []}
-          />
+          <div className="flex flex-wrap gap-2">
+            {(["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"] as const).map((ability) => {
+              const isProficient = (classData?.savingThrows ?? []).includes(ability);
+              const mod = abilityModifier(final[ability]) + (isProficient ? derived.proficiencyBonus : 0);
+              const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
+              return (
+                <div
+                  key={ability}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs border ${
+                    isProficient ? "border-primary bg-primary/5" : "border-transparent bg-muted/40"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isProficient ? "bg-primary" : "border border-muted-foreground/40"}`} />
+                  <span className="font-medium uppercase">{ability.slice(0, 3)}</span>
+                  <span className="font-bold">{sign(mod)}</span>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Attacks */}
+      {/* ── Proficiencies & Languages ── */}
+      <ProficienciesPanel
+        character={character}
+        isOwn={isOwn}
+        onRefresh={onRefreshCharacter}
+      />
+
+      {/* ── Weapons & Damage Cantrips ── */}
       <Card>
         <CardContent className="pt-6">
           <AttacksPanel
@@ -165,7 +236,7 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
         </CardContent>
       </Card>
 
-      {/* Spells */}
+      {/* ── Cantrips & Prepared Spells ── */}
       <Card>
         <CardContent className="pt-6">
           <SpellsPanel
@@ -174,16 +245,18 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
             spellAttackMod={spellAttackMod}
             spellSaveDc={spellSaveDc}
             spells={spells}
+            slots={slots}
+            expend={expend}
+            recover={recover}
             isOwn={isOwn}
             onRefresh={onRefreshSpells}
           />
         </CardContent>
       </Card>
 
-      {/* Inventory + Currency */}
+      {/* ── Inventory + Currency ── */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          {/* Currency row */}
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Currency
@@ -200,12 +273,12 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
           {editingCurrency ? (
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold text-green-600">$</span>
-              <Input
+              <input
                 type="number"
                 min={0}
                 value={currencyDraft}
                 onChange={(e) => setCurrencyDraft(e.target.value)}
-                className="w-32"
+                className="w-32 rounded border px-2 py-1 text-sm"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") saveCurrency();
@@ -231,56 +304,31 @@ export function CharacterSheet({ character, inventory, attacks, spells, onRefres
         </CardContent>
       </Card>
 
-      {/* Backstory */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Backstory
-            </CardTitle>
-            {isOwn && !editingBackstory && (
-              <Button variant="ghost" size="sm" onClick={() => setEditingBackstory(true)}>
-                Edit
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {editingBackstory ? (
-            <div className="space-y-3">
-              <Textarea
-                value={backstory}
-                onChange={(e) => setBackstory(e.target.value)}
-                rows={6}
-                placeholder="Write your character's backstory…"
-              />
-              <div className="flex gap-2">
-                <Button size="sm" onClick={saveBackstory} disabled={savingBackstory}>
-                  {savingBackstory ? "Saving…" : "Save"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setBackstory(character.backstory ?? "");
-                    setEditingBackstory(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : backstory ? (
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">{backstory}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              No backstory written yet.{isOwn ? " Click Edit to add one." : ""}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {/* ── Personality & Roleplay ── */}
+      <PersonalityPanel
+        character={character}
+        isOwn={isOwn}
+        onRefresh={onRefreshCharacter}
+      />
+
+      {/* ── Will of the Void ── */}
+      <VoidPanel
+        character={character}
+        isOwn={isOwn}
+        isDM={isDM}
+        onRefresh={onRefreshCharacter}
+      />
 
       <Separator />
+
+      {isOwn && (
+        <LevelUpWizard
+          character={character}
+          open={levelUpOpen}
+          onClose={() => setLevelUpOpen(false)}
+          onDone={() => { setLevelUpOpen(false); onRefreshCharacter(); }}
+        />
+      )}
     </div>
   );
 }

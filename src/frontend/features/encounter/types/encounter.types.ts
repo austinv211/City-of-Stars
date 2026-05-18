@@ -71,4 +71,5 @@ export interface DiceRollBroadcast {
   modifier: number;
   total: number;
   rollType: string;
+  encounterId?: string | null;
 }

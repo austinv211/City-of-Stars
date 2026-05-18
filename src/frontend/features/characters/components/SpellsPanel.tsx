@@ -11,7 +11,7 @@ import { Plus, Trash2, Wand2, Search, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { searchSpells, getSpell } from "@/lib/dnd5eApi";
 import type { DndSpellSummary } from "@/lib/dnd5eApi";
-import type { CharacterSpell } from "../types/character.types";
+import type { CharacterSpell, CharacterSpellSlot } from "../types/character.types";
 
 interface Props {
   characterId: string;
@@ -19,6 +19,9 @@ interface Props {
   spellAttackMod: number;
   spellSaveDc: number;
   spells: CharacterSpell[];
+  slots: CharacterSpellSlot[];
+  expend: (spellLevel: number) => Promise<void>;
+  recover: (spellLevel: number) => Promise<void>;
   isOwn: boolean;
   onRefresh: () => void;
 }
@@ -151,6 +154,9 @@ export function SpellsPanel({
   spellAttackMod,
   spellSaveDc,
   spells,
+  slots,
+  expend,
+  recover,
   isOwn,
   onRefresh,
 }: Props) {
@@ -274,16 +280,18 @@ export function SpellsPanel({
   return (
     <div className="space-y-4">
       {/* Header + spellcasting info */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Spells & Cantrips
+          Cantrips &amp; Prepared Spells
         </h4>
-        {isOwn && (
-          <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
-            <Plus className="h-3 w-3 mr-1" />
-            Add
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {isOwn && (
+            <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+              <Plus className="h-3 w-3 mr-1" />
+              Add
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Spellcasting stats */}
@@ -368,12 +376,41 @@ export function SpellsPanel({
           )}
 
           {/* Leveled spells */}
-          {activeLevels.map((lvl) => (
+          {activeLevels.map((lvl) => {
+            const slotData = slots.find((s) => s.spell_level === lvl);
+            const available = slotData ? slotData.slots_total - slotData.slots_expended : null;
+            const total = slotData?.slots_total ?? 0;
+            return (
             <div key={lvl} className="space-y-1.5">
               <Separator />
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {LEVEL_LABELS[lvl]}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {LEVEL_LABELS[lvl]}
+                </p>
+                {slotData && total > 0 && (
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: total }, (_, i) => {
+                      const filled = i < (available ?? 0);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          title={filled ? "Expend slot" : "Recover slot"}
+                          onClick={() => isOwn && (filled ? expend(lvl) : recover(lvl))}
+                          className={`w-3 h-3 rounded-full border transition-colors ${
+                            filled
+                              ? "bg-primary border-primary"
+                              : "bg-transparent border-muted-foreground/40 hover:border-primary"
+                          } ${!isOwn ? "cursor-default" : "cursor-pointer"}`}
+                        />
+                      );
+                    })}
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {available}/{total}
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="space-y-1">
                 {preparedByLevel[lvl].map((s) => (
                   <SpellRow
@@ -386,7 +423,7 @@ export function SpellsPanel({
                 ))}
               </div>
             </div>
-          ))}
+          );})}
         </div>
       )}
 

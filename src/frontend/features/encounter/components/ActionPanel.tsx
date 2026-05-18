@@ -3,12 +3,11 @@ import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
 import { Separator } from "@/core/components/ui/separator";
 import { useDice } from "../context/DiceContext";
+import { DicePoolBuilder } from "./DicePoolBuilder";
 import { abilityModifier, finalAbilityScores, deriveStats } from "@/features/characters/types/character.types";
 import { CLASSES } from "@/features/characters/data/dnd2024.constants";
 import type { EncounterParticipant } from "../types/encounter.types";
 import type { CharacterWithScores, CharacterAttack, AbilityName } from "@/features/characters/types/character.types";
-
-const DICE_SIZES = [4, 6, 8, 10, 12, 20, 100] as const;
 
 const SKILL_ABILITY: Record<string, AbilityName> = {
   "Acrobatics":      "dexterity",
@@ -44,7 +43,33 @@ interface Props {
 export function ActionPanel({
   participant, character, attacks, campaignId, encounterId, isMyTurn, isDM,
 }: Props) {
-  const { roll } = useDice();
+  const { roll, rollPool } = useDice();
+
+  // Players see only name/portrait/size for NPCs — no stat block or roll controls
+  if (!isDM && !participant.is_player) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {participant.name}
+            </CardTitle>
+            <Badge variant="secondary" className="text-xs">NPC</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {participant.portrait_url && (
+            <img
+              src={participant.portrait_url}
+              alt={participant.name}
+              className="w-24 h-24 rounded-lg object-cover mb-3"
+            />
+          )}
+          <p className="text-xs text-muted-foreground italic">Stat block hidden from players.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // --- Ability scores & derived stats ---
   // For player participants, use the character sheet final scores.
@@ -126,22 +151,24 @@ export function ActionPanel({
       </CardHeader>
       <CardContent className="space-y-4">
 
-        {/* ── Dice Tray ────────────────────────────────────────────────────────── */}
+        {/* ── Dice Pool Builder ─────────────────────────────────────────────────── */}
         <div>
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Dice Tray</p>
-          <div className="flex flex-wrap gap-1.5">
-            {DICE_SIZES.map((sides) => (
-              <Button
-                key={sides}
-                size="sm"
-                variant="outline"
-                className="h-8 px-3 font-bold text-xs"
-                onClick={() => doRoll(`d${sides}`, sides, 0, `d${sides} Roll`)}
-              >
-                d{sides}
-              </Button>
-            ))}
-          </div>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Dice Pool</p>
+          <DicePoolBuilder
+            disabled={locked}
+            onRoll={({ pool, modifier, advantage, disadvantage, rollType }) =>
+              rollPool({
+                campaignId,
+                encounterId,
+                characterName: participant.name,
+                pool,
+                modifier,
+                advantage,
+                disadvantage,
+                rollType,
+              })
+            }
+          />
         </div>
 
         <Separator />

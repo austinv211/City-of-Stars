@@ -23,10 +23,23 @@ export interface RollOptions {
 export interface RollEntry extends DiceRollBroadcast {
   id: string;
   ts: number;
+  encounterId: string | null;
+}
+
+export interface PoolRollOptions {
+  campaignId: string;
+  encounterId: string | null;
+  characterName: string;
+  pool: { sides: number; count: number }[];
+  modifier: number;
+  advantage: boolean;
+  disadvantage: boolean;
+  rollType: string;
 }
 
 interface DiceContextValue {
   roll: (opts: RollOptions) => void;
+  rollPool: (opts: PoolRollOptions) => void;
   history: RollEntry[];
   animQueue: DiceRollBroadcast[];
   shiftAnim: () => void;
@@ -49,7 +62,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         // Received from OTHER clients — add to our history + animation queue
         const entry = payload as DiceRollBroadcast;
         setHistory((prev) =>
-          [{ ...entry, id: crypto.randomUUID(), ts: Date.now() }, ...prev].slice(0, 100)
+          [{ ...entry, id: crypto.randomUUID(), ts: Date.now(), encounterId: entry.encounterId ?? null }, ...prev].slice(0, 100)
         );
         setAnimQueue((prev) => [...prev, entry]);
       })
@@ -72,11 +85,12 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         modifier: opts.modifier,
         total,
         rollType: opts.rollType,
+        encounterId: opts.encounterId,
       };
 
       // Local update — the channel doesn't echo back to sender by default
       setHistory((prev) =>
-        [{ ...broadcast, id: crypto.randomUUID(), ts: Date.now() }, ...prev].slice(0, 100)
+        [{ ...broadcast, id: crypto.randomUUID(), ts: Date.now(), encounterId: opts.encounterId }, ...prev].slice(0, 100)
       );
       setAnimQueue((prev) => [...prev, broadcast]);
 
@@ -100,12 +114,69 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     [user]
   );
 
+  const rollPool = useCallback(
+    (opts: PoolRollOptions) => {
+      // Roll all dice in the pool
+      const diceResults: { sides: number; rolls: number[] }[] = opts.pool.map(({ sides, count }) => ({
+        sides,
+        rolls: Array.from({ length: count }, () => cryptoRoll(sides)),
+      }));
+
+      // Handle advantage/disadvantage on the single d20 (DicePoolBuilder enforces max 1d20 for this)
+      const processedResults = diceResults.map(({ sides, rolls }) => {
+        if (sides === 20 && (opts.advantage || opts.disadvantage) && rolls.length === 1) {
+          const second = cryptoRoll(20);
+          const keep = opts.advantage ? Math.max(rolls[0], second) : Math.min(rolls[0], second);
+          return { sides, rolls: [keep], extra: second };
+        }
+        return { sides, rolls, extra: undefined };
+      });
+
+      const diceSum = processedResults.reduce((sum, { rolls }) => sum + rolls.reduce((a, b) => a + b, 0), 0);
+      const total = diceSum + opts.modifier;
+
+      // Build a human-readable dice type label
+      const diceLabel = opts.pool.map(({ count, sides }) => `${count}d${sides}`).join("+");
+      const rollType = opts.rollType || diceLabel;
+
+      const broadcast: DiceRollBroadcast = {
+        characterName: opts.characterName,
+        diceType: diceLabel,
+        result: diceSum,
+        modifier: opts.modifier,
+        total,
+        rollType,
+        encounterId: opts.encounterId,
+      };
+
+      setHistory((prev) =>
+        [{ ...broadcast, id: crypto.randomUUID(), ts: Date.now(), encounterId: opts.encounterId }, ...prev].slice(0, 100)
+      );
+      setAnimQueue((prev) => [...prev, broadcast]);
+      channelRef.current?.send({ type: "broadcast", event: "roll", payload: broadcast });
+
+      if (user) {
+        supabase.from("dice_rolls").insert({
+          campaign_id: opts.campaignId,
+          encounter_id: opts.encounterId,
+          user_id: user.id,
+          dice_type: diceLabel,
+          result: diceSum,
+          modifier: opts.modifier,
+          total,
+          roll_type: rollType,
+        });
+      }
+    },
+    [user]
+  );
+
   const shiftAnim = useCallback(() => {
     setAnimQueue((prev) => prev.slice(1));
   }, []);
 
   return (
-    <DiceContext.Provider value={{ roll, history, animQueue, shiftAnim }}>
+    <DiceContext.Provider value={{ roll, rollPool, history, animQueue, shiftAnim }}>
       {children}
     </DiceContext.Provider>
   );

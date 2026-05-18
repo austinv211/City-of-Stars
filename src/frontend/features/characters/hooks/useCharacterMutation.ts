@@ -2,7 +2,8 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
-import { finalAbilityScores } from "../types/character.types";
+import { finalAbilityScores, abilityModifier } from "../types/character.types";
+import { CLASSES } from "../data/dnd2024.constants";
 import type { WizardState } from "../types/character.types";
 
 export function useCharacterMutation() {
@@ -73,6 +74,22 @@ export function useCharacterMutation() {
         state.backgroundBonusPrimary,
         state.backgroundBonusSecondary
       );
+      const classData = CLASSES.find((c) => c.name === state.characterClass);
+      const hitDie = classData?.hitDie ?? 8;
+      const conMod = abilityModifier(final.constitution);
+      const dexMod = abilityModifier(final.dexterity);
+      const initHpMax = hitDie + conMod;
+      const initAc = 10 + dexMod;
+      await supabase
+        .from("characters")
+        .update({
+          hp_max: initHpMax,
+          hp_current: initHpMax,
+          ac: initAc,
+          speed: 30,
+          hit_dice_current: 1,
+        })
+        .eq("id", charId!);
       const { error: scoresErr } = await supabase.from("ability_scores").insert({
         character_id: charId,
         ...final,

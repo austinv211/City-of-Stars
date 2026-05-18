@@ -1,6 +1,24 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { EncounterParticipant } from "../types/encounter.types";
+import type { EncounterParticipant, MonsterAction, MonsterSpecialAbility } from "../types/encounter.types";
+
+function parseJsonArray<T>(val: unknown): T[] | null {
+  if (val === null || val === undefined) return null;
+  if (Array.isArray(val)) return val as T[];
+  if (typeof val === "string") {
+    try { return JSON.parse(val) as T[]; } catch { return null; }
+  }
+  return null;
+}
+
+function normalizeParticipant(raw: unknown): EncounterParticipant {
+  const p = raw as EncounterParticipant;
+  return {
+    ...p,
+    actions: parseJsonArray<MonsterAction>(p.actions),
+    special_abilities: parseJsonArray<MonsterSpecialAbility>(p.special_abilities),
+  };
+}
 
 export function useEncounterParticipants(encounterId: string | null) {
   const [participants, setParticipants] = useState<EncounterParticipant[]>([]);
@@ -19,7 +37,7 @@ export function useEncounterParticipants(encounterId: string | null) {
         .select("*")
         .eq("encounter_id", encounterId)
         .order("initiative_order", { ascending: true });
-      setParticipants((data as EncounterParticipant[]) ?? []);
+      setParticipants((data ?? []).map(normalizeParticipant));
       setLoading(false);
     }
 
@@ -38,7 +56,7 @@ export function useEncounterParticipants(encounterId: string | null) {
         (payload) => {
           if (payload.eventType === "INSERT") {
             setParticipants((prev) =>
-              [...prev, payload.new as EncounterParticipant].sort(
+              [...prev, normalizeParticipant(payload.new)].sort(
                 (a, b) => a.initiative_order - b.initiative_order
               )
             );
@@ -46,7 +64,7 @@ export function useEncounterParticipants(encounterId: string | null) {
             setParticipants((prev) =>
               prev.map((p) =>
                 p.id === (payload.new as EncounterParticipant).id
-                  ? (payload.new as EncounterParticipant)
+                  ? normalizeParticipant(payload.new)
                   : p
               )
             );
@@ -72,6 +90,13 @@ export function useEncounterParticipants(encounterId: string | null) {
       .from("encounter_participants")
       .update({ hp_current: newHp })
       .eq("id", participantId);
+    // Sync live HP back to the character sheet for player characters
+    if (p.character_id) {
+      await supabase
+        .from("characters")
+        .update({ hp_current: newHp })
+        .eq("id", p.character_id);
+    }
   }
 
   async function updateConditions(participantId: string, conditions: string[]) {

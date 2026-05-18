@@ -83,8 +83,8 @@ export function useEncounterManager() {
           int_score: npc.int_score ?? null,
           wis_score: npc.wis_score ?? null,
           cha_score: npc.cha_score ?? null,
-          actions: npc.actions ? JSON.stringify(npc.actions) : null,
-          special_abilities: npc.special_abilities ? JSON.stringify(npc.special_abilities) : null,
+          actions: npc.actions ?? null,
+          special_abilities: npc.special_abilities ?? null,
         }))
       );
     }

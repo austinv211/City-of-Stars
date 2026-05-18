@@ -29,6 +29,41 @@ export interface Character {
   alignment: string | null;
   currency_dollars: number;
   spellcasting_ability: string | null;
+  // Vital stats
+  ac: number | null;
+  speed: number;
+  // HP tracking
+  hp_max: number | null;
+  hp_current: number | null;
+  hp_temp: number;
+  hit_dice_current: number | null;
+  // Death saves
+  death_save_successes: number;
+  death_save_failures: number;
+  // Personality & roleplay
+  personality_traits: string | null;
+  ideals: string | null;
+  bonds: string | null;
+  flaws: string | null;
+  features_notes: string | null;
+  // Homebrew
+  will_of_void: number;
+  will_of_void_notes: string | null;
+  // Proficiency categories
+  armor_proficiencies: string[];
+  weapon_proficiencies: string[];
+  tool_proficiencies: string[];
+  languages_known: string[];
+  // Level-up gate
+  level_up_pending: boolean;
+}
+
+export interface CharacterSpellSlot {
+  id: string;
+  character_id: string;
+  spell_level: number;
+  slots_total: number;
+  slots_expended: number;
 }
 
 export interface CharacterAbilityScores extends AbilityScores {

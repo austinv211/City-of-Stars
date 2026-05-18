@@ -161,12 +161,29 @@ export interface DndEquipment {
   desc: string[];
   weight?: number;
   cost?: { quantity: number; unit: string };
+  // Weapon-specific fields (present when equipment_category.name === "Weapon")
+  equipment_category?: { name: string };
+  weapon_category?: string;   // "Simple" | "Martial"
+  weapon_range?: string;      // "Melee" | "Ranged"
+  category_range?: string;    // "Simple Melee" | "Martial Ranged" etc.
+  damage?: { damage_dice: string; damage_type: { name: string } };
+  two_handed_damage?: { damage_dice: string; damage_type: { name: string } };
+  range?: { normal: number; long?: number };
+  properties?: { index: string; name: string; url: string }[];
 }
 
 export async function searchEquipment(query: string): Promise<DndEquipmentSummary[]> {
   if (!query.trim()) return [];
   const data = await apiFetch<ListResponse<DndEquipmentSummary>>(
     `/equipment?name=${encodeURIComponent(query.trim())}`
+  );
+  return data?.results ?? [];
+}
+
+export async function searchWeapons(query: string): Promise<DndEquipmentSummary[]> {
+  if (!query.trim()) return [];
+  const data = await apiFetch<ListResponse<DndEquipmentSummary>>(
+    `/equipment?name=${encodeURIComponent(query.trim())}&equipment_category=weapon`
   );
   return data?.results ?? [];
 }
@@ -215,4 +232,91 @@ export async function searchSpells(query: string): Promise<DndSpellSummary[]> {
 
 export async function getSpell(index: string): Promise<DndSpell | null> {
   return apiFetch<DndSpell>(`/spells/${index}`);
+}
+
+export async function getDamageCantrips(query: string): Promise<DndSpellSummary[]> {
+  const path = query.trim()
+    ? `/spells?name=${encodeURIComponent(query.trim())}&level=0`
+    : `/spells?level=0`;
+  const data = await apiFetch<ListResponse<DndSpellSummary>>(path);
+  return (data?.results ?? []).filter((s) => s.level === 0);
+}
+
+// ── Languages ─────────────────────────────────────────────────────────────────
+
+export interface DndLanguage {
+  index: string;
+  name: string;
+  type: string;
+}
+
+export async function getLanguages(): Promise<DndLanguage[]> {
+  const data = await apiFetch<{ results: DndLanguage[] }>("/languages");
+  return data?.results ?? [];
+}
+
+// ── Equipment categories ──────────────────────────────────────────────────────
+
+export async function getEquipmentCategory(index: string): Promise<DndEquipmentSummary[]> {
+  const data = await apiFetch<{ equipment: DndEquipmentSummary[] }>(`/equipment-categories/${index}`);
+  return data?.equipment ?? [];
+}
+
+// ── Class data ────────────────────────────────────────────────────────────────
+
+export interface DndClassLevel {
+  level: number;
+  features: { name: string; index: string }[];
+  spellcasting?: {
+    cantrips_known?: number;
+    spells_known?: number;
+    spell_slots_level_1?: number;
+    spell_slots_level_2?: number;
+    spell_slots_level_3?: number;
+    spell_slots_level_4?: number;
+    spell_slots_level_5?: number;
+    spell_slots_level_6?: number;
+    spell_slots_level_7?: number;
+    spell_slots_level_8?: number;
+    spell_slots_level_9?: number;
+  };
+}
+
+export async function getClassLevel(classIndex: string, level: number): Promise<DndClassLevel | null> {
+  return apiFetch<DndClassLevel>(`/classes/${classIndex}/levels/${level}`);
+}
+
+export async function getClassLevels(classIndex: string): Promise<DndClassLevel[]> {
+  const data = await apiFetch<DndClassLevel[]>(`/classes/${classIndex}/levels`);
+  return data ?? [];
+}
+
+export interface DndClassSpell {
+  index: string;
+  name: string;
+  level: number;
+  url: string;
+}
+
+export async function getClassSpells(classIndex: string): Promise<DndClassSpell[]> {
+  const data = await apiFetch<{ results: DndClassSpell[] }>(`/classes/${classIndex}/spells`);
+  return data?.results ?? [];
+}
+
+// ── Feats ─────────────────────────────────────────────────────────────────────
+
+export interface DndFeat {
+  index: string;
+  name: string;
+  prerequisites: { ability_score?: { name: string }; minimum_score?: number }[];
+  desc: string[];
+}
+
+export async function getFeats(): Promise<{ index: string; name: string }[]> {
+  const data = await apiFetch<{ results: { index: string; name: string }[] }>("/feats");
+  return data?.results ?? [];
+}
+
+export async function getFeat(index: string): Promise<DndFeat | null> {
+  return apiFetch<DndFeat>(`/feats/${index}`);
 }

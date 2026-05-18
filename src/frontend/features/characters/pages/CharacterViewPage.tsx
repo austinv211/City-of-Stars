@@ -3,8 +3,10 @@ import { useParams, useNavigate } from "react-router";
 import { Button } from "@/core/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { CharacterSheet } from "../components/CharacterSheet";
+import { CharacterAuditLog } from "../components/CharacterAuditLog";
 import { useCharacter } from "../hooks/useCharacter";
 import { useAuth } from "@/core/context/AuthContext";
+import { useCampaign } from "@/core/context/CampaignContext";
 import { supabase } from "@/lib/supabase";
 import type { CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
 
@@ -12,7 +14,8 @@ export default function CharacterViewPage() {
   const { characterId } = useParams<{ characterId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { character, loading, error } = useCharacter(characterId);
+  const { isDM } = useCampaign();
+  const { character, loading, error, reload: reloadCharacter } = useCharacter(characterId);
   const [inventory, setInventory] = useState<CharacterInventoryItem[]>([]);
   const [attacks, setAttacks] = useState<CharacterAttack[]>([]);
   const [spells, setSpells] = useState<CharacterSpell[]>([]);
@@ -89,8 +92,15 @@ export default function CharacterViewPage() {
         onRefreshInventory={loadInventory}
         onRefreshAttacks={loadAttacks}
         onRefreshSpells={loadSpells}
+        onRefreshCharacter={reloadCharacter}
         isOwn={isOwn}
+        isDM={isDM}
       />
+      {isDM && !isOwn && (
+        <div className="mt-6">
+          <CharacterAuditLog characterId={character.id} />
+        </div>
+      )}
     </div>
   );
 }

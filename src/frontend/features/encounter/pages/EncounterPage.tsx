@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
 } from "@/core/components/ui/dialog";
 import { InitiativeTracker } from "../components/InitiativeTracker";
 import { ActionPanel } from "../components/ActionPanel";
+import { CharacterQuickRef } from "../components/CharacterQuickRef";
 import { useActiveEncounter } from "../hooks/useActiveEncounter";
 import { useEncounterParticipants } from "../hooks/useEncounterParticipants";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -19,7 +21,7 @@ import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useAuth } from "@/core/context/AuthContext";
 import { useDice } from "../context/DiceContext";
 import { supabase } from "@/lib/supabase";
-import { Swords, SkipForward, AlertCircle, Dices } from "lucide-react";
+import { Swords, SkipForward, AlertCircle, Dices, User } from "lucide-react";
 import type { CharacterAttack } from "@/features/characters/types/character.types";
 import type { RollEntry } from "../context/DiceContext";
 import { cn } from "@/lib/utils";
@@ -85,7 +87,8 @@ export default function EncounterPage() {
   const { encounter, endEncounter, advanceTurn } = useActiveEncounter();
   const { participants, updateHP, updateConditions } = useEncounterParticipants(activeEncounterId);
   const { characters } = useCharacters();
-  const { history } = useDice();
+  const { history: allHistory } = useDice();
+  const history = allHistory.filter((e) => e.encounterId === activeEncounterId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [attacks, setAttacks] = useState<CharacterAttack[]>([]);
@@ -100,6 +103,8 @@ export default function EncounterPage() {
   const panelParticipant = participants.find((p) => p.id === panelParticipantId);
 
   const { character: panelCharacter } = useCharacter(panelParticipant?.character_id ?? undefined);
+  // Load own character with full scores for the quick reference panel
+  const { character: ownCharacterFull } = useCharacter(!isDM ? ownCharacter?.id : undefined);
 
   useEffect(() => {
     async function load() {
@@ -206,14 +211,55 @@ export default function EncounterPage() {
 
         <Separator orientation="vertical" />
 
-        {/* Col 3 — Roll Log */}
-        <div className="w-64 shrink-0 overflow-y-auto p-3 flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground shrink-0">
-            Roll Log
-          </p>
-          <div className="flex-1 min-h-0">
-            <RollLog entries={history} />
-          </div>
+        {/* Col 3 — Roll Log / Character Sheet */}
+        <div className="w-64 shrink-0 flex flex-col overflow-hidden border-l">
+          {(() => {
+            // DM sees selected player's character tab; player sees only their own
+            const showCharTab =
+              (!isDM && !!ownCharacterFull && !!ownParticipant) ||
+              (!!isDM && !!panelCharacter && !!panelParticipant?.character_id);
+            const charTabCharacter = isDM ? panelCharacter : ownCharacterFull;
+            const charTabParticipant = isDM ? panelParticipant : ownParticipant;
+            const charTabLabel = isDM ? (panelCharacter?.name ?? "Character") : "My Character";
+
+            if (showCharTab && charTabCharacter && charTabParticipant) {
+              return (
+                <Tabs defaultValue="rolls" className="flex flex-col h-full">
+                  <TabsList className="shrink-0 mx-3 mt-2 mb-0 h-7 text-xs">
+                    <TabsTrigger value="rolls" className="text-xs h-5 flex items-center gap-1">
+                      <Dices className="h-3 w-3" />
+                      Rolls
+                    </TabsTrigger>
+                    <TabsTrigger value="character" className="text-xs h-5 flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {charTabLabel}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="rolls" className="flex-1 overflow-y-auto p-3 mt-0">
+                    <RollLog entries={history} />
+                  </TabsContent>
+                  <TabsContent value="character" className="flex-1 overflow-y-auto p-3 mt-0">
+                    <CharacterQuickRef
+                      character={charTabCharacter}
+                      participant={charTabParticipant}
+                      onUpdateHP={updateHP}
+                    />
+                  </TabsContent>
+                </Tabs>
+              );
+            }
+
+            return (
+              <div className="flex flex-col h-full p-3 gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground shrink-0">
+                  Roll Log (this encounter)
+                </p>
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                  <RollLog entries={history} />
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
       </div>

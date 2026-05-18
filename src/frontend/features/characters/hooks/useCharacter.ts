@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { CharacterWithScores } from "../types/character.types";
 
@@ -7,20 +7,21 @@ export function useCharacter(characterId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    if (!characterId) return;
+    const { data, error } = await supabase
+      .from("characters")
+      .select("*, ability_scores(*), proficiencies:character_proficiencies(*)")
+      .eq("id", characterId)
+      .single();
+
+    if (error) setError(error.message);
+    else setCharacter(data as CharacterWithScores);
+    setLoading(false);
+  }, [characterId]);
+
   useEffect(() => {
     if (!characterId) return;
-
-    async function load() {
-      const { data, error } = await supabase
-        .from("characters")
-        .select("*, ability_scores(*), proficiencies:character_proficiencies(*)")
-        .eq("id", characterId)
-        .single();
-
-      if (error) setError(error.message);
-      else setCharacter(data as CharacterWithScores);
-      setLoading(false);
-    }
 
     load();
 
@@ -41,7 +42,7 @@ export function useCharacter(characterId: string | undefined) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [characterId]);
+  }, [characterId, load]);
 
-  return { character, loading, error };
+  return { character, loading, error, reload: load };
 }
