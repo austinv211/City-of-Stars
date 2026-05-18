@@ -1,5 +1,8 @@
 # issues to follow up on
 
+- Please thoroughly review each suggestions / error bullet and make sure the app makes an adjusment if necessary
+- review all bullets and look for overlap in changes and do thinking passes to make sure the spirit of the request is addressed
+
 - In character sheet, the attacks and spellcasting should be weapons and damage cantrips
 - In character sheet, the spells and cantrips should be cantrips and prepared spells
 - both of these should be each doing lookups against the dnd api for rules on the number of prepared spells, which spells / cantrips are allowed at the level, weapons the character can search for, damage cantrips the character can search for, additional the number of spell slots they can have
@@ -15,6 +18,7 @@
 - It should account for multiple dice being rolled, with additional bonuses being added
 - the dice roller should account for advantage and disadvantage, and include a total bonus modifier field
 - In the DM encounters view, there should be a list of created encounters and side panel showing the history of encounters previously ran, when clicking into one it should show the log from that encounter
+- the monsterActions.map is not a function error on the encounter screen
 - In general please do a quality pass by checking all sections of the rules in the DND API and make sure everything thus-far is in accordance with 2014 5e DND rules
 
 # D&D 5E CHARACTER SHEET CHARACTER DATA
