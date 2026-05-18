@@ -1,6 +1,11 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
 import { Button } from "@/core/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import { Badge } from "@/core/components/ui/badge";
+import { Separator } from "@/core/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -8,21 +13,77 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/core/components/ui/dialog";
-import { Separator } from "@/core/components/ui/separator";
 import { CampaignHeader } from "../components/CampaignHeader";
-import { SessionNotesEditor } from "../components/SessionNotesEditor";
-import { CampaignDetailsEditor } from "../components/CampaignDetailsEditor";
 import { PartyStatsPanel } from "../components/PartyStatsPanel";
 import { CharacterStatMeter } from "../components/CharacterStatMeter";
-import { useCampaignNotes } from "../hooks/useCampaignNotes";
+import { useSessionNotes } from "../hooks/useSessionNotes";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { supabase } from "@/lib/supabase";
-import { TrendingUp } from "lucide-react";
+import { ScrollText, Lock, TrendingUp } from "lucide-react";
+import type { SessionNote } from "../types/campaign.types";
+
+function SessionBlock({
+  sessionNumber,
+  sessionLabel,
+  partyNote,
+  dmNote,
+  isDM,
+  isCurrent,
+}: {
+  sessionNumber: number;
+  sessionLabel: string;
+  partyNote: SessionNote | undefined;
+  dmNote: SessionNote | undefined;
+  isDM: boolean;
+  isCurrent: boolean;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <ScrollText className="h-4 w-4 text-muted-foreground" />
+        <h2 className="font-semibold">{sessionLabel} {sessionNumber}</h2>
+        {isCurrent && <Badge variant="default" className="text-xs">Current</Badge>}
+      </div>
+
+      {/* Party Notes */}
+      {partyNote?.content ? (
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{partyNote.content}</ReactMarkdown>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">No party notes for this session.</p>
+      )}
+
+      {/* DM-only Notes */}
+      {isDM && (
+        <Card className="border-dashed">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Lock className="h-3 w-3" />
+              DM Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-3 px-4">
+            {dmNote?.content ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{dmNote.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                No DM notes for this session.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 export default function CampaignPage() {
   const { campaign, isDM, loading: campaignLoading } = useCampaign();
-  const { notes, saving, updateNotes } = useCampaignNotes();
+  const { notes } = useSessionNotes();
   const { characters } = useCharacters();
   const [levelUpOpen, setLevelUpOpen] = useState(false);
   const [levelingUp, setLevelingUp] = useState(false);
@@ -50,19 +111,25 @@ export default function CampaignPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center">
         <p className="text-muted-foreground">You are not a member of any campaign yet.</p>
-        <p className="text-xs text-muted-foreground">Ask your Dungeon Master to add you to the campaign.</p>
+        <p className="text-xs text-muted-foreground">
+          Ask your Dungeon Master to add you to the campaign.
+        </p>
       </div>
     );
   }
 
+  const currentSession = campaign.current_session;
+  const sessionLabel = campaign.session_label ?? "Session";
+  const prevSession = currentSession - 1;
+
+  function getNote(session: number, visibility: "dm_only" | "party") {
+    return notes.find((n) => n.session_number === session && n.visibility === visibility);
+  }
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <CampaignHeader
-          campaign={campaign}
-          isDM={isDM}
-          memberCount={characters.length}
-        />
+    <div className="px-4 sm:px-6 py-8 space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <CampaignHeader campaign={campaign} isDM={isDM} memberCount={characters.length} />
         {isDM && (
           <Button variant="outline" onClick={() => setLevelUpOpen(true)}>
             <TrendingUp className="h-4 w-4 mr-2" />
@@ -73,25 +140,37 @@ export default function CampaignPage() {
 
       <Separator />
 
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="sessions">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="sessions">Session Notes</TabsTrigger>
           <TabsTrigger value="party">Party Stats</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-6 space-y-6">
-          <SessionNotesEditor
-            value={notes?.session_notes ?? null}
+        <TabsContent value="sessions" className="mt-6 space-y-8">
+          {/* Current session */}
+          <SessionBlock
+            sessionNumber={currentSession}
+            sessionLabel={sessionLabel}
+            partyNote={getNote(currentSession, "party")}
+            dmNote={getNote(currentSession, "dm_only")}
             isDM={isDM}
-            saving={saving}
-            onSave={(text) => updateNotes({ session_notes: text })}
+            isCurrent
           />
-          <CampaignDetailsEditor
-            value={notes?.campaign_details ?? null}
-            isDM={isDM}
-            saving={saving}
-            onSave={(text) => updateNotes({ campaign_details: text })}
-          />
+
+          {/* Previous session */}
+          {prevSession >= 1 && (
+            <>
+              <Separator />
+              <SessionBlock
+                sessionNumber={prevSession}
+                sessionLabel={sessionLabel}
+                partyNote={getNote(prevSession, "party")}
+                dmNote={getNote(prevSession, "dm_only")}
+                isDM={isDM}
+                isCurrent={false}
+              />
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="party" className="mt-6 space-y-6">

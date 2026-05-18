@@ -8,8 +8,6 @@ interface Props {
 }
 
 export function ProficiencyList({ proficiencies, savingThrows }: Props) {
-  const skills = proficiencies.filter((p) => p.proficiency_type === "skill");
-
   return (
     <div className="space-y-4">
       <div>
@@ -17,13 +15,13 @@ export function ProficiencyList({ proficiencies, savingThrows }: Props) {
           Skills
         </h4>
         <div className="flex flex-wrap gap-1.5">
-          {skills.map((p) => (
+          {proficiencies.map((p) => (
             <Badge key={p.id} variant={p.is_expertise ? "default" : "secondary"}>
-              {p.name}
+              {p.skill}
               {p.is_expertise && " ★"}
             </Badge>
           ))}
-          {skills.length === 0 && (
+          {proficiencies.length === 0 && (
             <span className="text-xs text-muted-foreground">None</span>
           )}
         </div>

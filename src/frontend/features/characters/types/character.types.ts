@@ -27,19 +27,21 @@ export interface Character {
   is_locked: boolean;
   backstory: string | null;
   alignment: string | null;
+  currency_dollars: number;
+  spellcasting_ability: string | null;
 }
 
 export interface CharacterAbilityScores extends AbilityScores {
   method: AbilityScoreMethod;
-  background_bonus_primary: AbilityName;
-  background_bonus_secondary: AbilityName;
+  background_bonus_primary: AbilityName | null;
+  background_bonus_secondary: AbilityName | null;
 }
 
 export interface CharacterProficiency {
   id: string;
   character_id: string;
-  proficiency_type: ProficiencyType;
-  name: string;
+  skill: string;
+  source: "class" | "background" | "feat";
   is_expertise: boolean;
 }
 
@@ -53,8 +55,39 @@ export interface CharacterInventoryItem {
   is_equipped: boolean;
 }
 
+export interface CharacterAttack {
+  id: string;
+  character_id: string;
+  name: string;
+  attack_modifier: number;
+  dice_count: number;
+  dice_sides: number;
+  damage_modifier: number;
+  damage_type: string;
+  is_ranged: boolean;
+  is_spell: boolean;
+  notes: string | null;
+}
+
+export interface CharacterSpell {
+  id: string;
+  character_id: string;
+  name: string;
+  level: number;
+  school: string | null;
+  is_prepared: boolean;
+  is_ritual: boolean;
+  concentration: boolean;
+  casting_time: string | null;
+  range_text: string | null;
+  components: string[] | null;
+  description: string | null;
+  damage_type: string | null;
+  attack_type: string | null;
+}
+
 export interface CharacterWithScores extends Character {
-  ability_scores: CharacterAbilityScores;
+  ability_scores: CharacterAbilityScores | null;
   proficiencies: CharacterProficiency[];
 }
 
@@ -86,12 +119,15 @@ export function deriveStats(scores: AbilityScores, level: number): DerivedStats 
   };
 }
 
-export function finalAbilityScores(scores: AbilityScores, primary: AbilityName, secondary: AbilityName): AbilityScores {
-  return {
-    ...scores,
-    [primary]: scores[primary] + 2,
-    [secondary]: scores[secondary] + 1,
-  };
+export function finalAbilityScores(
+  scores: AbilityScores,
+  primary: AbilityName | null | undefined,
+  secondary: AbilityName | null | undefined
+): AbilityScores {
+  const result = { ...scores };
+  if (primary) result[primary] = result[primary] + 2;
+  if (secondary) result[secondary] = result[secondary] + 1;
+  return result;
 }
 
 // ── Wizard state ──────────────────────────────────────────────────────────────

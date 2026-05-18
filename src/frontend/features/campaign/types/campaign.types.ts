@@ -4,6 +4,8 @@ export interface Campaign {
   description: string | null;
   created_by: string;
   created_at: string;
+  current_session: number;
+  session_label: string;
 }
 
 export interface CampaignMember {
@@ -14,11 +16,15 @@ export interface CampaignMember {
   joined_at: string;
 }
 
-export interface CampaignNotes {
+export type SessionNoteVisibility = "dm_only" | "party";
+
+export interface SessionNote {
   id: string;
   campaign_id: string;
-  session_notes: string | null;
-  campaign_details: string | null;
+  session_number: number;
+  visibility: SessionNoteVisibility;
+  content: string | null;
+  created_at: string;
   updated_at: string;
 }
 

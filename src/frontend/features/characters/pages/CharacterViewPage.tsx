@@ -6,7 +6,7 @@ import { CharacterSheet } from "../components/CharacterSheet";
 import { useCharacter } from "../hooks/useCharacter";
 import { useAuth } from "@/core/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import type { CharacterInventoryItem } from "../types/character.types";
+import type { CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
 
 export default function CharacterViewPage() {
   const { characterId } = useParams<{ characterId: string }>();
@@ -14,6 +14,8 @@ export default function CharacterViewPage() {
   const { user } = useAuth();
   const { character, loading, error } = useCharacter(characterId);
   const [inventory, setInventory] = useState<CharacterInventoryItem[]>([]);
+  const [attacks, setAttacks] = useState<CharacterAttack[]>([]);
+  const [spells, setSpells] = useState<CharacterSpell[]>([]);
 
   async function loadInventory() {
     if (!characterId) return;
@@ -25,8 +27,31 @@ export default function CharacterViewPage() {
     if (data) setInventory(data as CharacterInventoryItem[]);
   }
 
+  async function loadAttacks() {
+    if (!characterId) return;
+    const { data } = await supabase
+      .from("character_attacks")
+      .select("*")
+      .eq("character_id", characterId)
+      .order("created_at", { ascending: true });
+    if (data) setAttacks(data as CharacterAttack[]);
+  }
+
+  async function loadSpells() {
+    if (!characterId) return;
+    const { data } = await supabase
+      .from("character_spells")
+      .select("*")
+      .eq("character_id", characterId)
+      .order("level", { ascending: true })
+      .order("name", { ascending: true });
+    if (data) setSpells(data as CharacterSpell[]);
+  }
+
   useEffect(() => {
     loadInventory();
+    loadAttacks();
+    loadSpells();
   }, [characterId]);
 
   if (loading) {
@@ -51,7 +76,7 @@ export default function CharacterViewPage() {
   const isOwn = user?.id === character.owner_id;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="px-4 sm:px-6 py-8">
       <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/characters")}>
         <ChevronLeft className="h-4 w-4 mr-1" />
         Characters
@@ -59,7 +84,11 @@ export default function CharacterViewPage() {
       <CharacterSheet
         character={character}
         inventory={inventory}
+        attacks={attacks}
+        spells={spells}
         onRefreshInventory={loadInventory}
+        onRefreshAttacks={loadAttacks}
+        onRefreshSpells={loadSpells}
         isOwn={isOwn}
       />
     </div>

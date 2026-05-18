@@ -27,6 +27,28 @@ export function useActiveEncounter() {
     }
 
     load();
+
+    const channel = supabase
+      .channel(`encounter:${activeEncounterId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "encounters",
+          filter: `id=eq.${activeEncounterId}`,
+        },
+        (payload) => {
+          setEncounter((prev) =>
+            prev ? { ...prev, ...(payload.new as Encounter) } : (payload.new as Encounter)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeEncounterId]);
 
   async function endEncounter() {
@@ -37,5 +59,10 @@ export function useActiveEncounter() {
       .eq("id", activeEncounterId);
   }
 
-  return { encounter, loading, endEncounter };
+  async function advanceTurn() {
+    if (!activeEncounterId) return;
+    await supabase.rpc("advance_encounter_turn", { p_encounter_id: activeEncounterId });
+  }
+
+  return { encounter, loading, endEncounter, advanceTurn };
 }

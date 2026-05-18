@@ -1,11 +1,28 @@
 export type EncounterStatus = "pending" | "active" | "completed";
 
+export interface MonsterAction {
+  name: string;
+  desc: string;
+  attack_bonus?: number;
+  damage_dice?: string;
+  damage_type?: string;
+}
+
+export interface MonsterSpecialAbility {
+  name: string;
+  desc: string;
+}
+
 export interface Encounter {
   id: string;
   campaign_id: string;
   status: EncounterStatus;
   name: string | null;
+  created_by: string;
   created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  current_participant_id: string | null;
 }
 
 export interface EncounterParticipant {
@@ -13,15 +30,24 @@ export interface EncounterParticipant {
   encounter_id: string;
   character_id: string | null;
   name: string;
-  initiative: number;
+  portrait_url: string | null;
   initiative_order: number;
+  initiative_score: number;
   hp_current: number;
   hp_max: number;
   hp_temp: number;
   ac: number;
   conditions: string[];
-  is_npc: boolean;
-  portrait_url: string | null;
+  is_player: boolean;
+  owner_id: string | null;
+  str_score: number | null;
+  dex_score: number | null;
+  con_score: number | null;
+  int_score: number | null;
+  wis_score: number | null;
+  cha_score: number | null;
+  actions: MonsterAction[] | null;
+  special_abilities: MonsterSpecialAbility[] | null;
 }
 
 export interface DiceRoll {

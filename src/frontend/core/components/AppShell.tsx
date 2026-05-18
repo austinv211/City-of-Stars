@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from "react-router";
-import { Swords, Users, BookOpen, LogOut, Shield } from "lucide-react";
+import { Swords, Users, BookOpen, LogOut, Shield, ScrollText, ListChecks, Skull } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
+import { DiceProvider } from "@/features/encounter/context/DiceContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/core/components/ui/tooltip";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
@@ -15,11 +16,69 @@ const navItems = [
   { to: "/encounter",  label: "Encounter",  icon: Swords, requiresEncounter: true },
 ];
 
+const dmNavItems = [
+  { to: "/dm/sessions",   label: "Session Manager", icon: ScrollText },
+  { to: "/dm/encounters", label: "Encounters",       icon: ListChecks },
+  { to: "/dm/monsters",   label: "Monster Library",  icon: Skull },
+];
+
+function NavItem({
+  to,
+  label,
+  icon: Icon,
+  disabled,
+  disabledTip,
+  badge,
+}: {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
+  disabledTip?: string;
+  badge?: React.ReactNode;
+}) {
+  if (disabled) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="flex cursor-not-allowed items-center gap-3 rounded px-3 py-2 text-sm text-muted-foreground opacity-40 select-none">
+            <Icon className="h-4 w-4" />
+            {label}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right">{disabledTip}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-3 rounded px-3 py-2 text-sm transition-colors",
+          isActive
+            ? "bg-accent text-accent-foreground font-medium"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+        )
+      }
+      style={({ isActive }) =>
+        isActive ? { boxShadow: "inset 0 1px 0 hsl(var(--primary) / 0.15)" } : {}
+      }
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {label}
+      {badge}
+    </NavLink>
+  );
+}
+
 export default function AppShell() {
   const { activeEncounterId, isDM, campaign } = useCampaign();
   const { user, signOut } = useAuth();
 
   return (
+    <DiceProvider>
     <TooltipProvider>
       <div className="flex h-screen bg-background">
         {/* Sidebar */}
@@ -51,51 +110,40 @@ export default function AppShell() {
 
           <Separator />
 
-          {/* Nav */}
-          <nav className="flex flex-1 flex-col gap-0.5 p-2 pt-3">
-            {navItems.map(({ to, label, icon: Icon, requiresEncounter }) => {
+          {/* Nav — scrollable to accommodate DM section */}
+          <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3">
+            {navItems.map(({ to, label, icon, requiresEncounter }) => {
               const disabled = requiresEncounter && !activeEncounterId;
-
-              if (disabled) {
-                return (
-                  <Tooltip key={to}>
-                    <TooltipTrigger asChild>
-                      <span className="flex cursor-not-allowed items-center gap-3 rounded px-3 py-2 text-sm text-muted-foreground opacity-40 select-none">
-                        <Icon className="h-4 w-4" />
-                        {label}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">No active encounter</TooltipContent>
-                  </Tooltip>
-                );
-              }
-
               return (
-                <NavLink
+                <NavItem
                   key={to}
                   to={to}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-3 rounded px-3 py-2 text-sm transition-colors",
-                      isActive
-                        ? "bg-accent text-accent-foreground font-medium"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    )
+                  label={label}
+                  icon={icon}
+                  disabled={disabled}
+                  disabledTip="No active encounter"
+                  badge={
+                    requiresEncounter && activeEncounterId ? (
+                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-green-400" />
+                    ) : undefined
                   }
-                  style={({ isActive }) =>
-                    isActive
-                      ? { boxShadow: "inset 0 1px 0 hsl(var(--primary) / 0.15)" }
-                      : {}
-                  }
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {label}
-                  {requiresEncounter && activeEncounterId && (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-green-400" />
-                  )}
-                </NavLink>
+                />
               );
             })}
+
+            {/* DM Tools section */}
+            {isDM && (
+              <>
+                <div className="px-3 pt-4 pb-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    DM Tools
+                  </p>
+                </div>
+                {dmNavItems.map(({ to, label, icon }) => (
+                  <NavItem key={to} to={to} label={label} icon={icon} />
+                ))}
+              </>
+            )}
           </nav>
 
           <Separator />
@@ -130,5 +178,6 @@ export default function AppShell() {
 
       <DiceRollOverlay />
     </TooltipProvider>
+    </DiceProvider>
   );
 }

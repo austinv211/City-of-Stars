@@ -16,6 +16,8 @@ export function useCharacterMutation() {
     setLoading(true);
     setError(null);
 
+    let charId: string | null = null;
+
     try {
       // 1. Upload portrait if present
       let portraitUrl: string | null = null;
@@ -63,7 +65,7 @@ export function useCharacterMutation() {
         .single();
       if (charErr) throw charErr;
 
-      const charId: string = char.id;
+      charId = char.id;
 
       // 4. Insert ability scores (final = base + background bonuses)
       const final = finalAbilityScores(
@@ -80,11 +82,11 @@ export function useCharacterMutation() {
       });
       if (scoresErr) throw scoresErr;
 
-      // 5. Insert proficiencies (skills chosen + saving throws from class)
-      const profRows = state.skillProficiencies.map((name) => ({
+      // 5. Insert proficiencies
+      const profRows = state.skillProficiencies.map((skill) => ({
         character_id: charId,
-        proficiency_type: "skill",
-        name,
+        skill,
+        source: "class",
         is_expertise: false,
       }));
       if (profRows.length > 0) {
@@ -92,20 +94,31 @@ export function useCharacterMutation() {
         if (profErr) throw profErr;
       }
 
-      // 6. Update portrait path with correct character id in path
-      if (state.portraitFile && portraitUrl) {
-        const ext = state.portraitFile.name.split(".").pop();
-        const finalPath = `${user.id}/${charId}/portrait.${ext}`;
-        await supabase.storage.from("character-portraits").move(
-          portraitUrl.split("/character-portraits/")[1],
-          finalPath
-        );
-        const { data: newUrl } = supabase.storage.from("character-portraits").getPublicUrl(finalPath);
-        await supabase.from("characters").update({ portrait_url: newUrl.publicUrl }).eq("id", charId);
+      // 6. Move portrait to final path — non-fatal, portrait stays at temp if this fails
+      if (state.portraitFile && portraitUrl && charId) {
+        try {
+          const ext = state.portraitFile.name.split(".").pop();
+          const finalPath = `${user.id}/${charId!}/portrait.${ext}`;
+          const tmpPath = portraitUrl.split("/character-portraits/")[1];
+          await supabase.storage.from("character-portraits").move(tmpPath, finalPath);
+          const { data: newUrl } = supabase.storage
+            .from("character-portraits")
+            .getPublicUrl(finalPath);
+          await supabase
+            .from("characters")
+            .update({ portrait_url: newUrl.publicUrl })
+            .eq("id", charId);
+        } catch {
+          // portrait stays at temp path — not worth failing the whole creation
+        }
       }
 
-      return charId;
+      return charId!;
     } catch (err) {
+      // Roll back the character row if it was created but later steps failed
+      if (charId) {
+        try { await supabase.from("characters").delete().eq("id", charId); } catch { /* best-effort */ }
+      }
       const msg = err instanceof Error ? err.message : "Unknown error";
       setError(msg);
       throw err;
@@ -116,7 +129,6 @@ export function useCharacterMutation() {
 
   async function setActive(characterId: string): Promise<void> {
     if (!user || !campaign) return;
-    // Deactivate any existing active character
     await supabase
       .from("characters")
       .update({ status: "backup", is_locked: false })

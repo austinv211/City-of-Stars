@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Textarea } from "@/core/components/ui/textarea";
 import { Badge } from "@/core/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/core/components/ui/dialog";
-import { Plus, Trash2, Package } from "lucide-react";
+import { Plus, Trash2, Package, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useCampaign } from "@/core/context/CampaignContext";
+import { searchEquipment, getEquipment } from "@/lib/dnd5eApi";
+import type { DndEquipmentSummary } from "@/lib/dnd5eApi";
 import type { CharacterInventoryItem } from "../types/character.types";
 
 interface Props {
@@ -22,12 +26,92 @@ interface NewItem {
   weight: string;
 }
 
+interface CampaignItem {
+  id: string;
+  item_name: string;
+  description: string | null;
+  weight: number | null;
+}
+
 const BLANK: NewItem = { item_name: "", quantity: 1, description: "", weight: "" };
 
 export function InventoryPanel({ characterId, items, onRefresh }: Props) {
+  const { campaign } = useCampaign();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<NewItem>(BLANK);
   const [saving, setSaving] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dndResults, setDndResults] = useState<DndEquipmentSummary[]>([]);
+  const [campaignResults, setCampaignResults] = useState<CampaignItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery("");
+      setDndResults([]);
+      setCampaignResults([]);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!searchQuery.trim()) {
+      setDndResults([]);
+      setCampaignResults([]);
+      return;
+    }
+    searchTimer.current = setTimeout(() => runSearch(searchQuery), 400);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [searchQuery]);
+
+  async function runSearch(q: string) {
+    setSearching(true);
+    const [dnd, camp] = await Promise.all([
+      searchEquipment(q),
+      campaign
+        ? supabase
+            .from("campaign_items")
+            .select("id, item_name, description, weight")
+            .eq("campaign_id", campaign.id)
+            .ilike("item_name", `%${q}%`)
+            .limit(10)
+            .then(({ data }) => (data as CampaignItem[]) ?? [])
+        : Promise.resolve([]),
+    ]);
+    setDndResults(dnd.slice(0, 10));
+    setCampaignResults(camp);
+    setSearching(false);
+  }
+
+  async function selectDndItem(summary: DndEquipmentSummary) {
+    const detail = await getEquipment(summary.index);
+    setForm({
+      item_name: summary.name,
+      quantity: 1,
+      description: detail?.desc?.join(" ") ?? "",
+      weight: detail?.weight != null ? String(detail.weight) : "",
+    });
+    setSearchQuery("");
+    setDndResults([]);
+    setCampaignResults([]);
+  }
+
+  function selectCampaignItem(item: CampaignItem) {
+    setForm({
+      item_name: item.item_name,
+      quantity: 1,
+      description: item.description ?? "",
+      weight: item.weight != null ? String(item.weight) : "",
+    });
+    setSearchQuery("");
+    setDndResults([]);
+    setCampaignResults([]);
+  }
 
   async function addItem() {
     if (!form.item_name.trim()) return;
@@ -40,6 +124,24 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
       weight: form.weight ? Number(form.weight) : null,
       is_equipped: false,
     });
+    // Save to campaign shared catalogue so others can find it
+    if (campaign) {
+      try {
+        await supabase
+          .from("campaign_items")
+          .upsert(
+            {
+              campaign_id: campaign.id,
+              item_name: form.item_name.trim(),
+              description: form.description || null,
+              weight: form.weight ? Number(form.weight) : null,
+            },
+            { onConflict: "campaign_id,item_name", ignoreDuplicates: true }
+          );
+      } catch {
+        // best-effort catalogue save
+      }
+    }
     setSaving(false);
     setOpen(false);
     setForm(BLANK);
@@ -58,6 +160,8 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
       .eq("id", item.id);
     onRefresh();
   }
+
+  const hasResults = dndResults.length > 0 || campaignResults.length > 0;
 
   return (
     <div className="space-y-3">
@@ -86,9 +190,7 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
               <button
                 onClick={() => toggleEquipped(item)}
                 className={`h-2 w-2 rounded-full shrink-0 border ${
-                  item.is_equipped
-                    ? "bg-primary border-primary"
-                    : "border-muted-foreground"
+                  item.is_equipped ? "bg-primary border-primary" : "border-muted-foreground"
                 }`}
                 title={item.is_equipped ? "Equipped" : "Unequipped"}
               />
@@ -100,9 +202,7 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
                   </span>
                 )}
               </div>
-              <Badge variant="outline" className="text-xs shrink-0">
-                ×{item.quantity}
-              </Badge>
+              <Badge variant="outline" className="text-xs shrink-0">×{item.quantity}</Badge>
               {item.weight != null && (
                 <span className="text-xs text-muted-foreground shrink-0">{item.weight} lb</span>
               )}
@@ -120,55 +220,148 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Add Item</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Item Name</Label>
-              <Input
-                value={form.item_name}
-                onChange={(e) => setForm((f) => ({ ...f, item_name: e.target.value }))}
-                placeholder="e.g. Longsword"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Quantity</Label>
+          <Tabs defaultValue="search">
+            <TabsList className="w-full">
+              <TabsTrigger value="search" className="flex-1">
+                <Search className="h-3 w-3 mr-1.5" />
+                Search
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="flex-1">Custom</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="search" className="space-y-3 mt-3">
+              <div className="relative">
                 <Input
-                  type="number"
-                  min={1}
-                  value={form.quantity}
-                  onChange={(e) => setForm((f) => ({ ...f, quantity: Number(e.target.value) }))}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search D&D items or campaign items…"
+                  autoFocus
+                />
+                {searching && (
+                  <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+
+              {hasResults && (
+                <div className="border rounded-md divide-y max-h-52 overflow-y-auto">
+                  {campaignResults.length > 0 && (
+                    <>
+                      <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/40">
+                        Campaign Items
+                      </p>
+                      {campaignResults.map((item) => (
+                        <button
+                          key={item.id}
+                          className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+                          onClick={() => selectCampaignItem(item)}
+                        >
+                          <p className="text-sm font-medium">{item.item_name}</p>
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                          )}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {dndResults.length > 0 && (
+                    <>
+                      <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/40">
+                        D&D 5e (2024)
+                      </p>
+                      {dndResults.map((item) => (
+                        <button
+                          key={item.index}
+                          className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+                          onClick={() => selectDndItem(item)}
+                        >
+                          <p className="text-sm font-medium">{item.name}</p>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {form.item_name && (
+                <div className="border rounded-md p-3 space-y-3 bg-muted/20">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Selected: {form.item_name}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Quantity</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={form.quantity}
+                        onChange={(e) => setForm((f) => ({ ...f, quantity: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Weight (lb)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={form.weight}
+                        onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                        placeholder="Optional"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="custom" className="space-y-4 mt-3">
+              <div className="space-y-1.5">
+                <Label>Item Name</Label>
+                <Input
+                  value={form.item_name}
+                  onChange={(e) => setForm((f) => ({ ...f, item_name: e.target.value }))}
+                  placeholder="e.g. Tactical Vest"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Quantity</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.quantity}
+                    onChange={(e) => setForm((f) => ({ ...f, quantity: Number(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Weight (lb)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={form.weight}
+                    onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
-                <Label>Weight (lb)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={form.weight}
-                  onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                <Label>Description</Label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   placeholder="Optional"
+                  rows={2}
                 />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Textarea
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Optional"
-                rows={2}
-              />
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button onClick={addItem} disabled={saving || !form.item_name.trim()}>
               {saving ? "Adding…" : "Add Item"}
             </Button>

@@ -56,7 +56,7 @@ export function ParticipantCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm truncate">{participant.name}</span>
-              {participant.is_npc && (
+              {!participant.is_player && (
                 <Badge variant="outline" className="text-xs">NPC</Badge>
               )}
             </div>
@@ -64,7 +64,7 @@ export function ParticipantCard({
               <Shield className="h-3 w-3" />
               <span>{participant.ac} AC</span>
               <span>·</span>
-              <span>Init {participant.initiative}</span>
+              <span>Init {participant.initiative_score}</span>
             </div>
           </div>
         </div>

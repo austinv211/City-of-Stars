@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/core/components/ui/button";
+import { Input } from "@/core/components/ui/input";
 import { Textarea } from "@/core/components/ui/textarea";
 import { Separator } from "@/core/components/ui/separator";
 import { Badge } from "@/core/components/ui/badge";
@@ -8,41 +9,70 @@ import { AbilityScoreBlock } from "./AbilityScoreBlock";
 import { DerivedStatsBar } from "./DerivedStatsBar";
 import { ProficiencyList } from "./ProficiencyList";
 import { InventoryPanel } from "./InventoryPanel";
+import { AttacksPanel } from "./AttacksPanel";
+import { SpellsPanel } from "./SpellsPanel";
 import { PortraitUpload } from "./PortraitUpload";
 import { LevelBadge } from "./LevelBadge";
 import { finalAbilityScores, deriveStats } from "../types/character.types";
 import { CLASSES } from "../data/dnd2024.constants";
 import { supabase } from "@/lib/supabase";
-import type { CharacterWithScores, CharacterInventoryItem } from "../types/character.types";
+import type { AbilityScores, CharacterWithScores, CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
+import { abilityModifier } from "../types/character.types";
 
 interface Props {
   character: CharacterWithScores;
   inventory: CharacterInventoryItem[];
+  attacks: CharacterAttack[];
+  spells: CharacterSpell[];
   onRefreshInventory: () => void;
+  onRefreshAttacks: () => void;
+  onRefreshSpells: () => void;
   isOwn: boolean;
 }
 
-export function CharacterSheet({ character, inventory, onRefreshInventory, isOwn }: Props) {
+export function CharacterSheet({ character, inventory, attacks, spells, onRefreshInventory, onRefreshAttacks, onRefreshSpells, isOwn }: Props) {
   const [backstory, setBackstory] = useState(character.backstory ?? "");
   const [editingBackstory, setEditingBackstory] = useState(false);
   const [savingBackstory, setSavingBackstory] = useState(false);
   const [portraitUrl, setPortraitUrl] = useState(character.portrait_url);
+  const [currency, setCurrency] = useState(character.currency_dollars);
+  const [editingCurrency, setEditingCurrency] = useState(false);
+  const [currencyDraft, setCurrencyDraft] = useState(String(character.currency_dollars));
 
   const scores = character.ability_scores;
+  const baseScores: AbilityScores = scores ?? {
+    strength: 10, dexterity: 10, constitution: 10,
+    intelligence: 10, wisdom: 10, charisma: 10,
+  };
   const final = finalAbilityScores(
-    scores,
-    scores.background_bonus_primary,
-    scores.background_bonus_secondary
+    baseScores,
+    scores?.background_bonus_primary,
+    scores?.background_bonus_secondary
   );
   const derived = deriveStats(final, character.level);
 
   const classData = CLASSES.find((c) => c.name === character.class);
+
+  // Spell stats
+  const spellAbility = character.spellcasting_ability;
+  const spellAbilityMod = spellAbility
+    ? abilityModifier(final[spellAbility as keyof AbilityScores] ?? 10)
+    : 0;
+  const spellAttackMod = spellAbility ? derived.proficiencyBonus + spellAbilityMod : 0;
+  const spellSaveDc = spellAbility ? 8 + derived.proficiencyBonus + spellAbilityMod : 0;
 
   async function saveBackstory() {
     setSavingBackstory(true);
     await supabase.from("characters").update({ backstory }).eq("id", character.id);
     setSavingBackstory(false);
     setEditingBackstory(false);
+  }
+
+  async function saveCurrency() {
+    const val = Math.max(0, parseInt(currencyDraft, 10) || 0);
+    await supabase.from("characters").update({ currency_dollars: val }).eq("id", character.id);
+    setCurrency(val);
+    setEditingCurrency(false);
   }
 
   return (
@@ -123,9 +153,76 @@ export function CharacterSheet({ character, inventory, onRefreshInventory, isOwn
         </CardContent>
       </Card>
 
-      {/* Inventory */}
+      {/* Attacks */}
       <Card>
         <CardContent className="pt-6">
+          <AttacksPanel
+            characterId={character.id}
+            attacks={attacks}
+            isOwn={isOwn}
+            onRefresh={onRefreshAttacks}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Spells */}
+      <Card>
+        <CardContent className="pt-6">
+          <SpellsPanel
+            characterId={character.id}
+            spellcastingAbility={spellAbility ?? null}
+            spellAttackMod={spellAttackMod}
+            spellSaveDc={spellSaveDc}
+            spells={spells}
+            isOwn={isOwn}
+            onRefresh={onRefreshSpells}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Inventory + Currency */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          {/* Currency row */}
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Currency
+            </h4>
+            {isOwn && !editingCurrency && (
+              <Button variant="ghost" size="sm" onClick={() => {
+                setCurrencyDraft(String(currency));
+                setEditingCurrency(true);
+              }}>
+                Edit
+              </Button>
+            )}
+          </div>
+          {editingCurrency ? (
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold text-green-600">$</span>
+              <Input
+                type="number"
+                min={0}
+                value={currencyDraft}
+                onChange={(e) => setCurrencyDraft(e.target.value)}
+                className="w-32"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveCurrency();
+                  if (e.key === "Escape") setEditingCurrency(false);
+                }}
+              />
+              <Button size="sm" onClick={saveCurrency}>Save</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditingCurrency(false)}>Cancel</Button>
+            </div>
+          ) : (
+            <p className="text-2xl font-bold text-green-600">
+              ${currency.toLocaleString()}
+            </p>
+          )}
+
+          <Separator />
+
           <InventoryPanel
             characterId={character.id}
             items={inventory}

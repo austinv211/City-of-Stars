@@ -17,8 +17,8 @@ export default function CharactersPage() {
   const backups = characters.filter((c) => c.status === "backup");
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="px-4 sm:px-6 py-8 space-y-8">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Characters</h1>
           <p className="text-sm text-muted-foreground mt-0.5">

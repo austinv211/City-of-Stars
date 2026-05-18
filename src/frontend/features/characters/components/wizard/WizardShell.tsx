@@ -33,8 +33,8 @@ export function WizardShell({ state, dispatch, children, onBack }: WizardShellPr
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <div className="sticky top-0 z-10 bg-background border-b px-6 py-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="sticky top-0 z-10 bg-background shadow-sm px-6 py-4">
+        <div>
           <div className="flex items-center gap-4 mb-3">
             {step > 1 && (
               <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
@@ -52,8 +52,8 @@ export function WizardShell({ state, dispatch, children, onBack }: WizardShellPr
         </div>
       </div>
 
-      <div className="flex-1 px-6 py-8">
-        <div className="max-w-2xl mx-auto">{children}</div>
+      <div className="flex-1 px-4 sm:px-6 py-8">
+        <div>{children}</div>
       </div>
     </div>
   );

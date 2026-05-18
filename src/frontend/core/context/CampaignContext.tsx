@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthContext";
 import type { Campaign, CampaignMember } from "@/features/campaign/types/campaign.types";
@@ -9,6 +9,7 @@ interface CampaignContextValue {
   isDM: boolean;
   activeEncounterId: string | null;
   loading: boolean;
+  refreshCampaign: () => Promise<void>;
 }
 
 const CampaignContext = createContext<CampaignContextValue | null>(null);
@@ -39,7 +40,6 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
         setMembership(data as CampaignMember);
         setCampaign(data.campaigns as Campaign);
 
-        // Check for an already-active encounter
         const { data: enc } = await supabase
           .from("encounters")
           .select("id")
@@ -54,7 +54,17 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     load();
   }, [user]);
 
-  // Subscribe to encounter status changes once we have a campaign
+  const refreshCampaign = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("campaign_members")
+      .select("*, campaigns(*)")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (data) setCampaign(data.campaigns as Campaign);
+  }, [user]);
+
+  // Subscribe to encounter status changes
   useEffect(() => {
     if (!campaign) return;
 
@@ -88,6 +98,33 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     };
   }, [campaign]);
 
+  // Subscribe to campaign row updates (e.g. current_session changes)
+  useEffect(() => {
+    if (!campaign) return;
+
+    const channel = supabase
+      .channel(`campaign:${campaign.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "campaigns",
+          filter: `id=eq.${campaign.id}`,
+        },
+        (payload) => {
+          setCampaign((prev) =>
+            prev ? { ...prev, ...(payload.new as Campaign) } : prev
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [campaign?.id]);
+
   return (
     <CampaignContext.Provider
       value={{
@@ -96,6 +133,7 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
         isDM: membership?.role === "dm",
         activeEncounterId,
         loading,
+        refreshCampaign,
       }}
     >
       {children}
