@@ -159,6 +159,10 @@ export function useCharacterMutation() {
       .eq("id", characterId);
   }
 
+  async function deleteCharacter(characterId: string): Promise<void> {
+    await supabase.from("characters").delete().eq("id", characterId);
+  }
+
   async function updatePortrait(characterId: string, file: File): Promise<string> {
     if (!user) throw new Error("Not authenticated");
     const ext = file.name.split(".").pop();
@@ -169,5 +173,5 @@ export function useCharacterMutation() {
     return data.publicUrl;
   }
 
-  return { commitCharacter, setActive, updatePortrait, loading, error };
+  return { commitCharacter, setActive, deleteCharacter, updatePortrait, loading, error };
 }
