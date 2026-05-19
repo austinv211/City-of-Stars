@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// ── SCSS-level constants ───────────────────────────────────────────────────────
+$panel-highlight: rgb(255 255 255 / 0.06);
+
+@mixin panel-base {
+  background:    hsl(var(--card));
+  border-radius: var(--radius);
+}
+
+// ── Design tokens — Catppuccin Mocha ─────────────────────────────────────────
+:root {
+  // Core palette — mapped to Catppuccin Mocha
+  --background:            240 21% 12%;      // Mantle   #181825
+  --foreground:            226 64% 88%;      // Text     #cdd6f4
+
+  --card:                  240 21% 15%;      // Base     #1e1e2e
+  --card-foreground:       226 64% 88%;
+
+  --popover:               234 16% 23%;      // Surface0 #313244
+  --popover-foreground:    226 64% 88%;
+
+  --primary:               267 84% 81%;      // Mauve    #cba6f7
+  --primary-foreground:    240 23% 9%;       // Crust    #11111b
+
+  --secondary:             234 16% 23%;      // Surface0 #313244
+  --secondary-foreground:  226 64% 88%;
+
+  --muted:                 240 21% 15%;      // Base     #1e1e2e
+  --muted-foreground:      229 12% 55%;      // Overlay1 #7f849c
+
+  --accent:                267 22% 36%;      // Mauve-tinted panel  ~#524168
+  --accent-foreground:     226 64% 88%;      // Text  #cdd6f4
+  --accent-turn:           217 32% 37%;      // Blue-tinted panel   ~#3d577f (current turn)
+
+  --destructive:           343 81% 75%;      // Red      #f38ba8
+  --destructive-foreground: 240 23% 9%;      // Crust
+
+  --border:                234 13% 31%;      // Surface1 #45475a
+  --input:                 240 21% 12%;      // Mantle
+  --ring:                  267 84% 81%;      // Mauve
+
+  --titlebar:              240 23% 9%;       // Crust    #11111b
+
+  --radius: 0.25rem; // 4px — flat material feel
+
+  // Named Catppuccin colors for targeted use
+  --ctp-rosewater: 10 56% 91%;
+  --ctp-flamingo:  0 59% 88%;
+  --ctp-pink:      316 72% 86%;
+  --ctp-mauve:     267 84% 81%;
+  --ctp-red:       343 81% 75%;
+  --ctp-maroon:    350 63% 77%;
+  --ctp-peach:     23 92% 75%;
+  --ctp-yellow:    40 86% 83%;
+  --ctp-green:     115 54% 76%;
+  --ctp-teal:      171 56% 73%;
+  --ctp-sky:       189 71% 74%;
+  --ctp-sapphire:  199 76% 69%;
+  --ctp-blue:      217 92% 76%;
+  --ctp-lavender:  232 97% 85%;
+
+  // ── Shadow scale ─────────────────────────────────────────────────────────
+  --shadow-sm:
+    0 1px 3px  rgba(0, 0, 0, 0.60),
+    0 1px 2px  rgba(0, 0, 0, 0.40);
+
+  --shadow-md:
+    0 4px 12px rgba(0, 0, 0, 0.60),
+    0 2px 4px  rgba(0, 0, 0, 0.45);
+
+  --shadow-lg:
+    0 8px 32px rgba(0, 0, 0, 0.70),
+    0 4px 8px  rgba(0, 0, 0, 0.50);
+
+  --shadow-panel:
+    0 2px 8px  rgba(0, 0, 0, 0.60),
+    0 1px 2px  rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 #{$panel-highlight};
+
+  --shadow-card:
+    0 4px 16px rgba(0, 0, 0, 0.60),
+    0 2px 5px  rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 #{$panel-highlight};
+
+  --shadow-elevated:
+    0 8px 32px rgba(0, 0, 0, 0.75),
+    0 4px 12px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+
+  --shadow-glow:
+    0 0 0 3px hsl(var(--primary) / 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
+// ── Base ──────────────────────────────────────────────────────────────────────
+@layer base {
+  *,
+  *::before,
+  *::after {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-synthesis:          none;
+    text-rendering:          optimizeLegibility;
+    -webkit-font-smoothing:  antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  // Slim, context-aware scrollbars
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
+  }
+
+  ::-webkit-scrollbar         { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track   { background: transparent; }
+  ::-webkit-scrollbar-corner  { background: transparent; }
+  ::-webkit-scrollbar-thumb   {
+    background:    hsl(var(--muted-foreground) / 0.3);
+    border-radius: 999px;
+    &:hover { background: hsl(var(--muted-foreground) / 0.55); }
+  }
+}
+
+// ── Animated star icon ────────────────────────────────────────────────────────
+// Arms rotate to each position — glow color matches the arm color at that angle
+@keyframes star-glow-spin {
+  0%   { transform: rotate(0deg)   scale(1);    filter: drop-shadow(0 0 3px #cba6f799); }
+  25%  { transform: rotate(90deg)  scale(1.1);  filter: drop-shadow(0 0 5px #89b4fa99); }
+  50%  { transform: rotate(180deg) scale(1);    filter: drop-shadow(0 0 3px #fab38799); }
+  75%  { transform: rotate(270deg) scale(1.1);  filter: drop-shadow(0 0 5px #a6e3a199); }
+  100% { transform: rotate(360deg) scale(1);    filter: drop-shadow(0 0 3px #cba6f799); }
+}
+
+.star-icon {
+  transform-box:    fill-box;
+  transform-origin: center;
+  animation:        star-glow-spin 8s ease-in-out infinite;
+  display:          block;
+}
+
+// ── Component layer: depth system ─────────────────────────────────────────────
+@layer components {
+  .surface {
+    @include panel-base;
+  }
+
+  .panel {
+    @include panel-base;
+    box-shadow: var(--shadow-panel);
+  }
+
+  .panel-card {
+    @include panel-base;
+    box-shadow: var(--shadow-card);
+  }
+
+  .panel-elevated {
+    background:    hsl(var(--popover));
+    border-radius: var(--radius);
+    box-shadow:    var(--shadow-elevated);
+  }
+
+  .panel-inset {
+    background: hsl(var(--secondary));
+    border-radius: var(--radius);
+    box-shadow:
+      inset 0 1px 4px rgba(0, 0, 0, 0.55),
+      inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+
+  .glow-primary {
+    box-shadow: var(--shadow-glow);
+  }
+}
