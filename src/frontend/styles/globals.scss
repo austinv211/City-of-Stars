@@ -149,6 +149,15 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   display:          block;
 }
 
+// ── Tiptap rich text editor ───────────────────────────────────────────────────
+.ProseMirror p.is-editor-empty:first-child::before {
+  color:           hsl(var(--muted-foreground));
+  content:         attr(data-placeholder);
+  float:           left;
+  height:          0;
+  pointer-events:  none;
+}
+
 // ── Component layer: depth system ─────────────────────────────────────────────
 @layer components {
   .surface {

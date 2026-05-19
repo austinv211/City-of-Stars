@@ -1,6 +1,8 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/core/components/ui/button";
-import { Textarea } from "@/core/components/ui/textarea";
+import { RichTextEditor } from "@/core/components/RichTextEditor";
 import { Badge } from "@/core/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Separator } from "@/core/components/ui/separator";
@@ -187,12 +189,11 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
             </div>
             {editingNotes ? (
               <div className="space-y-2">
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                <RichTextEditor
+                  content={notes}
+                  onChange={setNotes}
                   placeholder="Record active reality edits, script overrides…"
-                  rows={3}
-                  autoFocus
+                  minHeight="6rem"
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={saveNotes} disabled={saving}>
@@ -204,7 +205,9 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
                 </div>
               </div>
             ) : notes ? (
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{notes}</p>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{notes}</ReactMarkdown>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground italic">No active modifications.</p>
             )}

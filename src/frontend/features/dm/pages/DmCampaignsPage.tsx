@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
-import { Textarea } from "@/core/components/ui/textarea";
 import { Badge } from "@/core/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/core/components/ui/dialog";
 import { Plus, Trash2, BookOpen, Radio } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
+import { RichTextEditor } from "@/core/components/RichTextEditor";
 
 interface Campaign {
   id: string;
@@ -164,11 +164,11 @@ export default function DmCampaignsPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Description <span className="text-muted-foreground">(optional)</span></Label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+              <RichTextEditor
+                content={description}
+                onChange={setDescription}
                 placeholder="A brief description of the campaign…"
-                rows={3}
+                minHeight="5rem"
               />
             </div>
             {createError && <p className="text-sm text-destructive">{createError}</p>}

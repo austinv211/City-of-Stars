@@ -4,8 +4,8 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Input } from "@/core/components/ui/input";
-import { Textarea } from "@/core/components/ui/textarea";
 import { Badge } from "@/core/components/ui/badge";
+import { RichTextEditor } from "@/core/components/RichTextEditor";
 import { Separator } from "@/core/components/ui/separator";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, ScrollText, Pencil } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -214,12 +214,11 @@ export default function DmSessionsPage() {
 
                     {editingKey === noteKey(session, "party") ? (
                       <div className="space-y-2">
-                        <Textarea
-                          value={draftContent}
-                          onChange={(e) => setDraftContent(e.target.value)}
-                          rows={6}
-                          placeholder="Markdown supported…"
-                          className="font-mono text-sm"
+                        <RichTextEditor
+                          content={draftContent}
+                          onChange={setDraftContent}
+                          placeholder="Write party notes… paste markdown or use the toolbar"
+                          minHeight="10rem"
                         />
                         <div className="flex gap-2">
                           <Button size="sm" onClick={() => saveEdit(session, "party")} disabled={saving}>
@@ -268,12 +267,11 @@ export default function DmSessionsPage() {
 
                     {editingKey === noteKey(session, "dm_only") ? (
                       <div className="space-y-2">
-                        <Textarea
-                          value={draftContent}
-                          onChange={(e) => setDraftContent(e.target.value)}
-                          rows={6}
-                          placeholder="Private DM notes… markdown supported"
-                          className="font-mono text-sm"
+                        <RichTextEditor
+                          content={draftContent}
+                          onChange={setDraftContent}
+                          placeholder="Private DM notes… paste markdown or use the toolbar"
+                          minHeight="10rem"
                         />
                         <div className="flex gap-2">
                           <Button
