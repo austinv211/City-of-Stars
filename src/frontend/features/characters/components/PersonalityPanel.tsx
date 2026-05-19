@@ -1,6 +1,8 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/core/components/ui/button";
-import { Textarea } from "@/core/components/ui/textarea";
+import { RichTextEditor } from "@/core/components/RichTextEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
@@ -76,12 +78,11 @@ export function PersonalityPanel({ character, isOwn, onRefresh }: Props) {
 
             {editing === key ? (
               <div className="space-y-2">
-                <Textarea
-                  value={values[key]}
-                  onChange={(e) => setValues((prev) => ({ ...prev, [key]: e.target.value }))}
+                <RichTextEditor
+                  content={values[key]}
+                  onChange={(md) => setValues((prev) => ({ ...prev, [key]: md }))}
                   placeholder={placeholder}
-                  rows={4}
-                  autoFocus
+                  minHeight="7rem"
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => save(key)} disabled={saving}>
@@ -93,7 +94,9 @@ export function PersonalityPanel({ character, isOwn, onRefresh }: Props) {
                 </div>
               </div>
             ) : values[key] ? (
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{values[key]}</p>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{values[key]}</ReactMarkdown>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 {isOwn ? `Click Edit to add ${label.toLowerCase()}.` : `No ${label.toLowerCase()} recorded.`}
