@@ -2,9 +2,11 @@ services:
 
   # ── Development ─────────────────────────────────────────────────────────────
   # Runs the full Tauri app. The native window is forwarded to the host display
-  # via X11 (XWayland) or Wayland socket passthrough.
+  # via the Wayland socket (preferred) or the X11 Unix socket as fallback.
+  # GTK auto-selects the backend: Wayland when WAYLAND_DISPLAY is set,
+  # X11 otherwise.
   #
-  # Usage: docker compose up dev
+  # Usage: make docker-dev   (sets up display env and starts this service)
   dev:
     build:
       context: .
@@ -15,16 +17,27 @@ services:
       - node_modules:/app/node_modules
       - cargo_registry:/usr/local/cargo/registry
       - rust_target_linux:/app/target
-      # X11 socket (XWayland on Wayland compositors)
+      # X11 fallback socket
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
       # Wayland socket — host XDG_RUNTIME_DIR mapped to /run/user/host
       - ${XDG_RUNTIME_DIR:-/run/user/1000}:/run/user/host:ro
+    # WebKit IPC uses /dev/shm heavily; 64 MB (Docker default) is not enough
+    # and causes heap corruption when it fills. 512 MB is a safe ceiling.
+    shm_size: 512m
     environment:
       DISPLAY: ${DISPLAY:-:0}
       WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-}
       XDG_RUNTIME_DIR: /run/user/host
       # Required for WebKitGTK to run inside Docker
-      WEBKIT_DISABLE_SANDBOX: 1
+      WEBKIT_DISABLE_SANDBOX: "1"
+      # DMABuf GPU buffer sharing doesn't work in containers — disabling it
+      # prevents the heap corruption that causes the white-screen crash.
+      WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+      # Disable GPU compositing; fall back to software rendering in Docker.
+      WEBKIT_DISABLE_COMPOSITING_MODE: "1"
+      # Limit glibc malloc arenas to reduce fragmentation under WebKit's
+      # multi-process workload.
+      MALLOC_ARENA_MAX: "2"
     security_opt:
       - seccomp=unconfined
     ports:

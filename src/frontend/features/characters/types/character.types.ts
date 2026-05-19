@@ -54,6 +54,7 @@ export interface Character {
   weapon_proficiencies: string[];
   tool_proficiencies: string[];
   languages_known: string[];
+  saving_throw_proficiencies: string[];
   // Level-up gate
   level_up_pending: boolean;
 }

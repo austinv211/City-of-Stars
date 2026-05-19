@@ -18,10 +18,73 @@ import { LevelUpWizard } from "./LevelUpWizard";
 import { PortraitUpload } from "./PortraitUpload";
 import { LevelBadge } from "./LevelBadge";
 import { finalAbilityScores, deriveStats, abilityModifier } from "../types/character.types";
-import { CLASSES } from "../data/dnd2024.constants";
 import { useSpellSlots } from "../hooks/useSpellSlots";
 import { supabase } from "@/lib/supabase";
-import type { AbilityScores, CharacterWithScores, CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
+import type { AbilityScores, AbilityName, CharacterWithScores, CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
+
+const SAVING_THROW_ABILITIES = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"] as const;
+
+interface SavingThrowsCardProps {
+  final: AbilityScores;
+  proficiencyBonus: number;
+  savingThrowProficiencies: string[];
+  canEdit: boolean;
+  characterId: string;
+  onRefresh: () => void;
+}
+
+function SavingThrowsCard({ final, proficiencyBonus, savingThrowProficiencies, canEdit, characterId, onRefresh }: SavingThrowsCardProps) {
+  const [busy, setBusy] = useState(false);
+  const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
+
+  async function toggle(ability: string) {
+    if (!canEdit || busy) return;
+    setBusy(true);
+    const has = savingThrowProficiencies.includes(ability);
+    const next = has
+      ? savingThrowProficiencies.filter((a) => a !== ability)
+      : [...savingThrowProficiencies, ability];
+    await supabase.from("characters").update({ saving_throw_proficiencies: next }).eq("id", characterId);
+    setBusy(false);
+    onRefresh();
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Saving Throw Proficiencies
+          {canEdit && <span className="ml-2 normal-case font-normal text-muted-foreground/70">· click to toggle</span>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          {SAVING_THROW_ABILITIES.map((ability) => {
+            const isProficient = savingThrowProficiencies.includes(ability);
+            const mod = abilityModifier(final[ability]) + (isProficient ? proficiencyBonus : 0);
+            return (
+              <button
+                key={ability}
+                type="button"
+                disabled={!canEdit || busy}
+                onClick={() => toggle(ability)}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs border transition-colors ${
+                  canEdit ? "cursor-pointer hover:border-primary/60" : "cursor-default"
+                } ${
+                  isProficient ? "border-primary bg-primary/5" : "border-transparent bg-muted/40"
+                } disabled:opacity-60`}
+              >
+                <span className={`w-2 h-2 rounded-full ${isProficient ? "bg-primary" : "border border-muted-foreground/40"}`} />
+                <span className="font-medium uppercase">{ability.slice(0, 3)}</span>
+                <span className="font-bold">{sign(mod)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface Props {
   character: CharacterWithScores;
@@ -41,6 +104,25 @@ export function CharacterSheet({
   onRefreshInventory, onRefreshAttacks, onRefreshSpells, onRefreshCharacter,
   isOwn, isDM,
 }: Props) {
+  const canEdit = isOwn || !!isDM;
+
+  async function saveAbilityScore(ability: AbilityName, finalValue: number) {
+    const scores = character.ability_scores;
+    const primaryBonus  = scores?.background_bonus_primary   === ability ? 2 : 0;
+    const secondaryBonus = scores?.background_bonus_secondary === ability ? 1 : 0;
+    const newBase = finalValue - primaryBonus - secondaryBonus;
+    await supabase
+      .from("ability_scores")
+      .update({ [ability]: Math.max(1, newBase) })
+      .eq("character_id", character.id);
+    onRefreshCharacter();
+  }
+
+  async function saveCharacterField(fields: Partial<Record<string, number>>) {
+    await supabase.from("characters").update(fields).eq("id", character.id);
+    onRefreshCharacter();
+  }
+
   const [portraitUrl, setPortraitUrl] = useState(character.portrait_url);
   const [currency, setCurrency] = useState(character.currency_dollars);
   const [editingCurrency, setEditingCurrency] = useState(false);
@@ -72,7 +154,6 @@ export function CharacterSheet({
     scores?.background_bonus_secondary
   );
   const derived = deriveStats(final, character.level);
-  const classData = CLASSES.find((c) => c.name === character.class);
 
   // Spell stats
   const spellAbility = character.spellcasting_ability;
@@ -102,7 +183,7 @@ export function CharacterSheet({
       {/* ── Header ── */}
       <div className="flex items-start gap-6">
         <div className="relative pb-10">
-          {isOwn ? (
+          {canEdit ? (
             <PortraitUpload
               characterId={character.id}
               portraitUrl={portraitUrl}
@@ -148,11 +229,6 @@ export function CharacterSheet({
             {character.background}
             {character.alignment ? ` · ${character.alignment}` : ""}
           </p>
-          {character.is_locked && (
-            <p className="text-xs text-amber-600 mt-1">
-              Stats locked — campaign in progress
-            </p>
-          )}
           <Button
             variant="outline"
             size="sm"
@@ -169,8 +245,13 @@ export function CharacterSheet({
         derived={derived}
         ac={character.ac}
         speed={character.speed}
+        level={character.level}
         passiveInvestigation={passiveInvestigation}
         passiveInsight={passiveInsight}
+        canEdit={canEdit}
+        onSaveAC={(v) => saveCharacterField({ ac: v })}
+        onSaveSpeed={(v) => saveCharacterField({ speed: v })}
+        onSaveLevel={(v) => saveCharacterField({ level: Math.max(1, Math.min(20, v)) })}
       />
 
       {/* ── HP & Death Saves ── */}
@@ -192,9 +273,14 @@ export function CharacterSheet({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <AbilityScoreBlock scores={final} />
+          <AbilityScoreBlock
+            scores={final}
+            canEdit={canEdit}
+            onSave={saveAbilityScore}
+          />
           <p className="text-xs text-muted-foreground mt-2">
             Includes +2/+1 from {character.background} background
+            {canEdit && " · click any score to edit"}
           </p>
         </CardContent>
       </Card>
@@ -204,42 +290,25 @@ export function CharacterSheet({
         finalScores={final}
         proficiencies={character.proficiencies}
         proficiencyBonus={derived.proficiencyBonus}
+        canEdit={canEdit}
+        characterId={character.id}
+        onRefresh={onRefreshCharacter}
       />
 
-      {/* ── Saving Throws (from class) ── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Saving Throw Proficiencies
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {(["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"] as const).map((ability) => {
-              const isProficient = (classData?.savingThrows ?? []).includes(ability);
-              const mod = abilityModifier(final[ability]) + (isProficient ? derived.proficiencyBonus : 0);
-              const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
-              return (
-                <div
-                  key={ability}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs border ${
-                    isProficient ? "border-primary bg-primary/5" : "border-transparent bg-muted/40"
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${isProficient ? "bg-primary" : "border border-muted-foreground/40"}`} />
-                  <span className="font-medium uppercase">{ability.slice(0, 3)}</span>
-                  <span className="font-bold">{sign(mod)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Saving Throws ── */}
+      <SavingThrowsCard
+        final={final}
+        proficiencyBonus={derived.proficiencyBonus}
+        savingThrowProficiencies={character.saving_throw_proficiencies ?? []}
+        canEdit={canEdit}
+        characterId={character.id}
+        onRefresh={onRefreshCharacter}
+      />
 
       {/* ── Proficiencies & Languages ── */}
       <ProficienciesPanel
         character={character}
-        isOwn={isOwn}
+        isOwn={canEdit}
         onRefresh={onRefreshCharacter}
       />
 
@@ -249,7 +318,7 @@ export function CharacterSheet({
           <AttacksPanel
             characterId={character.id}
             attacks={attacks}
-            isOwn={isOwn}
+            isOwn={canEdit}
             onRefresh={onRefreshAttacks}
           />
         </CardContent>
@@ -267,7 +336,7 @@ export function CharacterSheet({
             slots={slots}
             expend={expend}
             recover={recover}
-            isOwn={isOwn}
+            isOwn={canEdit}
             onRefresh={onRefreshSpells}
           />
         </CardContent>
@@ -280,7 +349,7 @@ export function CharacterSheet({
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Currency
             </h4>
-            {isOwn && !editingCurrency && (
+            {canEdit && !editingCurrency && (
               <Button variant="ghost" size="sm" onClick={() => {
                 setCurrencyDraft(String(currency));
                 setEditingCurrency(true);
@@ -326,7 +395,7 @@ export function CharacterSheet({
       {/* ── Personality & Roleplay ── */}
       <PersonalityPanel
         character={character}
-        isOwn={isOwn}
+        isOwn={canEdit}
         onRefresh={onRefreshCharacter}
       />
 
