@@ -33,12 +33,13 @@ export function useLevelUp(character: CharacterWithScores) {
     setError(null);
 
     try {
+      const newLevel = character.level + 1;
       const newHpMax = (character.hp_max ?? 0) + opts.hpGain;
       const newHpCurrent = Math.min(newHpMax, (character.hp_current ?? 0) + opts.hpGain);
-      // Gain one hit die back (max = current level after DM's RPC already incremented it)
+      // Gain one hit die back, capped at the new level
       const newHitDiceCurrent = Math.min(
         (character.hit_dice_current ?? character.level - 1) + 1,
-        character.level
+        newLevel
       );
 
       // Build features_notes update if feat chosen
@@ -46,11 +47,12 @@ export function useLevelUp(character: CharacterWithScores) {
       if (opts.featName) {
         const existing = character.features_notes ?? "";
         featNotesUpdate = existing
-          ? `${existing}\n[Feat – Level ${character.level}] ${opts.featName}`
-          : `[Feat – Level ${character.level}] ${opts.featName}`;
+          ? `${existing}\n[Feat – Level ${newLevel}] ${opts.featName}`
+          : `[Feat – Level ${newLevel}] ${opts.featName}`;
       }
 
       const charUpdate: Record<string, unknown> = {
+        level: newLevel,
         hp_max: newHpMax,
         hp_current: newHpCurrent,
         hit_dice_current: newHitDiceCurrent,
@@ -78,7 +80,7 @@ export function useLevelUp(character: CharacterWithScores) {
       }
 
       // Update spell slot totals for the new level (don't reset expended)
-      const newTotals = slotsForClass(character.class, character.level);
+      const newTotals = slotsForClass(character.class, newLevel);
       for (let i = 0; i < newTotals.length; i++) {
         const total = newTotals[i];
         const spellLevel = i + 1;

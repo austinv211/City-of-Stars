@@ -28,11 +28,21 @@ export interface SessionNote {
   updated_at: string;
 }
 
+export interface EncounterStats {
+  total_damage_dealt: number;
+  total_hp_lost: number;
+  total_hp_healed: number;
+  total_crits: number;
+  total_fumbles: number;
+  monsters_defeated: number;
+}
+
 export interface PartyStats {
   id: string;
   campaign_id: string;
-  stats: Record<string, unknown>;
+  stats: Partial<EncounterStats> & Record<string, unknown>;
   updated_at: string;
+  void_alignment: number;
 }
 
 export interface CharacterCampaignStats {

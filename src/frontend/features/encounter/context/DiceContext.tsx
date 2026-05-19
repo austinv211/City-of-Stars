@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
-import type { DiceRollBroadcast } from "../types/encounter.types";
+import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
+import type { DiceRollBroadcast, ActionCategory } from "../types/encounter.types";
 
 function cryptoRoll(sides: number): number {
   const array = new Uint32Array(1);
@@ -26,6 +27,14 @@ export interface RollEntry extends DiceRollBroadcast {
   encounterId: string | null;
 }
 
+export interface ActionAnnounceOptions {
+  campaignId: string;
+  encounterId: string | null;
+  characterName: string;
+  actionText: string;
+  actionCategory: ActionCategory;
+}
+
 export interface PoolRollOptions {
   campaignId: string;
   encounterId: string | null;
@@ -40,6 +49,7 @@ export interface PoolRollOptions {
 interface DiceContextValue {
   roll: (opts: RollOptions) => void;
   rollPool: (opts: PoolRollOptions) => void;
+  announceAction: (opts: ActionAnnounceOptions) => void;
   history: RollEntry[];
   animQueue: DiceRollBroadcast[];
   shiftAnim: () => void;
@@ -110,6 +120,16 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
           roll_type: opts.rollType,
         });
       }
+
+      // Track crits and fumbles for party stats
+      if (opts.sides === 20) {
+        if (result === 20) incrementPartyStat(opts.campaignId, "total_crits", 1);
+        if (result === 1)  incrementPartyStat(opts.campaignId, "total_fumbles", 1);
+      }
+      // Track damage rolls
+      if (opts.rollType.toLowerCase().includes("dmg") || opts.rollType.toLowerCase().includes("damage")) {
+        incrementPartyStat(opts.campaignId, "total_damage_dealt", total);
+      }
     },
     [user]
   );
@@ -123,10 +143,12 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
       }));
 
       // Handle advantage/disadvantage on the single d20 (DicePoolBuilder enforces max 1d20 for this)
+      let discardedRoll: number | undefined;
       const processedResults = diceResults.map(({ sides, rolls }) => {
         if (sides === 20 && (opts.advantage || opts.disadvantage) && rolls.length === 1) {
           const second = cryptoRoll(20);
           const keep = opts.advantage ? Math.max(rolls[0], second) : Math.min(rolls[0], second);
+          discardedRoll = opts.advantage ? Math.min(rolls[0], second) : Math.max(rolls[0], second);
           return { sides, rolls: [keep], extra: second };
         }
         return { sides, rolls, extra: undefined };
@@ -147,6 +169,9 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         total,
         rollType,
         encounterId: opts.encounterId,
+        advantage: opts.advantage || undefined,
+        disadvantage: opts.disadvantage || undefined,
+        discardedRoll,
       };
 
       setHistory((prev) =>
@@ -167,16 +192,47 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
           roll_type: rollType,
         });
       }
+
+      // Track crits and fumbles from d20 results
+      const d20Entry = processedResults.find((r) => r.sides === 20);
+      if (d20Entry) {
+        const d20Result = d20Entry.rolls[0];
+        if (d20Result === 20) incrementPartyStat(opts.campaignId, "total_crits", 1);
+        if (d20Result === 1)  incrementPartyStat(opts.campaignId, "total_fumbles", 1);
+      }
+      // Track damage rolls
+      if (rollType.toLowerCase().includes("dmg") || rollType.toLowerCase().includes("damage")) {
+        incrementPartyStat(opts.campaignId, "total_damage_dealt", total);
+      }
     },
     [user]
   );
+
+  const announceAction = useCallback((opts: ActionAnnounceOptions) => {
+    const broadcast: DiceRollBroadcast = {
+      characterName: opts.characterName,
+      diceType: "",
+      result: 0,
+      modifier: 0,
+      total: 0,
+      rollType: "",
+      encounterId: opts.encounterId,
+      kind: "action",
+      actionText: opts.actionText,
+      actionCategory: opts.actionCategory,
+    };
+    setHistory((prev) =>
+      [{ ...broadcast, id: crypto.randomUUID(), ts: Date.now(), encounterId: opts.encounterId }, ...prev].slice(0, 100)
+    );
+    channelRef.current?.send({ type: "broadcast", event: "roll", payload: broadcast });
+  }, []);
 
   const shiftAnim = useCallback(() => {
     setAnimQueue((prev) => prev.slice(1));
   }, []);
 
   return (
-    <DiceContext.Provider value={{ roll, rollPool, history, animQueue, shiftAnim }}>
+    <DiceContext.Provider value={{ roll, rollPool, announceAction, history, animQueue, shiftAnim }}>
       {children}
     </DiceContext.Provider>
   );

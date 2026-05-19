@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Navigate } from "react-router";
-import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
+import { AnimatedStar } from "@/core/components/TitleBar";
 
 type Mode = "signin" | "signup";
 
@@ -74,7 +75,7 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% 40%, hsl(239 84% 67% / 0.06) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 50% 40%, hsl(var(--primary) / 0.07) 0%, transparent 70%)",
         }}
       />
 
@@ -91,14 +92,14 @@ export default function LoginPage() {
           {/* Logo + title */}
           <div className="mb-8 flex flex-col items-center gap-3 text-center">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-xl"
+              className="flex h-14 w-14 items-center justify-center rounded-2xl"
               style={{
-                background: "hsl(var(--primary) / 0.12)",
+                background: "hsl(var(--primary) / 0.10)",
                 boxShadow:
-                  "0 0 0 1px hsl(var(--primary) / 0.25), inset 0 1px 0 hsl(var(--primary) / 0.2)",
+                  "0 0 0 1px hsl(var(--primary) / 0.22), inset 0 1px 0 hsl(var(--primary) / 0.18)",
               }}
             >
-              <Shield className="h-6 w-6 text-primary" />
+              <AnimatedStar size={32} />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">City of Stars</h1>

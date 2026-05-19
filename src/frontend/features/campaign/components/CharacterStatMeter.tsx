@@ -1,6 +1,6 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar";
 import { Card, CardContent } from "@/core/components/ui/card";
-import { Progress } from "@/core/components/ui/progress";
+import { cn } from "@/lib/utils";
 import type { Character } from "@/features/characters/types/character.types";
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
 
 export function CharacterStatMeter({ character }: Props) {
   const initials = character.name.slice(0, 2).toUpperCase();
+  const voidLevel = character.will_of_void ?? 0;
 
   return (
     <Card>
@@ -27,23 +28,25 @@ export function CharacterStatMeter({ character }: Props) {
             </p>
           </div>
         </div>
-        <div className="space-y-2">
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Homebrew Stat A</span>
-              <span>—</span>
-            </div>
-            <Progress value={0} className="h-1.5" />
+
+        {/* Will of the Void gauge (0-5, read-only) */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Will of the Void</span>
+            <span className="font-medium text-foreground">{voidLevel} / 5</span>
           </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Homebrew Stat B</span>
-              <span>—</span>
-            </div>
-            <Progress value={0} className="h-1.5" />
+          <div className="flex gap-1">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "flex-1 h-2 rounded-sm",
+                  i <= voidLevel ? "bg-primary" : "bg-muted-foreground/20"
+                )}
+              />
+            ))}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground italic">Details coming soon</p>
       </CardContent>
     </Card>
   );

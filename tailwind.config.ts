@@ -40,9 +40,26 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        "accent-turn": "hsl(var(--accent-turn))",
+        ctp: {
+          rosewater: "hsl(var(--ctp-rosewater))",
+          flamingo:  "hsl(var(--ctp-flamingo))",
+          pink:      "hsl(var(--ctp-pink))",
+          mauve:     "hsl(var(--ctp-mauve))",
+          red:       "hsl(var(--ctp-red))",
+          maroon:    "hsl(var(--ctp-maroon))",
+          peach:     "hsl(var(--ctp-peach))",
+          yellow:    "hsl(var(--ctp-yellow))",
+          green:     "hsl(var(--ctp-green))",
+          teal:      "hsl(var(--ctp-teal))",
+          sky:       "hsl(var(--ctp-sky))",
+          sapphire:  "hsl(var(--ctp-sapphire))",
+          blue:      "hsl(var(--ctp-blue))",
+          lavender:  "hsl(var(--ctp-lavender))",
+        },
       },
       borderRadius: {
-        // --radius = 4px; scale up for larger containers
+        // --radius = 4px (0.25rem); flat material scale
         sm:  "var(--radius)",                   // 4px
         DEFAULT: "calc(var(--radius) + 2px)",   // 6px
         md:  "calc(var(--radius) + 2px)",       // 6px

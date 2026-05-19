@@ -1,4 +1,8 @@
-import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/core/components/ui/avatar";
 import { Badge } from "@/core/components/ui/badge";
 import { Card, CardContent } from "@/core/components/ui/card";
 import { Shield } from "lucide-react";
@@ -34,9 +38,9 @@ export function ParticipantCard({
     <Card
       className={cn(
         "cursor-pointer transition-colors",
-        isActive && "border-primary ring-1 ring-primary",
-        selected && "bg-muted/50",
-        onClick && "hover:border-primary/50"
+        selected && "bg-accent",
+        !selected && isActive && "bg-accent-turn",
+        !selected && !isActive && "hover:bg-secondary",
       )}
       onClick={onClick}
     >
@@ -45,19 +49,26 @@ export function ParticipantCard({
           <div className="relative shrink-0">
             <Avatar className="h-10 w-10">
               {participant.portrait_url && (
-                <AvatarImage src={participant.portrait_url} alt={participant.name} />
+                <AvatarImage
+                  src={participant.portrait_url}
+                  alt={participant.name}
+                />
               )}
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             {isActive && (
-              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[hsl(var(--ctp-teal))]" />
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm truncate">{participant.name}</span>
+              <span className="font-semibold text-sm truncate">
+                {participant.name}
+              </span>
               {!participant.is_player && (
-                <Badge variant="outline" className="text-xs">NPC</Badge>
+                <Badge variant="outline" className="text-xs">
+                  NPC
+                </Badge>
               )}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">

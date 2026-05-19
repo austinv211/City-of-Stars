@@ -47,6 +47,11 @@ export function CharacterCard({ character, isOwn }: Props) {
             <Badge variant={STATUS_VARIANT[character.status] ?? "secondary"} className="text-xs capitalize">
               {character.status}
             </Badge>
+            {character.level_up_pending && (
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-yellow-500 text-black animate-pulse">
+                Level Up! →
+              </span>
+            )}
           </div>
           <p className="text-sm text-muted-foreground truncate mt-0.5">
             {character.species} {character.class}

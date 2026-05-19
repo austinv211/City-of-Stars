@@ -64,6 +64,8 @@ export interface DiceRoll {
   created_at: string;
 }
 
+export type ActionCategory = "action" | "bonus" | "reaction" | "free";
+
 export interface DiceRollBroadcast {
   characterName: string;
   diceType: string;
@@ -72,4 +74,11 @@ export interface DiceRollBroadcast {
   total: number;
   rollType: string;
   encounterId?: string | null;
+  advantage?: boolean;
+  disadvantage?: boolean;
+  discardedRoll?: number;
+  // Action announcement fields (kind === "action" means no dice were rolled)
+  kind?: "action";
+  actionText?: string;
+  actionCategory?: ActionCategory;
 }

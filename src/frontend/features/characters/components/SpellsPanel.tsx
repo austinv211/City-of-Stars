@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/core/components/ui/separator";
 import { Plus, Trash2, Wand2, Search, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { searchSpells, getSpell } from "@/lib/dnd5eApi";
-import type { DndSpellSummary } from "@/lib/dnd5eApi";
+import { searchSpells, getSpell, searchLocalSpells } from "@/lib/dnd5eApi";
+import type { DndSpellSummary, SrdSpell } from "@/lib/dnd5eApi";
 import type { CharacterSpell, CharacterSpellSlot } from "../types/character.types";
 
 interface Props {
@@ -54,6 +54,7 @@ interface SpellDraft {
   description: string;
   damage_type: string;
   attack_type: string;
+  damage_dice: string;
 }
 
 const BLANK_DRAFT: SpellDraft = {
@@ -69,6 +70,7 @@ const BLANK_DRAFT: SpellDraft = {
   description: "",
   damage_type: "",
   attack_type: "",
+  damage_dice: "",
 };
 
 function SpellRow({
@@ -164,8 +166,9 @@ export function SpellsPanel({
   const [draft, setDraft] = useState<SpellDraft>(BLANK_DRAFT);
   const [saving, setSaving] = useState(false);
 
-  // API search state
+  // Search state — local SRD DB preferred, external API as fallback
   const [query, setQuery] = useState("");
+  const [localResults, setLocalResults] = useState<SrdSpell[]>([]);
   const [apiResults, setApiResults] = useState<DndSpellSummary[]>([]);
   const [searching, setSearching] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -176,16 +179,23 @@ export function SpellsPanel({
   const [abilityDraft, setAbilityDraft] = useState(spellcastingAbility ?? "");
 
   useEffect(() => {
-    if (!open) { setQuery(""); setApiResults([]); }
+    if (!open) { setQuery(""); setLocalResults([]); setApiResults([]); }
   }, [open]);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (!query.trim()) { setApiResults([]); return; }
+    if (!query.trim()) { setLocalResults([]); setApiResults([]); return; }
     timer.current = setTimeout(async () => {
       setSearching(true);
-      const res = await searchSpells(query);
-      setApiResults(res.slice(0, 15));
+      const local = await searchLocalSpells(query);
+      if (local.length > 0) {
+        setLocalResults(local.slice(0, 15));
+        setApiResults([]);
+      } else {
+        setLocalResults([]);
+        const res = await searchSpells(query);
+        setApiResults(res.slice(0, 15));
+      }
       setSearching(false);
     }, 400);
     return () => { if (timer.current) clearTimeout(timer.current); };
@@ -195,14 +205,38 @@ export function SpellsPanel({
     setDraft((d) => ({ ...d, [field]: value }));
   }
 
+  function pickLocalSpell(s: SrdSpell) {
+    setDraft({
+      name: s.name,
+      level: s.level ?? 0,
+      school: s.school ?? "",
+      is_prepared: false,
+      is_ritual: s.ritual,
+      concentration: s.concentration,
+      casting_time: s.casting_time ?? "",
+      range_text: s.range_text ?? "",
+      components: s.components?.join(", ") ?? "",
+      description: s.description ?? "",
+      damage_type: s.damage_type ?? "",
+      attack_type: s.attack_type ?? "",
+      damage_dice: s.damage_dice ?? "",
+    });
+    setQuery("");
+    setLocalResults([]);
+  }
+
   async function pickApiSpell(summary: DndSpellSummary) {
     const s = await getSpell(summary.index);
     if (!s) return;
+    const baseDamageDice =
+      s.level === 0
+        ? (s.damage?.damage_at_character_level?.["1"] ?? "")
+        : (s.damage?.damage_at_slot_level?.[String(s.level)] ?? "");
     setDraft({
       name: s.name,
       level: s.level,
       school: s.school?.name ?? "",
-      is_prepared: s.level === 0 ? false : false,
+      is_prepared: false,
       is_ritual: s.ritual,
       concentration: s.concentration,
       casting_time: s.casting_time,
@@ -211,6 +245,7 @@ export function SpellsPanel({
       description: s.desc?.join("\n\n") ?? "",
       damage_type: s.damage?.damage_type?.name ?? "",
       attack_type: s.attack_type ?? "",
+      damage_dice: baseDamageDice,
     });
     setQuery("");
     setApiResults([]);
@@ -235,6 +270,7 @@ export function SpellsPanel({
       description: draft.description || null,
       damage_type: draft.damage_type || null,
       attack_type: draft.attack_type || null,
+      damage_dice: draft.damage_dice || null,
     });
     setSaving(false);
     setOpen(false);
@@ -456,8 +492,20 @@ export function SpellsPanel({
                 )}
               </div>
 
-              {apiResults.length > 0 && (
+              {(localResults.length > 0 || apiResults.length > 0) && (
                 <div className="border rounded-md divide-y max-h-52 overflow-y-auto">
+                  {localResults.map((s) => (
+                    <button
+                      key={s.index}
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 flex items-center justify-between"
+                      onClick={() => pickLocalSpell(s)}
+                    >
+                      <span className="text-sm font-medium">{s.name}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {s.level === 0 ? "Cantrip" : `Level ${s.level}`}
+                      </Badge>
+                    </button>
+                  ))}
                   {apiResults.map((s) => (
                     <button
                       key={s.index}
@@ -485,6 +533,7 @@ export function SpellsPanel({
                     {draft.range_text && <p>Range: {draft.range_text}</p>}
                     {draft.damage_type && <p>Damage: {draft.damage_type}</p>}
                     {draft.attack_type && <p>Attack: {draft.attack_type}</p>}
+                    {draft.damage_dice && <p className="text-primary font-medium">Dice: {draft.damage_dice}</p>}
                   </div>
                   {draft.level > 0 && (
                     <div className="flex items-center gap-2 mt-1">
@@ -567,6 +616,25 @@ export function SpellsPanel({
                   onChange={(e) => set("components", e.target.value)}
                   placeholder="V, S, M (e.g. V, S)"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Damage Dice</Label>
+                  <Input
+                    value={draft.damage_dice}
+                    onChange={(e) => set("damage_dice", e.target.value)}
+                    placeholder="e.g. 1d10, 8d6"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Damage Type</Label>
+                  <Input
+                    value={draft.damage_type}
+                    onChange={(e) => set("damage_type", e.target.value)}
+                    placeholder="e.g. fire, force"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-4">

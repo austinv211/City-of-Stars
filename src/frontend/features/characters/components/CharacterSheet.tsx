@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
+import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Separator } from "@/core/components/ui/separator";
 import { AbilityScoreBlock } from "./AbilityScoreBlock";
@@ -45,6 +46,16 @@ export function CharacterSheet({
   const [editingCurrency, setEditingCurrency] = useState(false);
   const [currencyDraft, setCurrencyDraft] = useState(String(character.currency_dollars));
   const [levelUpOpen, setLevelUpOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+
+  // Auto-open the wizard when level_up_pending becomes true for the owner.
+  // Runs on mount (catches initial DB state) and on realtime updates.
+  // Does not re-open if the user closes without finishing — deps only fire on a value change.
+  useEffect(() => {
+    if (character.level_up_pending && isOwn) {
+      setLevelUpOpen(true);
+    }
+  }, [character.level_up_pending, isOwn]);
 
   const { slots, expend, recover, longRest: slotsLongRest } = useSpellSlots(
     character.id, character.class, character.level
@@ -142,6 +153,14 @@ export function CharacterSheet({
               Stats locked — campaign in progress
             </p>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2 h-7 text-xs"
+            onClick={() => setRulesOpen(true)}
+          >
+            Rules Reference
+          </Button>
         </div>
       </div>
 
@@ -329,6 +348,8 @@ export function CharacterSheet({
           onDone={() => { setLevelUpOpen(false); onRefreshCharacter(); }}
         />
       )}
+
+      <RulesLookup open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>
   );
 }

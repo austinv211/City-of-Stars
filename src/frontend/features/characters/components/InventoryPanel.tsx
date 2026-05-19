@@ -220,10 +220,11 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[88vh]">
           <DialogHeader>
             <DialogTitle>Add Item</DialogTitle>
           </DialogHeader>
+          <div className="flex-1 overflow-y-auto min-h-0">
           <Tabs defaultValue="search">
             <TabsList className="w-full">
               <TabsTrigger value="search" className="flex-1">
@@ -247,16 +248,16 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
               </div>
 
               {hasResults && (
-                <div className="border rounded-md divide-y max-h-52 overflow-y-auto">
+                <div className="rounded-md bg-secondary divide-y divide-border/30 max-h-52 overflow-y-auto">
                   {campaignResults.length > 0 && (
                     <>
-                      <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/40">
+                      <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                         Campaign Items
                       </p>
                       {campaignResults.map((item) => (
                         <button
                           key={item.id}
-                          className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+                          className="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
                           onClick={() => selectCampaignItem(item)}
                         >
                           <p className="text-sm font-medium">{item.item_name}</p>
@@ -269,13 +270,13 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
                   )}
                   {dndResults.length > 0 && (
                     <>
-                      <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/40">
+                      <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                         D&D 5e (2024)
                       </p>
                       {dndResults.map((item) => (
                         <button
                           key={item.index}
-                          className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+                          className="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
                           onClick={() => selectDndItem(item)}
                         >
                           <p className="text-sm font-medium">{item.name}</p>
@@ -287,7 +288,7 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
               )}
 
               {form.item_name && (
-                <div className="border rounded-md p-3 space-y-3 bg-muted/20">
+                <div className="rounded-md p-3 space-y-3 bg-secondary">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Selected: {form.item_name}
                   </p>
@@ -359,6 +360,7 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
               </div>
             </TabsContent>
           </Tabs>
+          </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

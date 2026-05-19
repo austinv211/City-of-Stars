@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
 import type { EncounterParticipant, MonsterAction, MonsterSpecialAbility } from "../types/encounter.types";
 
 function parseJsonArray<T>(val: unknown): T[] | null {
@@ -20,7 +21,7 @@ function normalizeParticipant(raw: unknown): EncounterParticipant {
   };
 }
 
-export function useEncounterParticipants(encounterId: string | null) {
+export function useEncounterParticipants(encounterId: string | null, campaignId?: string) {
   const [participants, setParticipants] = useState<EncounterParticipant[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,6 +97,18 @@ export function useEncounterParticipants(encounterId: string | null) {
         .from("characters")
         .update({ hp_current: newHp })
         .eq("id", p.character_id);
+    }
+    // Track HP changes for party stats
+    if (campaignId) {
+      if (delta < 0) {
+        incrementPartyStat(campaignId, "total_hp_lost", Math.abs(delta));
+        // Count monster defeat if NPC HP hits 0
+        if (!p.is_player && newHp === 0) {
+          incrementPartyStat(campaignId, "monsters_defeated", 1);
+        }
+      } else if (delta > 0) {
+        incrementPartyStat(campaignId, "total_hp_healed", delta);
+      }
     }
   }
 

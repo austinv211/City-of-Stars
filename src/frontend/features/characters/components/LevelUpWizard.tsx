@@ -8,8 +8,29 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/core/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/core/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/core/components/ui/select";
 import { Separator } from "@/core/components/ui/separator";
-import { getClassLevel, getFeats } from "@/lib/dnd5eApi";
+import {
+  getClassLevel,
+  getFeats,
+  getLocalClassFeatures,
+  getLocalFeats,
+  getClassFeatureDetails,
+  getSrdClass,
+  type SrdFeatureDetail,
+  type SrdClass,
+} from "@/lib/dnd5eApi";
 import { isAsiLevel, useLevelUp } from "../hooks/useLevelUp";
 import { abilityModifier, finalAbilityScores } from "../types/character.types";
 import { CLASSES } from "../data/dnd2024.constants";
@@ -38,10 +59,135 @@ const ABILITIES: AbilityName[] = [
 
 type AsiMode = "+2" | "+1+1" | "feat";
 
+const SLOT_LEVEL_LABELS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"];
+
+// ── Feature popover ────────────────────────────────────────────────────────
+
+function FeatureItem({
+  name,
+  detailMap,
+}: {
+  name: string;
+  detailMap: Map<string, SrdFeatureDetail>;
+}) {
+  const detail = detailMap.get(name.toLowerCase());
+  if (!detail) {
+    return (
+      <li className="flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+        <span className="text-sm font-medium">{name}</span>
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex items-center gap-2">
+      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-0.5" />
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="text-sm font-medium text-left hover:text-primary hover:underline underline-offset-2 transition-colors"
+          >
+            {name}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 max-h-72 overflow-y-auto text-xs leading-relaxed space-y-1 p-3">
+          <p className="font-semibold text-sm mb-1">{name}</p>
+          <p className="whitespace-pre-wrap text-muted-foreground">{detail.description}</p>
+        </PopoverContent>
+      </Popover>
+    </li>
+  );
+}
+
+// ── Spell slot grid ────────────────────────────────────────────────────────
+
+function SpellSlotGrid({ srdClass, level }: { srdClass: SrdClass; level: number }) {
+  const slots = srdClass.spell_slots_by_level?.[level - 1];
+  if (!slots) return null;
+  const hasAny = slots.some((s) => s > 0);
+  if (!hasAny) return null;
+
+  return (
+    <div className="mt-3 rounded-md bg-muted/40 p-3">
+      <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+        Spell Slots at Level {level}
+        {srdClass.spellcasting_ability && (
+          <span className="ml-2 font-normal normal-case">
+            ({srdClass.spellcasting_ability})
+          </span>
+        )}
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {slots.map((count, i) =>
+          count > 0 ? (
+            <div
+              key={i}
+              className="flex flex-col items-center rounded border bg-card px-2 py-1 min-w-[36px]"
+            >
+              <span className="text-[10px] text-muted-foreground leading-none">{SLOT_LEVEL_LABELS[i]}</span>
+              <span className="text-base font-bold leading-tight">{count}</span>
+            </div>
+          ) : null
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Feat detail popover ────────────────────────────────────────────────────
+
+function FeatSelect({
+  featList,
+  value,
+  onChange,
+}: {
+  featList: { index: string; name: string; description?: string; prerequisite?: string | null; category?: string | null }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const selected = featList.find((f) => f.name === value);
+
+  return (
+    <div className="space-y-2">
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="— Select a feat —" />
+        </SelectTrigger>
+        <SelectContent className="max-h-64">
+          {featList.map((f) => (
+            <SelectItem key={f.index} value={f.name}>
+              {f.name}
+              {f.prerequisite ? ` (Req: ${f.prerequisite})` : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {selected?.description && (
+        <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto">
+          {selected.category && (
+            <span className="font-semibold text-foreground mr-1">{selected.category} Feat.</span>
+          )}
+          {selected.prerequisite && (
+            <span className="text-amber-600 dark:text-amber-400 mr-1">
+              Prerequisite: {selected.prerequisite}.
+            </span>
+          )}
+          <span className="whitespace-pre-wrap">{selected.description}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main wizard ────────────────────────────────────────────────────────────
+
 export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
   const { commitLevelUp, loading, error } = useLevelUp(character);
 
-  // ── Derived constants ──────────────────────────────────────────────────────
+  const targetLevel = character.level + 1;
+
   const classData = CLASSES.find((c) => c.name === character.class);
   const hitDie = classData?.hitDie ?? 8;
   const scores = character.ability_scores;
@@ -50,18 +196,19 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
   const conMod = abilityModifier(final.constitution);
   const avgHp = Math.floor(hitDie / 2) + 1 + conMod;
 
-  const hasAsi = isAsiLevel(character.class, character.level);
-  // Steps: 0=features, 1=ASI (if applicable), 2=HP, 3=confirm
+  const hasAsi = isAsiLevel(character.class, targetLevel);
   const steps = hasAsi ? [0, 1, 2, 3] : [0, 2, 3];
   const [stepIndex, setStepIndex] = useState(0);
   const step = steps[stepIndex];
 
-  // ── API state ──────────────────────────────────────────────────────────────
+  // API/DB data
   const [features, setFeatures] = useState<{ name: string; index: string }[]>([]);
-  const [featList, setFeatList] = useState<{ index: string; name: string }[]>([]);
+  const [featDetailMap, setFeatDetailMap] = useState<Map<string, SrdFeatureDetail>>(new Map());
+  const [featList, setFeatList] = useState<{ index: string; name: string; description?: string; prerequisite?: string | null; category?: string | null }[]>([]);
+  const [srdClass, setSrdClass] = useState<SrdClass | null>(null);
   const [loadingApi, setLoadingApi] = useState(false);
 
-  // ── Choices ────────────────────────────────────────────────────────────────
+  // Choices
   const [asiMode, setAsiMode] = useState<AsiMode>("+2");
   const [asiSingle, setAsiSingle] = useState<AbilityName>("strength");
   const [asiA, setAsiA] = useState<AbilityName>("strength");
@@ -81,16 +228,49 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
   useEffect(() => {
     if (!open) return;
     setLoadingApi(true);
-    const classIndex = character.class.toLowerCase();
-    Promise.all([
-      getClassLevel(classIndex, character.level),
-      hasAsi ? getFeats() : Promise.resolve([]),
-    ]).then(([levelData, feats]) => {
-      setFeatures(levelData?.features ?? []);
-      setFeatList(feats as { index: string; name: string }[]);
-      setLoadingApi(false);
-    });
-  }, [open, character.class, character.level, hasAsi]);
+
+    async function loadAll() {
+      // Features for the level being gained
+      const localFeatures = await getLocalClassFeatures(character.class, targetLevel);
+      if (localFeatures.length > 0) {
+        setFeatures(localFeatures);
+      } else {
+        const levelData = await getClassLevel(character.class.toLowerCase(), targetLevel);
+        setFeatures(levelData?.features ?? []);
+      }
+
+      // All feature descriptions for this class (to populate popovers)
+      const details = await getClassFeatureDetails(character.class);
+      const map = new Map<string, SrdFeatureDetail>();
+      for (const d of details) {
+        map.set(d.feature_name.toLowerCase(), d);
+      }
+      setFeatDetailMap(map);
+
+      // Spell slot data
+      const cls = await getSrdClass(character.class);
+      setSrdClass(cls);
+
+      // Feats (if ASI level)
+      if (hasAsi) {
+        const localFeats = await getLocalFeats();
+        if (localFeats.length > 0) {
+          setFeatList(localFeats.map((f) => ({
+            index: f.index,
+            name: f.name,
+            description: f.description,
+            prerequisite: f.prerequisite,
+            category: f.category,
+          })));
+        } else {
+          const apiFeats = await getFeats();
+          setFeatList(apiFeats as { index: string; name: string }[]);
+        }
+      }
+    }
+
+    loadAll().finally(() => setLoadingApi(false));
+  }, [open, character.class, targetLevel, hasAsi]);
 
   function rollHitDie() {
     const roll = Math.floor(Math.random() * hitDie) + 1;
@@ -125,9 +305,7 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
       if (asiMode === "+2") return final[asiSingle] < 20;
       return true;
     }
-    if (step === 2) {
-      return hpMethod === "average" || rolledHp !== null;
-    }
+    if (step === 2) return hpMethod === "average" || rolledHp !== null;
     return true;
   };
 
@@ -135,13 +313,15 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Level Up — Level {character.level}
+            Level Up — Level {targetLevel}
             <Badge variant="secondary" className="text-xs">{character.class}</Badge>
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto min-h-0 -mx-6 px-6">
 
         <div className="text-xs text-muted-foreground mb-1">
           Step {stepIndex + 1} of {steps.length}
@@ -151,23 +331,29 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
         {/* ── Step 0 — Features Gained ──────────────────────────────────────── */}
         {step === 0 && (
           <div className="space-y-3">
-            <h3 className="font-semibold">New Features at Level {character.level}</h3>
+            <h3 className="font-semibold">New Features at Level {targetLevel}</h3>
             {loadingApi ? (
               <p className="text-sm text-muted-foreground italic">Loading features…</p>
             ) : features.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No new features this level (or API unavailable).</p>
+              <p className="text-sm text-muted-foreground italic">
+                No new features this level (or SRD data not yet imported — run{" "}
+                <code className="bg-muted px-1 rounded text-xs">node scripts/parse-srd.mjs</code>).
+              </p>
             ) : (
-              <ul className="space-y-1.5">
+              <ul className="space-y-2">
                 {features.map((f) => (
-                  <li key={f.index} className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                    <span className="text-sm font-medium">{f.name}</span>
-                  </li>
+                  <FeatureItem key={f.index} name={f.name} detailMap={featDetailMap} />
                 ))}
               </ul>
             )}
-            <p className="text-xs text-muted-foreground">
-              Add feature details to your Features &amp; Traits section after leveling up.
+
+            {/* Spell slot progression for spellcasting classes */}
+            {srdClass?.is_spellcaster && (
+              <SpellSlotGrid srdClass={srdClass} level={targetLevel} />
+            )}
+
+            <p className="text-xs text-muted-foreground pt-1">
+              Click any feature name to read its description.
             </p>
           </div>
         )}
@@ -284,20 +470,8 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
                 {loadingApi ? (
                   <p className="text-sm italic text-muted-foreground">Loading feats…</p>
                 ) : (
-                  <select
-                    className="w-full rounded-md border bg-background px-3 py-1.5 text-sm"
-                    value={featChoice}
-                    onChange={(e) => setFeatChoice(e.target.value)}
-                  >
-                    <option value="">— Select a feat —</option>
-                    {featList.map((f) => (
-                      <option key={f.index} value={f.name}>{f.name}</option>
-                    ))}
-                  </select>
+                  <FeatSelect featList={featList} value={featChoice} onChange={setFeatChoice} />
                 )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  The feat name will be added to your Features &amp; Traits notes.
-                </p>
               </div>
             )}
           </div>
@@ -358,7 +532,7 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
             <div className="rounded-md bg-muted/40 p-3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Level</span>
-                <span className="font-semibold">{character.level - 1} → {character.level}</span>
+                <span className="font-semibold">{character.level} → {targetLevel}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">HP Max</span>
@@ -397,6 +571,8 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
           </div>
         )}
 
+        </div>
+
         <DialogFooter className="mt-4 gap-2">
           {stepIndex > 0 && (
             <Button variant="outline" onClick={() => setStepIndex((i) => i - 1)}>
@@ -404,17 +580,11 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
             </Button>
           )}
           {stepIndex < steps.length - 1 ? (
-            <Button
-              disabled={!canNext()}
-              onClick={() => setStepIndex((i) => i + 1)}
-            >
+            <Button disabled={!canNext()} onClick={() => setStepIndex((i) => i + 1)}>
               Next
             </Button>
           ) : (
-            <Button
-              disabled={loading || !canNext()}
-              onClick={finish}
-            >
+            <Button disabled={loading || !canNext()} onClick={finish}>
               {loading ? "Applying…" : "Apply Level Up"}
             </Button>
           )}

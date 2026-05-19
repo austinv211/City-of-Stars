@@ -119,6 +119,7 @@ export interface CharacterSpell {
   description: string | null;
   damage_type: string | null;
   attack_type: string | null;
+  damage_dice: string | null;
 }
 
 export interface CharacterWithScores extends Character {

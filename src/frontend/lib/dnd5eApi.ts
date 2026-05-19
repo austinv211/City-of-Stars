@@ -317,6 +317,278 @@ export async function getFeats(): Promise<{ index: string; name: string }[]> {
   return data?.results ?? [];
 }
 
+// ── Local SRD queries (Supabase DB — populated by scripts/parse-srd.mjs) ──────
+// These are preferred over the external API when available.
+
+import { supabase } from "@/lib/supabase";
+
+export interface SrdClassFeatureRow {
+  class_name: string;
+  level: number;
+  feature_name: string;
+}
+
+export interface SrdSpell {
+  index: string;
+  name: string;
+  level: number;
+  school: string | null;
+  casting_time: string | null;
+  range_text: string | null;
+  components: string[] | null;
+  duration: string | null;
+  concentration: boolean;
+  ritual: boolean;
+  description: string | null;
+  damage_type: string | null;
+  damage_dice: string | null;
+  classes: string[] | null;
+  attack_type: string | null;
+}
+
+export interface SrdFeat {
+  index: string;
+  name: string;
+  category: string | null;
+  prerequisite: string | null;
+  description: string;
+}
+
+/** Returns class features for a specific class + level from local SRD DB.
+ *  Falls back gracefully to empty array if table not populated yet. */
+export async function getLocalClassFeatures(
+  className: string,
+  level: number
+): Promise<{ name: string; index: string }[]> {
+  try {
+    const { data, error } = await supabase
+      .from("srd_class_features")
+      .select("feature_name")
+      .eq("class_name", className)
+      .eq("level", level);
+    if (error || !data?.length) return [];
+    return data.map((r: { feature_name: string }) => ({
+      name: r.feature_name,
+      index: r.feature_name.toLowerCase().replace(/\s+/g, "-"),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Get a single SRD spell by exact index. Returns null if not found. */
+export async function getLocalSpell(index: string): Promise<SrdSpell | null> {
+  try {
+    const { data } = await supabase
+      .from("srd_spells")
+      .select("*")
+      .eq("index", index)
+      .maybeSingle();
+    return (data as SrdSpell) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Search local SRD spells by name. Falls back to empty array if not populated. */
+export async function searchLocalSpells(query: string): Promise<SrdSpell[]> {
+  if (!query.trim()) return [];
+  try {
+    const { data } = await supabase
+      .from("srd_spells")
+      .select("*")
+      .ilike("name", `%${query.trim()}%`)
+      .order("level", { ascending: true })
+      .order("name", { ascending: true })
+      .limit(20);
+    return (data as SrdSpell[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Get all feats from local SRD DB. Falls back to empty array. */
+export async function getLocalFeats(): Promise<SrdFeat[]> {
+  try {
+    const { data } = await supabase
+      .from("srd_feats")
+      .select("*")
+      .order("name", { ascending: true });
+    return (data as SrdFeat[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getFeat(index: string): Promise<DndFeat | null> {
   return apiFetch<DndFeat>(`/feats/${index}`);
+}
+
+// ── srd_classes ────────────────────────────────────────────────────────────
+
+export interface SrdClass {
+  index: string;
+  name: string;
+  hit_die: number;
+  primary_ability: string;
+  saving_throws: string[];
+  skill_count: number;
+  skill_choices: string[];
+  weapon_proficiencies: string | null;
+  armor_proficiencies: string | null;
+  starting_equipment: string | null;
+  subclasses: string[];
+  is_spellcaster: boolean;
+  spellcasting_ability: string | null;
+  /** 20-element array, each element = 9-element array [slot_lvl_1..9] */
+  spell_slots_by_level: number[][] | null;
+}
+
+export async function getSrdClasses(): Promise<SrdClass[]> {
+  try {
+    const { data } = await supabase
+      .from("srd_classes")
+      .select("*")
+      .order("name", { ascending: true });
+    return (data as SrdClass[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getSrdClass(name: string): Promise<SrdClass | null> {
+  try {
+    const { data } = await supabase
+      .from("srd_classes")
+      .select("*")
+      .ilike("name", name)
+      .maybeSingle();
+    return (data as SrdClass) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Returns the 9-element spell slot array for a class at a given level (1-indexed). */
+export async function getSpellSlotsForLevel(
+  className: string,
+  level: number
+): Promise<number[] | null> {
+  const cls = await getSrdClass(className);
+  if (!cls?.spell_slots_by_level) return null;
+  return cls.spell_slots_by_level[level - 1] ?? null;
+}
+
+// ── srd_backgrounds ────────────────────────────────────────────────────────
+
+export interface SrdBackground {
+  index: string;
+  name: string;
+  ability_scores: string[];
+  feat: string | null;
+  skill_proficiencies: string[];
+  tool_proficiency: string | null;
+  equipment_description: string | null;
+}
+
+export async function getSrdBackgrounds(): Promise<SrdBackground[]> {
+  try {
+    const { data } = await supabase
+      .from("srd_backgrounds")
+      .select("*")
+      .order("name", { ascending: true });
+    return (data as SrdBackground[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getSrdBackground(name: string): Promise<SrdBackground | null> {
+  try {
+    const { data } = await supabase
+      .from("srd_backgrounds")
+      .select("*")
+      .ilike("name", name)
+      .maybeSingle();
+    return (data as SrdBackground) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── srd_feature_details ────────────────────────────────────────────────────
+
+export interface SrdFeatureDetail {
+  class_name: string;
+  feature_name: string;
+  level: number | null;
+  description: string;
+}
+
+export async function getFeatureDescription(
+  className: string,
+  featureName: string
+): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("srd_feature_details")
+      .select("description")
+      .ilike("class_name", className)
+      .ilike("feature_name", featureName)
+      .maybeSingle();
+    return (data as { description: string } | null)?.description ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getClassFeatureDetails(className: string): Promise<SrdFeatureDetail[]> {
+  try {
+    const { data } = await supabase
+      .from("srd_feature_details")
+      .select("class_name, feature_name, level, description")
+      .ilike("class_name", className)
+      .order("level", { ascending: true });
+    return (data as SrdFeatureDetail[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// ── srd_rules (glossary) ───────────────────────────────────────────────────
+
+export interface SrdRule {
+  id: string;
+  category: string;
+  title: string;
+  content: string;
+}
+
+export async function searchRulesGlossary(query: string): Promise<SrdRule[]> {
+  if (!query.trim()) return [];
+  try {
+    const { data } = await supabase
+      .from("srd_rules")
+      .select("id, category, title, content")
+      .or(`title.ilike.%${query.trim()}%,content.ilike.%${query.trim()}%`)
+      .order("title", { ascending: true })
+      .limit(25);
+    return (data as SrdRule[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getRulesGlossaryByCategory(category?: string): Promise<SrdRule[]> {
+  try {
+    let q = supabase
+      .from("srd_rules")
+      .select("id, category, title, content")
+      .order("title", { ascending: true });
+    if (category) q = q.eq("category", category);
+    const { data } = await q;
+    return (data as SrdRule[]) ?? [];
+  } catch {
+    return [];
+  }
 }

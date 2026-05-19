@@ -20,3 +20,15 @@ Thumbs.db
 
 # Tauri generated
 src/tauri/gen/
+
+# Claude Code — project-specific AI tool state (may contain project refs or local paths)
+.mcp.json
+.claude/
+.agents/
+skills-lock.json
+
+# Personal developer notes
+progress_notes.md
+
+# SRD markdown source files — content is parsed into the database
+docs/rules/

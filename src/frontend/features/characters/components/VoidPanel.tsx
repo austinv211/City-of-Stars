@@ -51,7 +51,7 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
   const [confirmAbility, setConfirmAbility] = useState<VoidAbility | null>(null);
 
   async function saveLevel(newLevel: number) {
-    const clamped = Math.max(0, Math.min(10, newLevel));
+    const clamped = Math.max(0, Math.min(5, newLevel));
     const oldLevel = level;
     setLevel(clamped);
     await supabase.from("characters").update({ will_of_void: clamped }).eq("id", character.id);
@@ -75,7 +75,7 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
 
   async function useAbility(ability: VoidAbility) {
     setConfirmAbility(null);
-    const newLevel = Math.max(0, level - ability.cost);
+    const newLevel = Math.min(5, level + ability.cost);
     await saveLevel(newLevel);
   }
 
@@ -94,7 +94,7 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold">
-                Level: <span className="text-primary">{level}</span> / 10
+                Level: <span className="text-primary">{level}</span> / 5
               </p>
               {isDM && (
                 <Button
@@ -108,7 +108,7 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
               )}
             </div>
             <div className="flex gap-1 flex-wrap">
-              {Array.from({ length: 11 }, (_, i) => (
+              {Array.from({ length: 6 }, (_, i) => (
                 <button
                   key={i}
                   type="button"
@@ -153,7 +153,7 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
                       size="sm"
                       variant="outline"
                       className="h-6 text-xs shrink-0"
-                      disabled={level < ability.cost}
+                      disabled={level >= 5}
                       onClick={() =>
                         ability.cost >= 2
                           ? setConfirmAbility(ability)
@@ -220,8 +220,8 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
             <DialogTitle>Use {confirmAbility?.name}?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will spend <strong>{confirmAbility?.cost} points</strong> of Will of the Void
-            (current: {level}, new: {level - (confirmAbility?.cost ?? 0)}).
+            This will add <strong>{confirmAbility?.cost} point{(confirmAbility?.cost ?? 1) !== 1 ? "s" : ""}</strong> to Will of the Void
+            (current: {level}, new: {Math.min(5, level + (confirmAbility?.cost ?? 0))}).
           </p>
           <p className="text-sm">{confirmAbility?.desc}</p>
           <DialogFooter>

@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Label } from "@/core/components/ui/label";
 import { Textarea } from "@/core/components/ui/textarea";
+import { Badge } from "@/core/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -9,6 +11,7 @@ import {
   SelectValue,
 } from "@/core/components/ui/select";
 import { BACKGROUNDS, ALIGNMENTS } from "../../data/dnd2024.constants";
+import { getSrdBackground, type SrdBackground } from "@/lib/dnd5eApi";
 import type { WizardState, WizardAction, AbilityName } from "../../types/character.types";
 
 const ABILITY_LABELS: Record<AbilityName, string> = {
@@ -28,6 +31,13 @@ interface Props {
 
 export function Step2_Background({ state, dispatch, onNext }: Props) {
   const bg = BACKGROUNDS.find((b) => b.name === state.background);
+  const [srdBg, setSrdBg] = useState<SrdBackground | null>(null);
+
+  // Load SRD data for the selected background
+  useEffect(() => {
+    if (!state.background) { setSrdBg(null); return; }
+    getSrdBackground(state.background).then(setSrdBg).catch(() => setSrdBg(null));
+  }, [state.background]);
 
   const primaryOptions = bg?.primaryOptions ?? [];
   const secondaryOptions = (bg?.secondaryOptions ?? []).filter(
@@ -78,12 +88,64 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
             ))}
           </SelectContent>
         </Select>
-        {bg && (
-          <p className="text-xs text-muted-foreground">
-            Grants +2 and +1 to abilities you choose below
-          </p>
-        )}
       </div>
+
+      {/* SRD background detail card */}
+      {bg && (
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-xs text-muted-foreground font-medium w-20 shrink-0">Ability Scores</span>
+            <div className="flex flex-wrap gap-1">
+              {(srdBg?.ability_scores ?? bg.primaryOptions.map(
+                (a) => ABILITY_LABELS[a]
+              )).map((a) => (
+                <Badge key={a} variant="secondary" className="text-xs">{a}</Badge>
+              ))}
+              {!srdBg && (
+                <span className="text-xs text-muted-foreground">(+2 and +1 choices below)</span>
+              )}
+            </div>
+          </div>
+
+          {srdBg?.feat && (
+            <div className="flex flex-wrap gap-1.5 items-start">
+              <span className="text-xs text-muted-foreground font-medium w-20 shrink-0 pt-0.5">Origin Feat</span>
+              <Badge variant="outline" className="text-xs font-normal">{srdBg.feat}</Badge>
+            </div>
+          )}
+
+          {srdBg?.skill_proficiencies && srdBg.skill_proficiencies.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 items-start">
+              <span className="text-xs text-muted-foreground font-medium w-20 shrink-0 pt-0.5">Skills</span>
+              <div className="flex flex-wrap gap-1">
+                {srdBg.skill_proficiencies.map((s) => (
+                  <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {srdBg?.tool_proficiency && (
+            <div className="flex flex-wrap gap-1.5 items-start">
+              <span className="text-xs text-muted-foreground font-medium w-20 shrink-0 pt-0.5">Tool</span>
+              <span className="text-xs">{srdBg.tool_proficiency}</span>
+            </div>
+          )}
+
+          {srdBg?.equipment_description && (
+            <div className="flex flex-wrap gap-1.5 items-start">
+              <span className="text-xs text-muted-foreground font-medium w-20 shrink-0 pt-0.5">Equipment</span>
+              <span className="text-xs text-muted-foreground leading-relaxed">{srdBg.equipment_description}</span>
+            </div>
+          )}
+
+          {!srdBg && (
+            <p className="text-xs text-muted-foreground italic">
+              Run <code className="bg-muted px-1 rounded">node scripts/parse-srd.mjs</code> to load full background details.
+            </p>
+          )}
+        </div>
+      )}
 
       {bg && (
         <div className="grid grid-cols-2 gap-4">
@@ -135,9 +197,7 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
           </SelectTrigger>
           <SelectContent>
             {ALIGNMENTS.map((a) => (
-              <SelectItem key={a} value={a}>
-                {a}
-              </SelectItem>
+              <SelectItem key={a} value={a}>{a}</SelectItem>
             ))}
           </SelectContent>
         </Select>
