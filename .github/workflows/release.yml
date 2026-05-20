@@ -1,0 +1,258 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Linux build — produces AppImage (Arch-compatible) and .deb
+  # ───────────────────────────────────────────────────────────────────────────
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/tauri -> target
+          shared-key: linux-x86_64
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            build-essential \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            patchelf \
+            file
+
+      - run: npm ci
+
+      - name: Build Tauri app (Linux)
+        run: npm run tauri:build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Collect and rename Linux artifacts
+        run: |
+          VERSION="${{ github.ref_name }}"
+          APPIMAGE=$(find src/tauri/target/release/bundle/appimage -name "*.AppImage" | head -1)
+          DEB=$(find src/tauri/target/release/bundle/deb -name "*.deb" | head -1)
+          cp "$APPIMAGE" "cityofstars_linux_${VERSION}.AppImage"
+          cp "$DEB" "cityofstars_linux_${VERSION}.deb"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            cityofstars_linux_*.AppImage
+            cityofstars_linux_*.deb
+          if-no-files-found: error
+          retention-days: 1
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Windows build — produces .msi and NSIS .exe installer
+  # windows-latest includes VS Build Tools 2022 and WebView2 runtime
+  # ───────────────────────────────────────────────────────────────────────────
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/tauri -> target
+          shared-key: windows-x86_64
+
+      - run: npm ci
+
+      - name: Build Tauri app (Windows)
+        run: npm run tauri:build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Collect and rename Windows artifacts
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          MSI=$(find src/tauri/target/release/bundle/msi -name "*.msi" | head -1)
+          EXE=$(find src/tauri/target/release/bundle/nsis -name "*.exe" | head -1)
+          cp "$MSI" "cityofstars_windows_${VERSION}_x64.msi"
+          cp "$EXE" "cityofstars_windows_${VERSION}_x64-setup.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            cityofstars_windows_*.msi
+            cityofstars_windows_*-setup.exe
+          if-no-files-found: error
+          retention-days: 1
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Android build — produces signed release APK
+  # src/tauri/gen/ is in .gitignore so tauri android init runs every build
+  # ───────────────────────────────────────────────────────────────────────────
+  build-android:
+    name: Build (Android)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;27.0.12077973"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: >-
+            aarch64-linux-android,
+            armv7-linux-androideabi,
+            i686-linux-android,
+            x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/tauri -> target
+          shared-key: android
+
+      - name: Install base system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential libssl-dev
+
+      - run: npm ci
+
+      - name: Initialize Android scaffold
+        run: npm run tauri:android:init
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+
+      - name: Decode signing keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEY_STORE_BASE64 }}" | base64 --decode \
+            > "${{ github.workspace }}/release.keystore"
+
+      - name: Build Android APK (release)
+        run: npm run tauri:android:build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+          TAURI_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+          TAURI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+          TAURI_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          TAURI_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f "${{ github.workspace }}/release.keystore"
+
+      - name: Collect and rename APK
+        run: |
+          VERSION="${{ github.ref_name }}"
+          APK=$(find src/tauri/gen/android/app/build/outputs/apk -name "*.apk" | head -1)
+          cp "$APK" "cityofstars_${VERSION}_android.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: cityofstars_*_android.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Create GitHub Release — waits for all three builds to succeed
+  # ───────────────────────────────────────────────────────────────────────────
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-windows, build-android]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "City of Stars ${{ github.ref_name }}"
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body: |
+            ## Downloads
+
+            | Platform | File | Notes |
+            |---|---|---|
+            | Linux (AppImage) | `cityofstars_linux_${{ github.ref_name }}.AppImage` | Works on Arch, Ubuntu, Fedora — no install needed |
+            | Linux (.deb) | `cityofstars_linux_${{ github.ref_name }}.deb` | Ubuntu/Debian |
+            | Windows (.msi) | `cityofstars_windows_${{ github.ref_name }}_x64.msi` | MSI installer |
+            | Windows (.exe) | `cityofstars_windows_${{ github.ref_name }}_x64-setup.exe` | NSIS installer |
+            | Android | `cityofstars_${{ github.ref_name }}_android.apk` | Sideload APK |
+
+            ### Linux AppImage quick start (Arch and others)
+            ```bash
+            chmod +x cityofstars_linux_${{ github.ref_name }}.AppImage
+            ./cityofstars_linux_${{ github.ref_name }}.AppImage
+            ```
+          files: |
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.msi
+            artifacts/**/*.exe
+            artifacts/**/*.apk
+          fail_on_unmatched_files: true
