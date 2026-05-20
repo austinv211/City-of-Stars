@@ -25,15 +25,7 @@ import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useAuth } from "@/core/context/AuthContext";
 import { useDice } from "../context/DiceContext";
 import { supabase } from "@/lib/supabase";
-import {
-  Swords,
-  SkipForward,
-  AlertCircle,
-  Dices,
-  User,
-  BookOpen,
-  Zap,
-} from "lucide-react";
+import { Swords, SkipForward, Dices, User, BookOpen, Zap } from "lucide-react";
 import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import type { CharacterAttack } from "@/features/characters/types/character.types";
 import type { RollEntry } from "../context/DiceContext";
