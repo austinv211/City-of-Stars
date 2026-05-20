@@ -21,7 +21,7 @@ export function useActiveEncounter() {
         .from("encounters")
         .select("*")
         .eq("id", activeEncounterId)
-        .single();
+        .maybeSingle();
       setEncounter(data as Encounter | null);
       setLoading(false);
     }

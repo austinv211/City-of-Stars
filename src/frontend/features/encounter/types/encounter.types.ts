@@ -77,6 +77,7 @@ export interface DiceRollBroadcast {
   advantage?: boolean;
   disadvantage?: boolean;
   discardedRoll?: number;
+  rolls?: number[];
   // Action announcement fields (kind === "action" means no dice were rolled)
   kind?: "action";
   actionText?: string;

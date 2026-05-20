@@ -65,45 +65,49 @@ async function tauriWindow() {
 export function TitleBar() {
   return (
     <div
-      className="flex h-8 w-full shrink-0 select-none items-center"
+      className="flex w-full shrink-0 select-none flex-col"
       style={{ background: "hsl(var(--titlebar))" }}
-      data-tauri-drag-region
     >
-      {/* Brand — not interactive, part of drag region */}
-      <div className="flex items-center gap-2 px-3 pointer-events-none">
-        <AnimatedStar size={16} />
-        <span className="text-xs font-semibold tracking-tight" style={{ color: "hsl(var(--foreground) / 0.65)" }}>
-          City of Stars
-        </span>
+      <div className="flex h-8 w-full items-center" data-tauri-drag-region>
+        {/* Brand — not interactive, part of drag region */}
+        <div className="flex items-center gap-2 px-3 pointer-events-none">
+          <AnimatedStar size={16} />
+          <span className="text-xs font-semibold tracking-tight ctp-gradient-text">
+            City of Stars
+          </span>
+        </div>
+
+        {/* Drag region filler */}
+        <div className="flex-1" data-tauri-drag-region />
+
+        {/* Window controls — excluded from drag region */}
+        <div className="flex items-stretch h-8">
+          <WinBtn
+            title="Minimize"
+            hoverColor="hover:bg-[hsl(var(--ctp-yellow)/0.25)] hover:text-[hsl(var(--ctp-yellow))]"
+            onClick={() => tauriWindow().then((w) => w?.minimize())}
+          >
+            <Minus className="h-3 w-3" />
+          </WinBtn>
+          <WinBtn
+            title="Maximize"
+            hoverColor="hover:bg-[hsl(var(--ctp-green)/0.25)] hover:text-[hsl(var(--ctp-green))]"
+            onClick={() => tauriWindow().then((w) => w?.toggleMaximize())}
+          >
+            <Square className="h-3 w-3" />
+          </WinBtn>
+          <WinBtn
+            title="Close"
+            hoverColor="hover:bg-[hsl(var(--ctp-red)/0.30)] hover:text-[hsl(var(--ctp-red))]"
+            onClick={() => tauriWindow().then((w) => w?.close())}
+          >
+            <X className="h-3.5 w-3.5" />
+          </WinBtn>
+        </div>
       </div>
 
-      {/* Drag region filler */}
-      <div className="flex-1" data-tauri-drag-region />
-
-      {/* Window controls — excluded from drag region */}
-      <div className="flex items-stretch h-full">
-        <WinBtn
-          title="Minimize"
-          hoverColor="hover:bg-[hsl(var(--ctp-yellow)/0.25)] hover:text-[hsl(var(--ctp-yellow))]"
-          onClick={() => tauriWindow().then((w) => w?.minimize())}
-        >
-          <Minus className="h-3 w-3" />
-        </WinBtn>
-        <WinBtn
-          title="Maximize"
-          hoverColor="hover:bg-[hsl(var(--ctp-green)/0.25)] hover:text-[hsl(var(--ctp-green))]"
-          onClick={() => tauriWindow().then((w) => w?.toggleMaximize())}
-        >
-          <Square className="h-3 w-3" />
-        </WinBtn>
-        <WinBtn
-          title="Close"
-          hoverColor="hover:bg-[hsl(var(--ctp-red)/0.30)] hover:text-[hsl(var(--ctp-red))]"
-          onClick={() => tauriWindow().then((w) => w?.close())}
-        >
-          <X className="h-3.5 w-3.5" />
-        </WinBtn>
-      </div>
+      {/* Rainbow accent bar */}
+      <div className="h-[2px] w-full ctp-accent-bar" />
     </div>
   );
 }

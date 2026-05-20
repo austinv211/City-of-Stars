@@ -1,7 +1,4 @@
 import "@/styles/globals.scss";
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import App from "./App";
 
 if (import.meta.env.DEV) {
   window.addEventListener("keydown", async (e) => {
@@ -17,8 +14,22 @@ if (import.meta.env.DEV) {
   });
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+// Boot via dynamic import so a module-level crash (e.g. missing Supabase env
+// vars causing createClient to throw) shows an error message instead of a
+// blank screen.
+const rootEl = document.getElementById("root")!;
+
+async function boot() {
+  try {
+    const [{ createRoot }, { default: App }] = await Promise.all([
+      import("react-dom/client"),
+      import("./App"),
+    ]);
+    createRoot(rootEl).render(<App />);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    rootEl.innerHTML = `<div style="padding:2rem;font-family:monospace;color:#f38ba8;background:#181825;min-height:100vh"><h2 style="margin:0 0 1rem">App failed to start</h2><pre style="white-space:pre-wrap;word-break:break-all">${msg}</pre></div>`;
+  }
+}
+
+boot();

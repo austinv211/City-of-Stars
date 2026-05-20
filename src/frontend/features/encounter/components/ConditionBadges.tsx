@@ -11,6 +11,28 @@ import { Label } from "@/core/components/ui/label";
 import { useState } from "react";
 import { CONDITIONS } from "@/features/characters/data/dnd2024.constants";
 
+const CONDITION_STYLE: Record<string, string> = {
+  Blinded:       "bg-[hsl(var(--ctp-sapphire)/0.18)] text-ctp-sapphire border-[hsl(var(--ctp-sapphire)/0.35)]",
+  Charmed:       "bg-[hsl(var(--ctp-pink)/0.18)]     text-ctp-pink     border-[hsl(var(--ctp-pink)/0.35)]",
+  Deafened:      "bg-[hsl(var(--ctp-overlay0)/0.25)] text-muted-foreground border-[hsl(var(--ctp-overlay0)/0.35)]",
+  Exhaustion:    "bg-[hsl(var(--ctp-maroon)/0.18)]   text-ctp-maroon   border-[hsl(var(--ctp-maroon)/0.35)]",
+  Frightened:    "bg-[hsl(var(--ctp-red)/0.18)]      text-ctp-red      border-[hsl(var(--ctp-red)/0.35)]",
+  Grappled:      "bg-[hsl(var(--ctp-yellow)/0.18)]   text-ctp-yellow   border-[hsl(var(--ctp-yellow)/0.35)]",
+  Incapacitated: "bg-[hsl(var(--ctp-peach)/0.18)]    text-ctp-peach    border-[hsl(var(--ctp-peach)/0.35)]",
+  Invisible:     "bg-[hsl(var(--ctp-lavender)/0.18)] text-ctp-lavender border-[hsl(var(--ctp-lavender)/0.35)]",
+  Paralyzed:     "bg-[hsl(var(--ctp-red)/0.22)]      text-ctp-red      border-[hsl(var(--ctp-red)/0.4)]",
+  Petrified:     "bg-[hsl(var(--ctp-overlay0)/0.25)] text-muted-foreground border-[hsl(var(--ctp-overlay0)/0.35)]",
+  Poisoned:      "bg-[hsl(var(--ctp-green)/0.18)]    text-ctp-green    border-[hsl(var(--ctp-green)/0.35)]",
+  Prone:         "bg-[hsl(var(--ctp-yellow)/0.18)]   text-ctp-yellow   border-[hsl(var(--ctp-yellow)/0.35)]",
+  Restrained:    "bg-[hsl(var(--ctp-mauve)/0.18)]    text-ctp-mauve    border-[hsl(var(--ctp-mauve)/0.35)]",
+  Stunned:       "bg-[hsl(var(--ctp-mauve)/0.22)]    text-ctp-mauve    border-[hsl(var(--ctp-mauve)/0.4)]",
+  Unconscious:   "bg-[hsl(var(--ctp-red)/0.25)]      text-ctp-red      border-[hsl(var(--ctp-red)/0.45)]",
+};
+
+function conditionStyle(condition: string) {
+  return CONDITION_STYLE[condition] ?? "bg-[hsl(var(--ctp-peach)/0.18)] text-ctp-peach border-[hsl(var(--ctp-peach)/0.35)]";
+}
+
 interface Props {
   conditions: string[];
   canEdit: boolean;
@@ -43,7 +65,7 @@ export function ConditionBadges({ conditions, canEdit, onUpdate }: Props) {
     <>
       <div className="flex flex-wrap gap-1">
         {conditions.map((c) => (
-          <Badge key={c} variant="destructive" className="text-xs">
+          <Badge key={c} className={`text-xs ${conditionStyle(c)}`}>
             {c}
           </Badge>
         ))}

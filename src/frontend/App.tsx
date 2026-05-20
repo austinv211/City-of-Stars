@@ -21,36 +21,40 @@ import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
 export default function App() {
   return (
     <AuthProvider>
-      <CampaignProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<AppShell />}>
-                <Route path="/" element={<Navigate to="/characters" replace />} />
-                <Route path="/characters" element={<CharactersPage />} />
-                <Route path="/characters/new" element={<CharacterCreatePage />} />
-                <Route path="/characters/:characterId" element={<CharacterViewPage />} />
-                <Route path="/campaign" element={<Navigate to="/campaigns" replace />} />
-                <Route path="/campaigns" element={<CampaignsPage />} />
-                <Route element={<EncounterGuard />}>
-                  <Route path="/encounter" element={<EncounterPage />} />
-                </Route>
-                {/* DM-only routes — access is enforced at the DB/policy level */}
-                <Route path="/dm" element={<Navigate to="/dm/campaigns" replace />} />
-                <Route path="/dm/campaigns" element={<DmCampaignsPage />} />
-                <Route path="/dm/members" element={<DmMembersPage />} />
-                <Route path="/dm/sessions" element={<DmSessionsPage />} />
-                <Route path="/dm/encounters" element={<DmEncountersPage />} />
-                <Route path="/dm/monsters" element={<DmMonstersPage />} />
-                {/* Admin-only routes */}
-                <Route path="/admin/whitelist" element={<AdminWhitelistPage />} />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route
+              element={
+                <CampaignProvider>
+                  <AppShell />
+                </CampaignProvider>
+              }
+            >
+              <Route path="/" element={<Navigate to="/characters" replace />} />
+              <Route path="/characters" element={<CharactersPage />} />
+              <Route path="/characters/new" element={<CharacterCreatePage />} />
+              <Route path="/characters/:characterId" element={<CharacterViewPage />} />
+              <Route path="/campaign" element={<Navigate to="/campaigns" replace />} />
+              <Route path="/campaigns" element={<CampaignsPage />} />
+              <Route element={<EncounterGuard />}>
+                <Route path="/encounter" element={<EncounterPage />} />
               </Route>
+              {/* DM-only routes — access is enforced at the DB/policy level */}
+              <Route path="/dm" element={<Navigate to="/dm/campaigns" replace />} />
+              <Route path="/dm/campaigns" element={<DmCampaignsPage />} />
+              <Route path="/dm/members" element={<DmMembersPage />} />
+              <Route path="/dm/sessions" element={<DmSessionsPage />} />
+              <Route path="/dm/encounters" element={<DmEncountersPage />} />
+              <Route path="/dm/monsters" element={<DmMonstersPage />} />
+              {/* Admin-only routes */}
+              <Route path="/admin/whitelist" element={<AdminWhitelistPage />} />
             </Route>
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </BrowserRouter>
-      </CampaignProvider>
+          </Route>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

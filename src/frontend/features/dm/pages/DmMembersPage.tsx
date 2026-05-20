@@ -2,8 +2,20 @@ import { useState, useEffect } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/core/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/core/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/core/components/ui/dialog";
 import { UserPlus, Trash2, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -32,13 +44,18 @@ export default function DmMembersPage() {
   async function load() {
     if (!campaign) return;
     setLoading(true);
-    const { data, error } = await supabase.rpc("get_campaign_members_with_email", { cid: campaign.id });
+    const { data, error } = await supabase.rpc(
+      "get_campaign_members_with_email",
+      { cid: campaign.id },
+    );
     if (error) console.error("[DmMembersPage] load error:", error);
     setMembers((data as Member[]) ?? []);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [campaign?.id]);
+  useEffect(() => {
+    load();
+  }, [campaign?.id]);
 
   async function handleAdd() {
     if (!campaign || !addEmail.trim()) return;
@@ -46,7 +63,10 @@ export default function DmMembersPage() {
     setAddError(null);
 
     // Look up user id by email
-    const { data: userId, error: lookupErr } = await supabase.rpc("find_user_id_by_email", { target_email: addEmail.trim() });
+    const { data: userId, error: lookupErr } = await supabase.rpc(
+      "find_user_id_by_email",
+      { target_email: addEmail.trim() },
+    );
     if (lookupErr || !userId) {
       setAddError("No account found with that email address.");
       setAdding(false);
@@ -60,11 +80,13 @@ export default function DmMembersPage() {
       return;
     }
 
-    const { error: insertErr } = await supabase.from("campaign_members").insert({
-      campaign_id: campaign.id,
-      user_id: userId,
-      role: addRole,
-    });
+    const { error: insertErr } = await supabase
+      .from("campaign_members")
+      .insert({
+        campaign_id: campaign.id,
+        user_id: userId,
+        role: addRole,
+      });
 
     if (insertErr) {
       setAddError(insertErr.message);
@@ -111,13 +133,20 @@ export default function DmMembersPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 py-8 space-y-6 max-w-3xl">
+    <div className="px-4 sm:px-6 py-8 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Campaign Members</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{campaign.name}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {campaign.name}
+          </p>
         </div>
-        <Button onClick={() => { setAddOpen(true); setAddError(null); }}>
+        <Button
+          onClick={() => {
+            setAddOpen(true);
+            setAddError(null);
+          }}
+        >
           <UserPlus className="h-4 w-4 mr-2" />
           Add Member
         </Button>
@@ -168,7 +197,12 @@ export default function DmMembersPage() {
       )}
 
       {/* Add member dialog */}
-      <Dialog open={addOpen} onOpenChange={(o) => { if (!o) setAddOpen(false); }}>
+      <Dialog
+        open={addOpen}
+        onOpenChange={(o) => {
+          if (!o) setAddOpen(false);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Member</DialogTitle>
@@ -182,12 +216,17 @@ export default function DmMembersPage() {
                 value={addEmail}
                 onChange={(e) => setAddEmail(e.target.value)}
                 placeholder="player@example.com"
-                onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAdd();
+                }}
               />
             </div>
             <div className="space-y-1.5">
               <Label>Role</Label>
-              <Select value={addRole} onValueChange={(v) => setAddRole(v as "player" | "dm")}>
+              <Select
+                value={addRole}
+                onValueChange={(v) => setAddRole(v as "player" | "dm")}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -200,7 +239,9 @@ export default function DmMembersPage() {
             {addError && <p className="text-sm text-destructive">{addError}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleAdd} disabled={adding || !addEmail.trim()}>
               {adding ? "Adding…" : "Add Member"}
             </Button>
@@ -209,17 +250,26 @@ export default function DmMembersPage() {
       </Dialog>
 
       {/* Remove confirmation */}
-      <Dialog open={!!removeTarget} onOpenChange={(o) => { if (!o) setRemoveTarget(null); }}>
+      <Dialog
+        open={!!removeTarget}
+        onOpenChange={(o) => {
+          if (!o) setRemoveTarget(null);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Remove member?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{removeTarget?.email}</span> will lose
-            access to this campaign and all its content.
+            <span className="font-medium text-foreground">
+              {removeTarget?.email}
+            </span>{" "}
+            will lose access to this campaign and all its content.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRemoveTarget(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRemoveTarget(null)}>
+              Cancel
+            </Button>
             <Button
               variant="destructive"
               disabled={removing}

@@ -34,14 +34,25 @@ export function ParticipantCard({
 }: Props) {
   const initials = participant.name.slice(0, 2).toUpperCase();
 
+  const cardStyle = selected
+    ? {
+        background:
+          "linear-gradient(135deg, hsl(var(--ctp-mauve)/0.22), hsl(var(--ctp-lavender)/0.14))",
+      }
+    : isActive
+      ? {
+          background:
+            "linear-gradient(135deg, hsl(var(--ctp-teal)/0.18), hsl(var(--ctp-blue)/0.12))",
+        }
+      : {};
+
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-colors",
-        selected && "bg-accent",
-        !selected && isActive && "bg-accent-turn",
-        !selected && !isActive && "hover:bg-secondary",
+        "cursor-pointer transition-all duration-300",
+        !selected && !isActive && "hover:bg-secondary hover:shadow-md",
       )}
+      style={cardStyle}
       onClick={onClick}
     >
       <CardContent className="p-3 space-y-2">
@@ -57,7 +68,10 @@ export function ParticipantCard({
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             {isActive && (
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[hsl(var(--ctp-teal))]" />
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--ctp-teal))] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[hsl(var(--ctp-teal))]" />
+              </span>
             )}
           </div>
           <div className="flex-1 min-w-0">

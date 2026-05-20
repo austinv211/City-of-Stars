@@ -7,7 +7,29 @@
     <style>html,body,#root{background:#181825;color-scheme:dark;margin:0;padding:0}</style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Shown until React's first render replaces this content -->
+      <div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#181825">
+        <svg width="64" height="64" viewBox="0 0 20 20" style="animation:cos-spin 2.4s ease-in-out infinite">
+          <polygon points="10,10 7.5,7.5 10,0 12.5,7.5"  fill="#cba6f7"/>
+          <polygon points="10,10 12.5,7.5 20,10 12.5,12.5" fill="#89b4fa"/>
+          <polygon points="10,10 12.5,12.5 10,20 7.5,12.5" fill="#fab387"/>
+          <polygon points="10,10 7.5,12.5 0,10 7.5,7.5"   fill="#a6e3a1"/>
+        </svg>
+        <span style="color:#cdd6f4;font-family:system-ui,sans-serif;font-size:13px;letter-spacing:0.08em;opacity:0.7">
+          CITY OF STARS
+        </span>
+      </div>
+    </div>
+    <style>
+      @keyframes cos-spin {
+        0%   { transform: rotate(0deg)   scale(1);    opacity: 1;   }
+        25%  { transform: rotate(90deg)  scale(1.08); opacity: 0.9; }
+        50%  { transform: rotate(180deg) scale(1);    opacity: 1;   }
+        75%  { transform: rotate(270deg) scale(1.08); opacity: 0.9; }
+        100% { transform: rotate(360deg) scale(1);    opacity: 1;   }
+      }
+    </style>
     <script type="module" src="/src/frontend/main.tsx"></script>
   </body>
 </html>

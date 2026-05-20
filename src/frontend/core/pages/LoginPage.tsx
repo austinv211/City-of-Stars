@@ -75,34 +75,35 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% 40%, hsl(var(--primary) / 0.07) 0%, transparent 70%)",
+            "radial-gradient(ellipse 70% 60% at 40% 35%, hsl(var(--ctp-peach) / 0.06) 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 65% 55%, hsl(var(--ctp-mauve) / 0.07) 0%, transparent 60%)",
         }}
       />
 
       <div className="relative w-full max-w-sm">
         {/* Card */}
         <div
-          className="rounded-xl border px-8 py-9"
+          className="relative rounded-xl border px-8 py-9 overflow-hidden"
           style={{
             background:    "hsl(var(--card))",
             borderColor:   "hsl(var(--border))",
             boxShadow:     "var(--shadow-elevated)",
           }}
         >
+          <div className="absolute inset-x-0 top-0 h-[2px] ctp-accent-bar pointer-events-none" aria-hidden />
           {/* Logo + title */}
           <div className="mb-8 flex flex-col items-center gap-3 text-center">
             <div
               className="flex h-14 w-14 items-center justify-center rounded-2xl"
               style={{
-                background: "hsl(var(--primary) / 0.10)",
+                background: "linear-gradient(135deg, hsl(var(--ctp-mauve) / 0.24), hsl(var(--ctp-blue) / 0.24))",
                 boxShadow:
-                  "0 0 0 1px hsl(var(--primary) / 0.22), inset 0 1px 0 hsl(var(--primary) / 0.18)",
+                  "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.3), 0 0 12px hsl(var(--ctp-mauve) / 0.15)",
               }}
             >
               <AnimatedStar size={32} />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">City of Stars</h1>
+              <h1 className="text-xl font-bold tracking-tight ctp-gradient-text">City of Stars</h1>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {mode === "signin" ? "Sign in to your account" : "Create a new account"}
               </p>
@@ -126,8 +127,8 @@ export default function LoginPage() {
                 style={
                   mode === m
                     ? {
-                        background: "hsl(var(--card))",
-                        color: "hsl(var(--foreground))",
+                        background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.22), hsl(var(--ctp-lavender) / 0.12))",
+                        color: "hsl(var(--ctp-lavender))",
                         boxShadow: "var(--shadow-sm)",
                       }
                     : { color: "hsl(var(--muted-foreground))" }

@@ -25,15 +25,7 @@ import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useAuth } from "@/core/context/AuthContext";
 import { useDice } from "../context/DiceContext";
 import { supabase } from "@/lib/supabase";
-import {
-  Swords,
-  SkipForward,
-  AlertCircle,
-  Dices,
-  User,
-  BookOpen,
-  Zap,
-} from "lucide-react";
+import { Swords, SkipForward, Dices, User, BookOpen, Zap } from "lucide-react";
 import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import type { CharacterAttack } from "@/features/characters/types/character.types";
 import type { RollEntry } from "../context/DiceContext";
@@ -269,16 +261,16 @@ export default function EncounterPage() {
           <h1 className="font-bold text-sm truncate">
             {encounter.name ?? "Encounter"}
           </h1>
-          <Badge variant="default" className="shrink-0 text-[10px] h-5">
+          <Badge className="shrink-0 text-[10px] h-5 bg-[hsl(var(--ctp-green)/0.18)] text-ctp-green border-[hsl(var(--ctp-green)/0.35)]">
             Active
           </Badge>
         </div>
         {/* Zone 2 — flex-1, aligns with Action Panel column */}
         <div className="flex-1 flex items-center px-4">
           {activeParticipant && (
-            <span className="text-sm text-muted-foreground">
-              Turn:{" "}
-              <span className="font-medium text-foreground">
+            <span className="text-sm">
+              <span className="text-muted-foreground">Turn: </span>
+              <span className="font-semibold text-ctp-lavender">
                 {activeParticipant.name}
               </span>
             </span>
@@ -314,10 +306,12 @@ export default function EncounterPage() {
 
       {/* ── "Your Turn" banner ── */}
       {isMyTurn && (
-        <div className="bg-ctp-mauve/10 px-4 py-1.5 flex items-center gap-2 shrink-0">
-          <AlertCircle className="h-4 w-4 text-primary" />
-          <p className="text-sm font-semibold text-primary">
-            It's your turn, {ownCharacter?.name}!
+        <div className="encounter-turn-banner px-4 py-2 flex items-center gap-2.5 shrink-0">
+          <Zap className="h-4 w-4 text-ctp-mauve shrink-0 animate-pulse" />
+          <p className="text-sm font-bold">
+            <span className="text-ctp-lavender">Your Turn</span>
+            <span className="text-ctp-peach"> — {ownCharacter?.name}</span>
+            <span className="text-ctp-lavender">!</span>
           </p>
         </div>
       )}
@@ -386,17 +380,17 @@ export default function EncounterPage() {
             if (showCharTab && charTabCharacter && charTabParticipant) {
               return (
                 <Tabs defaultValue="rolls" className="flex flex-col h-full">
-                  <TabsList className="shrink-0 mx-3 mt-2 h-7 text-xs">
+                  <TabsList className="shrink-0 mx-3 mt-2 h-11 text-xs">
                     <TabsTrigger
                       value="rolls"
-                      className="text-xs h-5 flex items-center gap-1"
+                      className="text-xs h-9 w-full flex items-center gap-1"
                     >
                       <Dices className="h-3 w-3" />
                       Rolls
                     </TabsTrigger>
                     <TabsTrigger
                       value="character"
-                      className="text-xs h-5 flex items-center gap-1"
+                      className="text-xs h-9 w-full flex items-center gap-1"
                     >
                       <User className="h-3 w-3" />
                       {charTabLabel}
