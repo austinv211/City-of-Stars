@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Progress } from "@/core/components/ui/progress";
@@ -12,6 +12,18 @@ interface Props {
 
 export function HPAdjuster({ current, max, canEdit, onAdjust }: Props) {
   const [delta, setDelta] = useState("");
+  const prevRef = useRef(current);
+  const [flashClass, setFlashClass] = useState("");
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = current;
+    if (current === prev) return;
+    const cls = current < prev ? "hp-flash-damage" : "hp-flash-heal";
+    setFlashClass(cls);
+    const t = setTimeout(() => setFlashClass(""), 700);
+    return () => clearTimeout(t);
+  }, [current]);
 
   function apply(sign: 1 | -1) {
     const value = Number(delta);
@@ -21,23 +33,38 @@ export function HPAdjuster({ current, max, canEdit, onAdjust }: Props) {
   }
 
   const pct = max > 0 ? (current / max) * 100 : 0;
-  const color =
-    pct > 50 ? "bg-green-500" : pct > 25 ? "bg-amber-500" : "bg-red-500";
+  const barColor =
+    pct > 50
+      ? "[&>div]:bg-[hsl(var(--ctp-green))]"
+      : pct > 25
+        ? "[&>div]:bg-[hsl(var(--ctp-peach))]"
+        : "[&>div]:bg-[hsl(var(--ctp-red))]";
 
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-1.5 ${flashClass}`}>
       <div className="flex items-center justify-between text-sm">
         <span className="font-semibold">
           {current} / {max} HP
         </span>
+        <span
+          className={
+            pct > 50
+              ? "text-xs text-ctp-green"
+              : pct > 25
+                ? "text-xs text-ctp-peach"
+                : "text-xs text-ctp-red"
+          }
+        >
+          {Math.round(pct)}%
+        </span>
       </div>
-      <Progress value={pct} className={`h-2 [&>div]:${color}`} />
+      <Progress value={pct} className={`h-2 transition-all duration-500 ${barColor}`} />
       {canEdit && (
         <div className="flex items-center gap-1 mt-1">
           <Button
             variant="outline"
             size="icon"
-            className="h-7 w-7 text-destructive"
+            className="h-7 w-7 text-ctp-red border-[hsl(var(--ctp-red)/0.4)] hover:bg-[hsl(var(--ctp-red)/0.12)] hover:border-[hsl(var(--ctp-red)/0.6)]"
             onClick={() => apply(-1)}
           >
             −
@@ -56,7 +83,7 @@ export function HPAdjuster({ current, max, canEdit, onAdjust }: Props) {
           <Button
             variant="outline"
             size="icon"
-            className="h-7 w-7 text-green-600"
+            className="h-7 w-7 text-ctp-green border-[hsl(var(--ctp-green)/0.4)] hover:bg-[hsl(var(--ctp-green)/0.12)] hover:border-[hsl(var(--ctp-green)/0.6)]"
             onClick={() => apply(1)}
           >
             +

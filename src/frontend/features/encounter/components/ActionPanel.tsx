@@ -320,7 +320,11 @@ export function ActionPanel({
         <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {participant.name}
         </span>
-        {isMyTurn && <Badge variant="default">Your Turn</Badge>}
+        {isMyTurn && (
+          <Badge className="bg-[hsl(var(--ctp-lavender)/0.2)] text-ctp-lavender border-[hsl(var(--ctp-lavender)/0.4)] animate-pulse">
+            Your Turn
+          </Badge>
+        )}
         {!participant.is_player && (
           <Badge variant="secondary" className="text-xs">NPC</Badge>
         )}

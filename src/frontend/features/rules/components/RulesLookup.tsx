@@ -25,21 +25,21 @@ import { cn } from "@/lib/utils";
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Condition: "bg-red-500/10 text-red-600 dark:text-red-400",
-  Action: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  Hazard: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-  General: "bg-muted text-muted-foreground",
+  Condition: "bg-[hsl(var(--ctp-red)/0.15)] text-[hsl(var(--ctp-red))] border-[hsl(var(--ctp-red)/0.3)]",
+  Action:    "bg-[hsl(var(--ctp-blue)/0.15)] text-[hsl(var(--ctp-blue))] border-[hsl(var(--ctp-blue)/0.3)]",
+  Hazard:    "bg-[hsl(var(--ctp-peach)/0.15)] text-[hsl(var(--ctp-peach))] border-[hsl(var(--ctp-peach)/0.3)]",
+  General:   "bg-[hsl(var(--ctp-overlay0)/0.2)] text-[hsl(var(--ctp-subtext0))] border-border",
 };
 
 const SCHOOL_COLORS: Record<string, string> = {
-  Evocation: "bg-red-500/10 text-red-600 dark:text-red-400",
-  Abjuration: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  Conjuration: "bg-green-500/10 text-green-600 dark:text-green-400",
-  Divination: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  Enchantment: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
-  Illusion: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-  Necromancy: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
-  Transmutation: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  Evocation:     "bg-[hsl(var(--ctp-red)/0.15)] text-[hsl(var(--ctp-red))] border-[hsl(var(--ctp-red)/0.3)]",
+  Abjuration:    "bg-[hsl(var(--ctp-blue)/0.15)] text-[hsl(var(--ctp-blue))] border-[hsl(var(--ctp-blue)/0.3)]",
+  Conjuration:   "bg-[hsl(var(--ctp-green)/0.15)] text-[hsl(var(--ctp-green))] border-[hsl(var(--ctp-green)/0.3)]",
+  Divination:    "bg-[hsl(var(--ctp-lavender)/0.15)] text-[hsl(var(--ctp-lavender))] border-[hsl(var(--ctp-lavender)/0.3)]",
+  Enchantment:   "bg-[hsl(var(--ctp-pink)/0.15)] text-[hsl(var(--ctp-pink))] border-[hsl(var(--ctp-pink)/0.3)]",
+  Illusion:      "bg-[hsl(var(--ctp-mauve)/0.15)] text-[hsl(var(--ctp-mauve))] border-[hsl(var(--ctp-mauve)/0.3)]",
+  Necromancy:    "bg-[hsl(var(--ctp-overlay1)/0.25)] text-[hsl(var(--ctp-subtext1))] border-[hsl(var(--ctp-overlay0)/0.4)]",
+  Transmutation: "bg-[hsl(var(--ctp-yellow)/0.15)] text-[hsl(var(--ctp-yellow))] border-[hsl(var(--ctp-yellow)/0.3)]",
 };
 
 function useDebounce<T>(value: T, delay = 300): T {
@@ -50,6 +50,35 @@ function useDebounce<T>(value: T, delay = 300): T {
   }, [value, delay]);
   return debounced;
 }
+
+// Renders plain text where _keyword_ spans are highlighted in the primary color.
+function RulesText({ text }: { text: string }) {
+  const parts = text.split(/(_[^_\n]+_)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("_") && part.endsWith("_") && part.length > 2 ? (
+          <span
+            key={i}
+            className="text-[hsl(var(--primary))] font-semibold not-italic"
+          >
+            {part.slice(1, -1)}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
+// Shared panel wrappers
+const listPanelCls =
+  "flex-1 overflow-y-auto space-y-0.5 rounded-lg border border-border/60 bg-card/50 p-1.5";
+const detailPanelCls =
+  "flex-1 overflow-y-auto rounded-lg border border-border bg-background p-5";
+const searchInputCls =
+  "h-9 text-sm bg-card border-border focus-visible:ring-1 focus-visible:ring-[hsl(var(--ctp-lavender))]";
 
 // ── Sub-panels ─────────────────────────────────────────────────────────────
 
@@ -72,14 +101,14 @@ function GlossaryPanel() {
   const categories = ["all", "Condition", "Action", "Hazard", "General"];
 
   return (
-    <div className="flex gap-3 h-[480px]">
+    <div className="flex gap-4 h-[520px]">
       {/* Left — list */}
-      <div className="w-56 shrink-0 flex flex-col gap-2">
+      <div className="w-64 shrink-0 flex flex-col gap-2">
         <Input
           placeholder="Search rules…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="h-8 text-sm"
+          className={searchInputCls}
         />
         <div className="flex flex-wrap gap-1">
           {categories.map((c) => (
@@ -88,15 +117,22 @@ function GlossaryPanel() {
               type="button"
               onClick={() => { setFilter(c); setQuery(""); }}
               className={cn(
-                "text-[10px] rounded-full px-2 py-0.5 border transition-colors",
-                filter === c ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary/50"
+                "text-[10px] rounded-full px-2.5 py-0.5 border transition-colors",
+                filter === c
+                  ? "border-[hsl(var(--ctp-lavender))] text-[hsl(var(--ctp-lavender))]"
+                  : "border-border text-muted-foreground hover:border-[hsl(var(--primary)/0.5)] hover:text-foreground"
               )}
+              style={
+                filter === c
+                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.14))" }
+                  : undefined
+              }
             >
               {c}
             </button>
           ))}
         </div>
-        <div className="flex-1 overflow-y-auto space-y-0.5 border rounded-md p-1">
+        <div className={listPanelCls}>
           {loading ? (
             <p className="text-xs text-muted-foreground p-2 italic">Loading…</p>
           ) : results.length === 0 ? (
@@ -107,15 +143,20 @@ function GlossaryPanel() {
               type="button"
               onClick={() => setSelected(r)}
               className={cn(
-                "w-full text-left rounded px-2 py-1.5 text-xs transition-colors",
+                "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
                 selected?.id === r.id
-                  ? "bg-primary/10 font-semibold"
-                  : "hover:bg-muted/60"
+                  ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                  : "hover:bg-muted/60 text-foreground/80"
               )}
+              style={
+                selected?.id === r.id
+                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
+                  : undefined
+              }
             >
               <span className="block truncate">{r.title}</span>
               {r.category !== "General" && (
-                <span className={cn("text-[9px] rounded px-1 inline-block mt-0.5", CATEGORY_COLORS[r.category] ?? CATEGORY_COLORS.General)}>
+                <span className={cn("text-[9px] rounded px-1.5 inline-block mt-0.5 border", CATEGORY_COLORS[r.category] ?? CATEGORY_COLORS.General)}>
                   {r.category}
                 </span>
               )}
@@ -125,19 +166,19 @@ function GlossaryPanel() {
       </div>
 
       {/* Right — detail */}
-      <div className="flex-1 overflow-y-auto rounded-md border p-4">
+      <div className={detailPanelCls}>
         {selected ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-semibold text-base">{selected.title}</h3>
               {selected.category !== "General" && (
-                <Badge className={cn("text-[10px] shrink-0", CATEGORY_COLORS[selected.category] ?? CATEGORY_COLORS.General)}>
+                <Badge className={cn("text-[10px] shrink-0 border", CATEGORY_COLORS[selected.category] ?? CATEGORY_COLORS.General)}>
                   {selected.category}
                 </Badge>
               )}
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {selected.content}
+              <RulesText text={selected.content} />
             </p>
           </div>
         ) : (
@@ -166,16 +207,16 @@ function SpellsPanel() {
   const levelLabel = (l: number) => l === 0 ? "Cantrip" : `Level ${l}`;
 
   return (
-    <div className="flex gap-3 h-[480px]">
-      <div className="w-56 shrink-0 flex flex-col gap-2">
+    <div className="flex gap-4 h-[520px]">
+      <div className="w-64 shrink-0 flex flex-col gap-2">
         <Input
           placeholder="Search spells…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
-          className="h-8 text-sm"
+          className={searchInputCls}
         />
-        <div className="flex-1 overflow-y-auto space-y-0.5 border rounded-md p-1">
+        <div className={listPanelCls}>
           {loading ? (
             <p className="text-xs text-muted-foreground p-2 italic">Loading…</p>
           ) : !debouncedQuery ? (
@@ -188,9 +229,16 @@ function SpellsPanel() {
               type="button"
               onClick={() => setSelected(s)}
               className={cn(
-                "w-full text-left rounded px-2 py-1.5 text-xs transition-colors",
-                selected?.index === s.index ? "bg-primary/10 font-semibold" : "hover:bg-muted/60"
+                "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
+                selected?.index === s.index
+                  ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                  : "hover:bg-muted/60 text-foreground/80"
               )}
+              style={
+                selected?.index === s.index
+                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
+                  : undefined
+              }
             >
               <span className="block truncate">{s.name}</span>
               <span className="text-[10px] text-muted-foreground">
@@ -201,13 +249,13 @@ function SpellsPanel() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-md border p-4">
+      <div className={detailPanelCls}>
         {selected ? (
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-semibold text-base">{selected.name}</h3>
               {selected.school && (
-                <Badge className={cn("text-[10px] shrink-0", SCHOOL_COLORS[selected.school] ?? "bg-muted text-muted-foreground")}>
+                <Badge className={cn("text-[10px] shrink-0 border", SCHOOL_COLORS[selected.school] ?? "bg-muted/50 text-muted-foreground border-border")}>
                   {selected.school}
                 </Badge>
               )}
@@ -217,12 +265,12 @@ function SpellsPanel() {
               {selected.ritual && " · Ritual"}
               {selected.concentration && " · Concentration"}
             </p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs bg-card/60 rounded-lg border border-border p-3">
               {selected.casting_time && <><span className="text-muted-foreground">Casting Time</span><span>{selected.casting_time}</span></>}
-              {selected.range_text && <><span className="text-muted-foreground">Range</span><span>{selected.range_text}</span></>}
-              {selected.duration && <><span className="text-muted-foreground">Duration</span><span>{selected.duration}</span></>}
-              {selected.components && <><span className="text-muted-foreground">Components</span><span>{selected.components.join(", ")}</span></>}
-              {selected.damage_type && <><span className="text-muted-foreground">Damage</span><span className="capitalize">{selected.damage_dice ? `${selected.damage_dice} ` : ""}{selected.damage_type}</span></>}
+              {selected.range_text   && <><span className="text-muted-foreground">Range</span><span>{selected.range_text}</span></>}
+              {selected.duration     && <><span className="text-muted-foreground">Duration</span><span>{selected.duration}</span></>}
+              {selected.components   && <><span className="text-muted-foreground">Components</span><span>{selected.components.join(", ")}</span></>}
+              {selected.damage_type  && <><span className="text-muted-foreground">Damage</span><span className="capitalize">{selected.damage_dice ? `${selected.damage_dice} ` : ""}{selected.damage_type}</span></>}
             </div>
             {selected.classes && selected.classes.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -232,8 +280,8 @@ function SpellsPanel() {
               </div>
             )}
             {selected.description && (
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap border-t pt-3">
-                {selected.description}
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap border-t border-border pt-3">
+                <RulesText text={selected.description} />
               </p>
             )}
           </div>
@@ -260,10 +308,10 @@ function ClassFeaturesPanel() {
   }, [selectedClass]);
 
   return (
-    <div className="flex gap-3 h-[480px]">
-      <div className="w-56 shrink-0 flex flex-col gap-2">
+    <div className="flex gap-4 h-[520px]">
+      <div className="w-64 shrink-0 flex flex-col gap-2">
         <select
-          className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[hsl(var(--primary))]"
           value={selectedClass}
           onChange={(e) => setSelectedClass(e.target.value)}
         >
@@ -271,7 +319,7 @@ function ClassFeaturesPanel() {
             <option key={c.name} value={c.name}>{c.name}</option>
           ))}
         </select>
-        <div className="flex-1 overflow-y-auto space-y-0.5 border rounded-md p-1">
+        <div className={listPanelCls}>
           {loading ? (
             <p className="text-xs text-muted-foreground p-2 italic">Loading…</p>
           ) : features.length === 0 ? (
@@ -284,9 +332,16 @@ function ClassFeaturesPanel() {
               type="button"
               onClick={() => setSelected(f)}
               className={cn(
-                "w-full text-left rounded px-2 py-1.5 text-xs transition-colors",
-                selected?.feature_name === f.feature_name ? "bg-primary/10 font-semibold" : "hover:bg-muted/60"
+                "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
+                selected?.feature_name === f.feature_name
+                  ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                  : "hover:bg-muted/60 text-foreground/80"
               )}
+              style={
+                selected?.feature_name === f.feature_name
+                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
+                  : undefined
+              }
             >
               <span className="block truncate">{f.feature_name}</span>
               {f.level && (
@@ -297,7 +352,7 @@ function ClassFeaturesPanel() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-md border p-4">
+      <div className={detailPanelCls}>
         {selected ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -307,7 +362,7 @@ function ClassFeaturesPanel() {
               )}
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {selected.description}
+              <RulesText text={selected.description} />
             </p>
           </div>
         ) : (
@@ -344,20 +399,20 @@ function FeatsPanel() {
   }, {});
 
   return (
-    <div className="flex gap-3 h-[480px]">
-      <div className="w-56 shrink-0 flex flex-col gap-2">
+    <div className="flex gap-4 h-[520px]">
+      <div className="w-64 shrink-0 flex flex-col gap-2">
         <Input
           placeholder="Filter feats…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="h-8 text-sm"
+          className={searchInputCls}
         />
-        <div className="flex-1 overflow-y-auto space-y-0.5 border rounded-md p-1">
+        <div className={listPanelCls}>
           {loading ? (
             <p className="text-xs text-muted-foreground p-2 italic">Loading…</p>
           ) : Object.entries(byCategory).map(([cat, items]) => (
             <div key={cat}>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase px-2 pt-2 pb-0.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 pt-2 pb-1">
                 {cat}
               </p>
               {items.map((f) => (
@@ -366,13 +421,20 @@ function FeatsPanel() {
                   type="button"
                   onClick={() => setSelected(f)}
                   className={cn(
-                    "w-full text-left rounded px-2 py-1.5 text-xs transition-colors",
-                    selected?.index === f.index ? "bg-primary/10 font-semibold" : "hover:bg-muted/60"
+                    "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
+                    selected?.index === f.index
+                      ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                      : "hover:bg-muted/60 text-foreground/80"
                   )}
+                  style={
+                    selected?.index === f.index
+                      ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
+                      : undefined
+                  }
                 >
                   {f.name}
                   {f.prerequisite && (
-                    <span className="block text-[10px] text-amber-600 dark:text-amber-400 truncate">
+                    <span className="block text-[10px] text-[hsl(var(--ctp-peach))] truncate">
                       Req: {f.prerequisite}
                     </span>
                   )}
@@ -383,7 +445,7 @@ function FeatsPanel() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-md border p-4">
+      <div className={detailPanelCls}>
         {selected ? (
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-2">
@@ -393,12 +455,12 @@ function FeatsPanel() {
               )}
             </div>
             {selected.prerequisite && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              <p className="text-xs text-[hsl(var(--ctp-peach))] font-medium">
                 Prerequisite: {selected.prerequisite}
               </p>
             )}
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap border-t pt-3">
-              {selected.description}
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap border-t border-border pt-3">
+              <RulesText text={selected.description} />
             </p>
           </div>
         ) : (
@@ -422,7 +484,7 @@ interface RulesLookupProps {
 export function RulesLookup({ open, onClose, initialTab = "glossary" }: RulesLookupProps) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-background border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Rules Reference

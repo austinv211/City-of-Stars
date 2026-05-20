@@ -63,6 +63,8 @@ The root `Cargo.toml` is a workspace that references `src/tauri`.
 
 ## Commands
 
+### Linux / macOS (Makefile)
+
 All developer entry points are in the `Makefile`. Run `make` (or `make help`) to see
 the full list with descriptions. Key targets:
 
@@ -77,3 +79,18 @@ make docker-build-android  # Android APK/AAB via Docker
 
 Docker named volumes cache `node_modules`, the Cargo registry, and `target/` between
 runs. Use `make docker-clean` to wipe them and force a full reinstall.
+
+### Windows (PowerShell)
+
+Use `dev.ps1` instead of `make`. It mirrors all the same targets:
+
+```powershell
+.\dev.ps1 setup       # copy .env.example → .env and npm install (run first)
+.\dev.ps1 dev         # Vite dev server only (port 1420)
+.\dev.ps1 tauri-dev   # Vite + native Tauri desktop window
+.\dev.ps1 build       # type-check and build frontend
+.\dev.ps1 clean       # remove dist/ and src\tauri\target\
+.\dev.ps1 db-push     # deploy migrations to Supabase
+```
+
+If PowerShell blocks the script, run once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`

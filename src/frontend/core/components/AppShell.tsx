@@ -64,14 +64,19 @@ function NavItem({
       to={to}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-150",
           isActive
-            ? "bg-accent text-accent-foreground font-medium"
-            : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+            ? "font-medium text-[hsl(var(--ctp-lavender))]"
+            : "text-muted-foreground hover:bg-[hsl(var(--ctp-mauve)/0.08)] hover:text-foreground",
         )
       }
       style={({ isActive }) =>
-        isActive ? { boxShadow: "inset 0 1px 0 hsl(var(--primary) / 0.15)" } : {}
+        isActive
+          ? {
+              background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.28), hsl(var(--ctp-lavender) / 0.14))",
+              boxShadow:  "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.22)",
+            }
+          : {}
       }
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -87,7 +92,7 @@ function CampaignSelector() {
   if (campaigns.length <= 1) {
     return (
       <div className="min-w-0">
-        <p className="text-sm font-bold tracking-tight leading-tight">City of Stars</p>
+        <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">City of Stars</p>
         {campaign && (
           <p className="truncate text-[11px] text-muted-foreground leading-tight mt-0.5">
             {campaign.name}
@@ -104,7 +109,7 @@ function CampaignSelector() {
           type="button"
           className="min-w-0 text-left group"
         >
-          <p className="text-sm font-bold tracking-tight leading-tight">City of Stars</p>
+          <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">City of Stars</p>
           <div className="flex items-center gap-1 mt-0.5">
             <p className="truncate text-[11px] text-muted-foreground leading-tight group-hover:text-foreground transition-colors">
               {campaign?.name ?? "Select campaign"}
@@ -125,7 +130,7 @@ function CampaignSelector() {
             className={cn(
               "w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2",
               c.id === campaign?.id
-                ? "bg-accent text-accent-foreground font-medium"
+                ? "bg-[hsl(var(--ctp-lavender)/0.12)] text-[hsl(var(--ctp-lavender))] font-medium"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
@@ -156,7 +161,7 @@ export default function AppShell() {
           <aside
             className="flex w-56 shrink-0 flex-col"
             style={{
-              background: "hsl(var(--card))",
+              background: "linear-gradient(180deg, hsl(var(--ctp-mantle)), hsl(var(--ctp-crust)) 100%)",
               boxShadow:  "inset -1px 0 0 hsl(var(--border)/0.3)",
             }}
           >
@@ -168,8 +173,8 @@ export default function AppShell() {
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0"
                 style={{
-                  background: "hsl(var(--primary) / 0.12)",
-                  boxShadow:  "inset 0 1px 0 hsl(var(--primary) / 0.2)",
+                  background: "linear-gradient(135deg, hsl(var(--ctp-mauve) / 0.24), hsl(var(--ctp-blue) / 0.24))",
+                  boxShadow:  "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.3), 0 0 8px hsl(var(--ctp-mauve) / 0.15)",
                 }}
               >
                 <AnimatedStar size={20} />
@@ -201,7 +206,7 @@ export default function AppShell() {
               {isDM && (
                 <>
                   <div className="px-3 pt-4 pb-1">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-sapphire))]">
                       DM Tools
                     </p>
                   </div>
@@ -214,7 +219,7 @@ export default function AppShell() {
               {isAdmin && (
                 <>
                   <div className="px-3 pt-4 pb-1">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-maroon))]">
                       Admin
                     </p>
                   </div>

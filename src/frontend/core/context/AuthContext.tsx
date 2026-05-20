@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextValue {
   session: Session | null;
@@ -27,22 +27,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) loadRole(session.user.id);
-      setLoading(false);
-    });
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session?.user) loadRole(session.user.id);
-      else setIsAdmin(false);
+      // Only reload the role on events that can actually change it.
+      // TOKEN_REFRESHED fires frequently on Windows (WebView2 triggers
+      // visibilitychange on focus) and would hammer the DB otherwise.
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "USER_UPDATED") {
+        if (session?.user) loadRole(session.user.id);
+        else setIsAdmin(false);
+      } else if (event === "SIGNED_OUT") {
+        setIsAdmin(false);
+      }
+      // INITIAL_SESSION fires once on subscribe with the stored session (or null).
+      // Clearing loading here — instead of a separate getSession() call — prevents a
+      // race on Windows/WebView2 where the getSession() promise resolves with a stale
+      // null after SIGNED_IN has already set a valid session.
+      if (event === "INITIAL_SESSION") setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Proactively refresh the token 10 minutes before it expires.
+  // autoRefreshToken is disabled on the client to stop WebView2 from firing
+  // _recoverAndRefresh on every visibilitychange event, so we own the schedule.
+  useEffect(() => {
+    if (!session?.expires_at) return;
+    const msUntilRefresh = session.expires_at * 1000 - Date.now() - 10 * 60 * 1000;
+    const timer = setTimeout(async () => {
+      const { error } = await supabase.auth.refreshSession();
+      if (error) console.error("[auth] proactive token refresh failed:", error.message);
+    }, Math.max(0, msUntilRefresh));
+    return () => clearTimeout(timer);
+  }, [session?.expires_at]);
 
   async function signOut() {
     await supabase.auth.signOut();

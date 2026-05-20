@@ -1,7 +1,7 @@
 declare module "@3d-dice/dice-box" {
   interface DiceBoxConfig {
     assetPath?: string;
-    selector?: string;
+    container?: string;
     id?: string;
     offscreen?: boolean;
     theme?: string;
@@ -30,11 +30,19 @@ declare module "@3d-dice/dice-box" {
     theme?: string;
   }
 
+  interface DiceRollInput {
+    qty: number;
+    sides: number;
+    value?: number;
+    theme?: string;
+    themeColor?: string;
+  }
+
   class DiceBox {
     constructor(config: DiceBoxConfig);
     init(): Promise<void>;
-    roll(notation: string | string[]): Promise<DiceRollResult[]>;
-    add(notation: string | string[]): Promise<DiceRollResult[]>;
+    roll(notation: string | string[] | DiceRollInput[]): Promise<DiceRollResult[]>;
+    add(notation: string | string[] | DiceRollInput[]): Promise<DiceRollResult[]>;
     clear(): this;
     hide(className?: string): this;
     show(): this;

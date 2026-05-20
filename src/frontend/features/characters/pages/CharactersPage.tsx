@@ -51,7 +51,7 @@ export default function CharactersPage() {
     <div className="px-4 sm:px-6 py-8 space-y-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Characters</h1>
+          <h1 className="text-2xl font-bold ctp-gradient-text">Characters</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             All adventurers in this campaign
           </p>
@@ -83,19 +83,19 @@ export default function CharactersPage() {
         <div className="space-y-6">
           {active.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Active</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--ctp-green))]">Active</h2>
               {active.map((c) => <CharacterCard key={c.id} {...cardProps(c)} />)}
             </section>
           )}
           {drafts.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Drafts</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--ctp-yellow))]">Drafts</h2>
               {drafts.map((c) => <CharacterCard key={c.id} {...cardProps(c)} />)}
             </section>
           )}
           {backups.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Backup Characters</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--ctp-sapphire))]">Backup Characters</h2>
               {backups.map((c) => <CharacterCard key={c.id} {...cardProps(c)} />)}
             </section>
           )}

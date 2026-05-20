@@ -13,7 +13,7 @@ export function useCharacter(characterId: string | undefined) {
       .from("characters")
       .select("*, ability_scores(*), proficiencies:character_proficiencies(*)")
       .eq("id", characterId)
-      .single();
+      .maybeSingle();
 
     if (error) setError(error.message);
     else setCharacter(data as CharacterWithScores);

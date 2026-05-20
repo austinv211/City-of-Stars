@@ -6,93 +6,98 @@
 $panel-highlight: rgb(255 255 255 / 0.06);
 
 @mixin panel-base {
-  background:    hsl(var(--card));
+  background: hsl(var(--card));
   border-radius: var(--radius);
 }
 
 // ── Design tokens — Catppuccin Mocha ─────────────────────────────────────────
 :root {
-  // Core palette — mapped to Catppuccin Mocha
-  --background:            240 21% 12%;      // Mantle   #181825
-  --foreground:            226 64% 88%;      // Text     #cdd6f4
+  // Core palette — Catppuccin Mocha (style-guide compliant)
+  // Background Pane → Base; Secondary Panes → Mantle/Crust
+  --background: 240 21% 15%; // Base     #1e1e2e
+  --foreground: 226 64% 88%; // Text     #cdd6f4
 
-  --card:                  240 21% 15%;      // Base     #1e1e2e
-  --card-foreground:       226 64% 88%;
+  --card: 240 21% 12%; // Mantle   #181825
+  --card-foreground: 226 64% 88%;
 
-  --popover:               234 16% 23%;      // Surface0 #313244
-  --popover-foreground:    226 64% 88%;
+  --popover: 234 16% 23%; // Surface0 #313244
+  --popover-foreground: 226 64% 88%;
 
-  --primary:               267 84% 81%;      // Mauve    #cba6f7
-  --primary-foreground:    240 23% 9%;       // Crust    #11111b
+  --primary: 267 84% 81%; // Mauve    #cba6f7
+  --primary-foreground: 240 23% 9%; // Crust    #11111b
 
-  --secondary:             234 16% 23%;      // Surface0 #313244
-  --secondary-foreground:  226 64% 88%;
+  --secondary: 234 16% 23%; // Surface0 #313244
+  --secondary-foreground: 226 64% 88%;
 
-  --muted:                 240 21% 15%;      // Base     #1e1e2e
-  --muted-foreground:      229 12% 55%;      // Overlay1 #7f849c
+  --muted: 240 21% 12%; // Mantle   #181825
+  --muted-foreground: 228 17% 72%; // Subtext0 #a6adc8
 
-  --accent:                267 22% 36%;      // Mauve-tinted panel  ~#524168
-  --accent-foreground:     226 64% 88%;      // Text  #cdd6f4
-  --accent-turn:           217 32% 37%;      // Blue-tinted panel   ~#3d577f (current turn)
+  --accent: 267 22% 36%; // Mauve-tinted panel  ~#524168
+  --accent-foreground: 226 64% 88%; // Text  #cdd6f4
+  --accent-turn: 217 32% 37%; // Blue-tinted panel   ~#3d577f (current turn)
 
-  --destructive:           343 81% 75%;      // Red      #f38ba8
-  --destructive-foreground: 240 23% 9%;      // Crust
+  --destructive: 343 81% 75%; // Red      #f38ba8
+  --destructive-foreground: 240 23% 9%; // Crust
 
-  --border:                234 13% 31%;      // Surface1 #45475a
-  --input:                 240 21% 12%;      // Mantle
-  --ring:                  267 84% 81%;      // Mauve
+  --border: 234 13% 31%; // Surface1 #45475a
+  --input: 240 21% 12%; // Mantle
+  --ring: 232 97% 85%; // Lavender #b4befe (active border per style guide)
 
-  --titlebar:              240 23% 9%;       // Crust    #11111b
+  --titlebar: 240 23% 9%; // Crust    #11111b
 
-  --radius: 0.25rem; // 4px — flat material feel
+  --radius: 0.5rem; // 8px — rounded per Catppuccin style guide
 
-  // Named Catppuccin colors for targeted use
+  // Named Catppuccin accent colors
   --ctp-rosewater: 10 56% 91%;
-  --ctp-flamingo:  0 59% 88%;
-  --ctp-pink:      316 72% 86%;
-  --ctp-mauve:     267 84% 81%;
-  --ctp-red:       343 81% 75%;
-  --ctp-maroon:    350 63% 77%;
-  --ctp-peach:     23 92% 75%;
-  --ctp-yellow:    40 86% 83%;
-  --ctp-green:     115 54% 76%;
-  --ctp-teal:      171 56% 73%;
-  --ctp-sky:       189 71% 74%;
-  --ctp-sapphire:  199 76% 69%;
-  --ctp-blue:      217 92% 76%;
-  --ctp-lavender:  232 97% 85%;
+  --ctp-flamingo: 0 59% 88%;
+  --ctp-pink: 316 72% 86%;
+  --ctp-mauve: 267 84% 81%;
+  --ctp-red: 343 81% 75%;
+  --ctp-maroon: 350 63% 77%;
+  --ctp-peach: 23 92% 75%;
+  --ctp-yellow: 40 86% 83%;
+  --ctp-green: 115 54% 76%;
+  --ctp-teal: 171 56% 73%;
+  --ctp-sky: 189 71% 74%;
+  --ctp-sapphire: 199 76% 69%;
+  --ctp-blue: 217 92% 76%;
+  --ctp-lavender: 232 97% 85%;
+
+  // Catppuccin neutral scale
+  --ctp-text: 226 64% 88%;
+  --ctp-subtext1: 227 35% 80%;
+  --ctp-subtext0: 228 17% 72%;
+  --ctp-overlay2: 229 14% 64%;
+  --ctp-overlay1: 229 12% 55%;
+  --ctp-overlay0: 231 9% 48%;
+  --ctp-surface2: 235 10% 39%;
+  --ctp-surface1: 234 13% 31%;
+  --ctp-surface0: 234 16% 23%;
+  --ctp-base: 240 21% 15%;
+  --ctp-mantle: 240 21% 12%;
+  --ctp-crust: 240 23% 9%;
 
   // ── Shadow scale ─────────────────────────────────────────────────────────
-  --shadow-sm:
-    0 1px 3px  rgba(0, 0, 0, 0.60),
-    0 1px 2px  rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
 
-  --shadow-md:
-    0 4px 12px rgba(0, 0, 0, 0.60),
-    0 2px 4px  rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.45);
 
-  --shadow-lg:
-    0 8px 32px rgba(0, 0, 0, 0.70),
-    0 4px 8px  rgba(0, 0, 0, 0.50);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7), 0 4px 8px rgba(0, 0, 0, 0.5);
 
   --shadow-panel:
-    0 2px 8px  rgba(0, 0, 0, 0.60),
-    0 1px 2px  rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 #{$panel-highlight};
 
   --shadow-card:
-    0 4px 16px rgba(0, 0, 0, 0.60),
-    0 2px 5px  rgba(0, 0, 0, 0.45),
+    0 4px 16px rgba(0, 0, 0, 0.6), 0 2px 5px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 #{$panel-highlight};
 
   --shadow-elevated:
-    0 8px 32px rgba(0, 0, 0, 0.75),
-    0 4px 12px rgba(0, 0, 0, 0.55),
+    0 8px 32px rgba(0, 0, 0, 0.75), 0 4px 12px rgba(0, 0, 0, 0.55),
     inset 0 1px 0 rgb(255 255 255 / 0.08);
 
   --shadow-glow:
-    0 0 0 3px hsl(var(--primary) / 0.25),
-    0 4px 16px rgba(0, 0, 0, 0.55);
+    0 0 0 3px hsl(var(--primary) / 0.25), 0 4px 16px rgba(0, 0, 0, 0.55);
 }
 
 // ── Base ──────────────────────────────────────────────────────────────────────
@@ -110,9 +115,9 @@ $panel-highlight: rgb(255 255 255 / 0.06);
 
   body {
     @apply bg-background text-foreground;
-    font-synthesis:          none;
-    text-rendering:          optimizeLegibility;
-    -webkit-font-smoothing:  antialiased;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
@@ -122,40 +127,102 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
   }
 
-  ::-webkit-scrollbar         { width: 3px; height: 3px; }
-  ::-webkit-scrollbar-track   { background: transparent; }
-  ::-webkit-scrollbar-corner  { background: transparent; }
-  ::-webkit-scrollbar-thumb   {
-    background:    hsl(var(--muted-foreground) / 0.3);
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 999px;
-    &:hover { background: hsl(var(--muted-foreground) / 0.55); }
+    &:hover {
+      background: hsl(var(--muted-foreground) / 0.55);
+    }
   }
 }
 
 // ── Animated star icon ────────────────────────────────────────────────────────
 // Arms rotate to each position — glow color matches the arm color at that angle
 @keyframes star-glow-spin {
-  0%   { transform: rotate(0deg)   scale(1);    filter: drop-shadow(0 0 3px #cba6f799); }
-  25%  { transform: rotate(90deg)  scale(1.1);  filter: drop-shadow(0 0 5px #89b4fa99); }
-  50%  { transform: rotate(180deg) scale(1);    filter: drop-shadow(0 0 3px #fab38799); }
-  75%  { transform: rotate(270deg) scale(1.1);  filter: drop-shadow(0 0 5px #a6e3a199); }
-  100% { transform: rotate(360deg) scale(1);    filter: drop-shadow(0 0 3px #cba6f799); }
+  0% {
+    transform: rotate(0deg) scale(1);
+    filter: drop-shadow(0 0 3px #cba6f799);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.1);
+    filter: drop-shadow(0 0 5px #89b4fa99);
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+    filter: drop-shadow(0 0 3px #fab38799);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.1);
+    filter: drop-shadow(0 0 5px #a6e3a199);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    filter: drop-shadow(0 0 3px #cba6f799);
+  }
 }
 
 .star-icon {
-  transform-box:    fill-box;
+  transform-box: fill-box;
   transform-origin: center;
-  animation:        star-glow-spin 8s ease-in-out infinite;
-  display:          block;
+  animation: star-glow-spin 8s ease-in-out infinite;
+  display: block;
+}
+
+// ── DiceBox canvas ────────────────────────────────────────────────────────────
+// @3d-dice/dice-box reads clientWidth/clientHeight at init to size the physics
+// world. Its own style.css only sets opacity — without this the canvas defaults
+// to the HTML spec's 300×150 and the dice simulate in a tiny invisible area.
+.dice-box-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 // ── Tiptap rich text editor ───────────────────────────────────────────────────
 .ProseMirror p.is-editor-empty:first-child::before {
-  color:           hsl(var(--muted-foreground));
-  content:         attr(data-placeholder);
-  float:           left;
-  height:          0;
-  pointer-events:  none;
+  color: hsl(var(--muted-foreground));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+// ── Encounter / HP animations ────────────────────────────────────────────────
+@keyframes turn-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes hp-flash-damage {
+  0% {
+    box-shadow: 0 0 0 5px hsl(var(--ctp-red) / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+@keyframes hp-flash-heal {
+  0% {
+    box-shadow: 0 0 0 5px hsl(var(--ctp-green) / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
 }
 
 // ── Component layer: depth system ─────────────────────────────────────────────
@@ -175,9 +242,9 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   }
 
   .panel-elevated {
-    background:    hsl(var(--popover));
+    background: hsl(var(--popover));
     border-radius: var(--radius);
-    box-shadow:    var(--shadow-elevated);
+    box-shadow: var(--shadow-elevated);
   }
 
   .panel-inset {
@@ -190,5 +257,110 @@ $panel-highlight: rgb(255 255 255 / 0.06);
 
   .glow-primary {
     box-shadow: var(--shadow-glow);
+  }
+
+  // ── Encounter ──────────────────────────────────────────────────────────────
+  .encounter-turn-banner {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--ctp-teal) / 0.32),
+      hsl(var(--ctp-yellow) / 0.32),
+      hsl(var(--ctp-pink) / 0.32),
+      hsl(var(--ctp-lavender) / 0.2),
+      hsl(var(--ctp-pink) / 0.32),
+      hsl(var(--ctp-yellow) / 0.32),
+      hsl(var(--ctp-teal) / 0.32)
+    );
+    background-size: 200% auto;
+    animation: turn-shimmer 2s infinite;
+    box-shadow:
+      inset 0 -1px 0 hsl(var(--ctp-mauve) / 0.5),
+      inset 0 1px 0 hsl(var(--ctp-lavender) / 0.22);
+  }
+
+  .hp-flash-damage {
+    animation: hp-flash-damage 0.65s ease-out;
+    border-radius: var(--radius);
+  }
+
+  .hp-flash-heal {
+    animation: hp-flash-heal 0.65s ease-out;
+    border-radius: var(--radius);
+  }
+
+  // Tab trigger active gradient (applied via .tab-trigger CSS class)
+  .tab-trigger[data-state="active"] {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--ctp-mauve) / 0.25),
+      hsl(var(--ctp-lavender) / 0.14)
+    );
+    box-shadow: inset 0 1px 0 hsl(var(--ctp-lavender) / 0.2);
+  }
+
+  // ── Catppuccin gradient utilities ──────────────────────────────────────────
+
+  // Subtle tinted hero background (Base + hint of Peach→Mauve)
+  .ctp-hero-gradient {
+    background: linear-gradient(
+      120deg,
+      color-mix(in srgb, hsl(var(--background)), hsl(var(--ctp-peach)) 5%),
+      color-mix(in srgb, hsl(var(--background)), hsl(var(--ctp-mauve)) 10%)
+    );
+  }
+
+  // Gradient text (Peach → Lavender — warm-to-cool arc)
+  .ctp-gradient-text {
+    background: linear-gradient(
+      110deg,
+      hsl(var(--ctp-peach)),
+      hsl(var(--ctp-pink)) 45%,
+      hsl(var(--ctp-lavender))
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+  }
+
+  // Full-spectrum rainbow accent bar (all 14 accent colors L→R)
+  .ctp-accent-bar {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--ctp-green)),
+      hsl(var(--ctp-lavender)),
+      hsl(var(--ctp-blue)),
+      hsl(var(--ctp-rosewater)),
+      hsl(var(--ctp-flamingo)),
+      hsl(var(--ctp-pink)),
+      hsl(var(--ctp-sapphire)),
+      hsl(var(--ctp-sky)),
+      hsl(var(--ctp-teal)),
+      hsl(var(--ctp-red)),
+      hsl(var(--ctp-maroon)),
+      hsl(var(--ctp-peach)),
+      hsl(var(--ctp-maroon)),
+      hsl(var(--ctp-red)),
+      hsl(var(--ctp-teal)),
+      hsl(var(--ctp-sky)),
+      hsl(var(--ctp-sapphire)),
+      hsl(var(--ctp-pink)),
+      hsl(var(--ctp-flamingo)),
+      hsl(var(--ctp-rosewater)),
+      hsl(var(--ctp-blue)),
+      hsl(var(--ctp-lavender)),
+      hsl(var(--ctp-green))
+    );
+    background-size: 200% auto;
+    animation: turn-shimmer 8s infinite;
+  }
+
+  // Sidebar brand-header gradient (Mantle + Peach/Mauve warmth)
+  .ctp-brand-gradient {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, hsl(var(--ctp-mantle)), hsl(var(--ctp-peach)) 10%),
+      color-mix(in srgb, hsl(var(--ctp-mantle)), hsl(var(--ctp-mauve)) 16%)
+    );
   }
 }
