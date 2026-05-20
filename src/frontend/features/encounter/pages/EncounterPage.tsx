@@ -304,18 +304,6 @@ export default function EncounterPage() {
         </div>
       </div>
 
-      {/* ── "Your Turn" banner ── */}
-      {isMyTurn && (
-        <div className="encounter-turn-banner px-4 py-2 flex items-center gap-2.5 shrink-0">
-          <Zap className="h-4 w-4 text-ctp-mauve shrink-0 animate-pulse" />
-          <p className="text-sm font-bold">
-            <span className="text-ctp-lavender">Your Turn</span>
-            <span className="text-ctp-peach"> — {ownCharacter?.name}</span>
-            <span className="text-ctp-lavender">!</span>
-          </p>
-        </div>
-      )}
-
       {/* ── Three-column body ── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Col 1 — Initiative Tracker */}

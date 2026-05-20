@@ -34,17 +34,14 @@ export function ParticipantCard({
 }: Props) {
   const initials = participant.name.slice(0, 2).toUpperCase();
 
-  const cardStyle = selected
-    ? {
-        background:
-          "linear-gradient(135deg, hsl(var(--ctp-mauve)/0.22), hsl(var(--ctp-lavender)/0.14))",
-      }
-    : isActive
-      ? {
-          background:
-            "linear-gradient(135deg, hsl(var(--ctp-teal)/0.18), hsl(var(--ctp-blue)/0.12))",
-        }
-      : {};
+  let cardStyle: Record<string, string> = {};
+  if (selected) {
+    cardStyle["background"] = "hsl(var(--ctp-surface2)/0.15)";
+    cardStyle["box-shadow"] = "0 0 0 1px hsl(var(--ctp-teal))";
+  }
+  if (isActive) {
+    cardStyle["border"] = "1px solid hsl(var(--ctp-teal))";
+  }
 
   return (
     <Card

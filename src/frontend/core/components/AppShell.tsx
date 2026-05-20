@@ -1,10 +1,31 @@
 import { NavLink, Outlet } from "react-router";
-import { Swords, Users, BookOpen, LogOut, ScrollText, ListChecks, Skull, ShieldCheck, BookMarked, UserCog, ChevronDown } from "lucide-react";
+import {
+  Swords,
+  Users,
+  BookOpen,
+  LogOut,
+  ScrollText,
+  ListChecks,
+  Skull,
+  ShieldCheck,
+  BookMarked,
+  UserCog,
+  ChevronDown,
+} from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { DiceProvider } from "@/features/encounter/context/DiceContext";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/core/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/core/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/core/components/ui/popover";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
@@ -14,16 +35,21 @@ import DiceRollOverlay from "./DiceRollOverlay";
 
 const navItems = [
   { to: "/characters", label: "Characters", icon: Users },
-  { to: "/campaigns",  label: "Campaigns",  icon: BookOpen },
-  { to: "/encounter",  label: "Encounter",  icon: Swords, requiresEncounter: true },
+  { to: "/campaigns", label: "Campaigns", icon: BookOpen },
+  {
+    to: "/encounter",
+    label: "Encounter",
+    icon: Swords,
+    requiresEncounter: true,
+  },
 ];
 
 const dmNavItems = [
-  { to: "/dm/campaigns", label: "Campaigns",       icon: BookMarked },
-  { to: "/dm/members",   label: "Members",          icon: UserCog },
-  { to: "/dm/sessions",  label: "Session Manager",  icon: ScrollText },
-  { to: "/dm/encounters",label: "Encounters",       icon: ListChecks },
-  { to: "/dm/monsters",  label: "Monster Library",  icon: Skull },
+  { to: "/dm/campaigns", label: "Campaigns", icon: BookMarked },
+  { to: "/dm/members", label: "Members", icon: UserCog },
+  { to: "/dm/sessions", label: "Session Manager", icon: ScrollText },
+  { to: "/dm/encounters", label: "Encounters", icon: ListChecks },
+  { to: "/dm/monsters", label: "Monster Library", icon: Skull },
 ];
 
 const adminNavItems = [
@@ -73,8 +99,8 @@ function NavItem({
       style={({ isActive }) =>
         isActive
           ? {
-              background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.28), hsl(var(--ctp-lavender) / 0.14))",
-              boxShadow:  "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.22)",
+              background:
+                "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.05), hsl(var(--ctp-lavender) / 0.03))",
             }
           : {}
       }
@@ -87,12 +113,15 @@ function NavItem({
 }
 
 function CampaignSelector() {
-  const { campaign, campaigns, campaignEncounters, switchCampaign } = useCampaign();
+  const { campaign, campaigns, campaignEncounters, switchCampaign } =
+    useCampaign();
 
   if (campaigns.length <= 1) {
     return (
       <div className="min-w-0">
-        <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">City of Stars</p>
+        <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">
+          City of Stars
+        </p>
         {campaign && (
           <p className="truncate text-[11px] text-muted-foreground leading-tight mt-0.5">
             {campaign.name}
@@ -105,11 +134,10 @@ function CampaignSelector() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="min-w-0 text-left group"
-        >
-          <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">City of Stars</p>
+        <button type="button" className="min-w-0 text-left group">
+          <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">
+            City of Stars
+          </p>
           <div className="flex items-center gap-1 mt-0.5">
             <p className="truncate text-[11px] text-muted-foreground leading-tight group-hover:text-foreground transition-colors">
               {campaign?.name ?? "Select campaign"}
@@ -131,7 +159,7 @@ function CampaignSelector() {
               "w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2",
               c.id === campaign?.id
                 ? "bg-[hsl(var(--ctp-lavender)/0.12)] text-[hsl(var(--ctp-lavender))] font-medium"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
             <span className="flex-1 truncate">{c.name}</span>
@@ -151,122 +179,129 @@ export default function AppShell() {
 
   return (
     <DiceProvider>
-    <TooltipProvider>
-      <div className="flex h-screen flex-col bg-background overflow-hidden">
-        <TitleBar />
+      <TooltipProvider>
+        <div className="flex h-screen flex-col bg-background overflow-hidden">
+          <TitleBar />
 
-        <div className="flex flex-1 overflow-hidden">
-
-          {/* Sidebar */}
-          <aside
-            className="flex w-56 shrink-0 flex-col"
-            style={{
-              background: "linear-gradient(180deg, hsl(var(--ctp-mantle)), hsl(var(--ctp-crust)) 100%)",
-              boxShadow:  "inset -1px 0 0 hsl(var(--border)/0.3)",
-            }}
-          >
-            {/* Brand + Campaign Selector */}
-            <div
-              className="h-12 flex items-center gap-2.5 px-4"
-              style={{ boxShadow: "inset 0 -1px 0 hsl(var(--border)/0.3)" }}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Sidebar */}
+            <aside
+              className="flex w-56 shrink-0 flex-col"
+              style={{
+                background:
+                  "linear-gradient(180deg, hsl(var(--ctp-mantle)), hsl(var(--ctp-crust)) 100%)",
+                boxShadow: "inset -1px 0 0 hsl(var(--border)/0.3)",
+              }}
             >
+              {/* Brand + Campaign Selector */}
               <div
-                className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0"
-                style={{
-                  background: "linear-gradient(135deg, hsl(var(--ctp-mauve) / 0.24), hsl(var(--ctp-blue) / 0.24))",
-                  boxShadow:  "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.3), 0 0 8px hsl(var(--ctp-mauve) / 0.15)",
-                }}
+                className="h-12 flex items-center gap-2.5 px-4"
+                style={{ boxShadow: "inset 0 -1px 0 hsl(var(--border)/0.3)" }}
               >
-                <AnimatedStar size={20} />
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(var(--ctp-mauve) / 0.24), hsl(var(--ctp-blue) / 0.24))",
+                    boxShadow:
+                      "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.3), 0 0 8px hsl(var(--ctp-mauve) / 0.15)",
+                  }}
+                >
+                  <AnimatedStar size={20} />
+                </div>
+                <CampaignSelector />
               </div>
-              <CampaignSelector />
-            </div>
 
-            {/* Nav */}
-            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3">
-              {navItems.map(({ to, label, icon, requiresEncounter }) => {
-                const disabled = requiresEncounter && !activeEncounterId;
-                return (
-                  <NavItem
-                    key={to}
-                    to={to}
-                    label={label}
-                    icon={icon}
-                    disabled={disabled}
-                    disabledTip="No active encounter"
-                    badge={
-                      requiresEncounter && activeEncounterId ? (
-                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--ctp-green))]" />
-                      ) : undefined
-                    }
-                  />
-                );
-              })}
+              {/* Nav */}
+              <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3">
+                {navItems.map(({ to, label, icon, requiresEncounter }) => {
+                  const disabled = requiresEncounter && !activeEncounterId;
+                  return (
+                    <NavItem
+                      key={to}
+                      to={to}
+                      label={label}
+                      icon={icon}
+                      disabled={disabled}
+                      disabledTip="No active encounter"
+                      badge={
+                        requiresEncounter && activeEncounterId ? (
+                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--ctp-green))]" />
+                        ) : undefined
+                      }
+                    />
+                  );
+                })}
 
-              {isDM && (
-                <>
-                  <div className="px-3 pt-4 pb-1">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-sapphire))]">
-                      DM Tools
-                    </p>
-                  </div>
-                  {dmNavItems.map(({ to, label, icon }) => (
-                    <NavItem key={to} to={to} label={label} icon={icon} />
-                  ))}
-                </>
-              )}
-
-              {isAdmin && (
-                <>
-                  <div className="px-3 pt-4 pb-1">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-maroon))]">
-                      Admin
-                    </p>
-                  </div>
-                  {adminNavItems.map(({ to, label, icon }) => (
-                    <NavItem key={to} to={to} label={label} icon={icon} />
-                  ))}
-                </>
-              )}
-            </nav>
-
-            <Separator />
-
-            {/* Footer */}
-            <div className="p-3 space-y-1">
-              <div className="px-2 py-1">
-                <p className="truncate text-xs font-medium text-foreground">{user?.email}</p>
                 {isDM && (
-                  <Badge
-                    variant="secondary"
-                    className="mt-1 text-[10px]"
-                    style={{ color: "hsl(var(--ctp-mauve))", borderColor: "hsl(var(--ctp-mauve) / 0.3)" }}
-                  >
-                    Dungeon Master
-                  </Badge>
+                  <>
+                    <div className="px-3 pt-4 pb-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-sapphire))]">
+                        DM Tools
+                      </p>
+                    </div>
+                    {dmNavItems.map(({ to, label, icon }) => (
+                      <NavItem key={to} to={to} label={label} icon={icon} />
+                    ))}
+                  </>
                 )}
+
+                {isAdmin && (
+                  <>
+                    <div className="px-3 pt-4 pb-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-maroon))]">
+                        Admin
+                      </p>
+                    </div>
+                    {adminNavItems.map(({ to, label, icon }) => (
+                      <NavItem key={to} to={to} label={label} icon={icon} />
+                    ))}
+                  </>
+                )}
+              </nav>
+
+              <Separator />
+
+              {/* Footer */}
+              <div className="p-3 space-y-1">
+                <div className="px-2 py-1">
+                  <p className="truncate text-xs font-medium text-foreground">
+                    {user?.email}
+                  </p>
+                  {isDM && (
+                    <Badge
+                      variant="secondary"
+                      className="mt-1 text-[10px]"
+                      style={{
+                        color: "hsl(var(--ctp-mauve))",
+                        borderColor: "hsl(var(--ctp-mauve) / 0.3)",
+                      }}
+                    >
+                      Dungeon Master
+                    </Badge>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={signOut}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-                onClick={signOut}
-              >
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </Button>
-            </div>
-          </aside>
+            </aside>
 
-          {/* Main content */}
-          <main className="flex flex-1 flex-col overflow-auto min-w-0">
-            <Outlet />
-          </main>
+            {/* Main content */}
+            <main className="flex flex-1 flex-col overflow-auto min-w-0">
+              <Outlet />
+            </main>
+          </div>
         </div>
-      </div>
 
-      <DiceRollOverlay />
-    </TooltipProvider>
+        <DiceRollOverlay />
+      </TooltipProvider>
     </DiceProvider>
   );
 }
