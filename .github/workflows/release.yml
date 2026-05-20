@@ -16,6 +16,7 @@ env:
 jobs:
   # ───────────────────────────────────────────────────────────────────────────
   # Linux build — produces AppImage (Arch-compatible) and .deb
+  # Cargo workspace root is the repo root, so artifacts land in ./target/
   # ───────────────────────────────────────────────────────────────────────────
   build-linux:
     name: Build (Linux)
@@ -32,7 +33,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src/tauri -> target
+          workspaces: . -> target
           shared-key: linux-x86_64
 
       - name: Install Linux system dependencies
@@ -47,7 +48,8 @@ jobs:
             librsvg2-dev \
             libxdo-dev \
             patchelf \
-            file
+            file \
+            squashfs-tools
 
       - run: npm ci
 
@@ -60,8 +62,8 @@ jobs:
       - name: Collect and rename Linux artifacts
         run: |
           VERSION="${{ github.ref_name }}"
-          APPIMAGE=$(find src/tauri/target/release/bundle/appimage -name "*.AppImage" | head -1)
-          DEB=$(find src/tauri/target/release/bundle/deb -name "*.deb" | head -1)
+          APPIMAGE=$(find target/release/bundle/appimage -name "*.AppImage" | head -1)
+          DEB=$(find target/release/bundle/deb -name "*.deb" | head -1)
           cp "$APPIMAGE" "cityofstars_linux_${VERSION}.AppImage"
           cp "$DEB" "cityofstars_linux_${VERSION}.deb"
 
@@ -95,8 +97,15 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src/tauri -> target
+          workspaces: . -> target
           shared-key: windows-x86_64
+
+      - name: Generate icon.ico from icon.png
+        shell: bash
+        run: |
+          magick src/tauri/icons/icon.png \
+            -define icon:auto-resize=256,128,64,48,32,16 \
+            src/tauri/icons/icon.ico
 
       - run: npm ci
 
@@ -110,8 +119,8 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ github.ref_name }}"
-          MSI=$(find src/tauri/target/release/bundle/msi -name "*.msi" | head -1)
-          EXE=$(find src/tauri/target/release/bundle/nsis -name "*.exe" | head -1)
+          MSI=$(find target/release/bundle/msi -name "*.msi" | head -1)
+          EXE=$(find target/release/bundle/nsis -name "*.exe" | head -1)
           cp "$MSI" "cityofstars_windows_${VERSION}_x64.msi"
           cp "$EXE" "cityofstars_windows_${VERSION}_x64-setup.exe"
 
@@ -126,7 +135,8 @@ jobs:
 
   # ───────────────────────────────────────────────────────────────────────────
   # Android build — produces signed release APK
-  # src/tauri/gen/ is in .gitignore so tauri android init runs every build
+  # src/tauri/gen/ is in .gitignore so tauri android init runs every build.
+  # Tauri auto-detects the pre-installed NDK; we sign the APK post-build.
   # ───────────────────────────────────────────────────────────────────────────
   build-android:
     name: Build (Android)
@@ -152,8 +162,7 @@ jobs:
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-34" \
-            "build-tools;34.0.0" \
-            "ndk;27.0.12077973"
+            "build-tools;34.0.0"
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -165,7 +174,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src/tauri -> target
+          workspaces: . -> target
           shared-key: android
 
       - name: Install base system dependencies
@@ -180,33 +189,33 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
-
-      - name: Decode signing keystore
-        run: |
-          echo "${{ secrets.ANDROID_KEY_STORE_BASE64 }}" | base64 --decode \
-            > "${{ github.workspace }}/release.keystore"
 
       - name: Build Android APK (release)
         run: npm run tauri:android:build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
-          TAURI_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
-          TAURI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
-          TAURI_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          TAURI_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Decode signing keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEY_STORE_BASE64 }}" | base64 --decode \
+            > "${{ github.workspace }}/release.keystore"
+
+      - name: Sign APK
+        run: |
+          VERSION="${{ github.ref_name }}"
+          UNSIGNED_APK=$(find src/tauri/gen/android/app/build/outputs/apk -name "*.apk" | head -1)
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+            --ks "${{ github.workspace }}/release.keystore" \
+            --ks-pass "pass:${{ secrets.ANDROID_KEY_STORE_PASSWORD }}" \
+            --ks-key-alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
+            --key-pass "pass:${{ secrets.ANDROID_KEY_PASSWORD }}" \
+            --out "cityofstars_${VERSION}_android.apk" \
+            "$UNSIGNED_APK"
 
       - name: Clean up keystore
         if: always()
         run: rm -f "${{ github.workspace }}/release.keystore"
-
-      - name: Collect and rename APK
-        run: |
-          VERSION="${{ github.ref_name }}"
-          APK=$(find src/tauri/gen/android/app/build/outputs/apk -name "*.apk" | head -1)
-          cp "$APK" "cityofstars_${VERSION}_android.apk"
 
       - uses: actions/upload-artifact@v4
         with:
