@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
 import { Separator } from "@/core/components/ui/separator";
+import { ScrollArea } from "@/core/components/ui/scroll-area";
 import { useDice } from "../context/DiceContext";
 import { DicePoolBuilder } from "./DicePoolBuilder";
 import {
@@ -115,38 +116,26 @@ const UNIVERSAL_REACTIONS: ActionEntry[] = [
   { id: "opportunity_attack", label: "Opportunity Attack" },
 ];
 
-// ── Action slot pill ───────────────────────────────────────────────────────
+// ── Action slot label styles ───────────────────────────────────────────────
 
-const SLOT_STYLE: Record<ActionCategory, { idle: string; badge: string }> = {
-  action: {
-    idle: "bg-ctp-blue/10 text-ctp-blue hover:bg-ctp-blue/20",
-    badge: "bg-ctp-blue/15 text-ctp-blue",
-  },
-  bonus: {
-    idle: "bg-ctp-peach/10 text-ctp-peach hover:bg-ctp-peach/20",
-    badge: "bg-ctp-peach/15 text-ctp-peach",
-  },
-  reaction: {
-    idle: "bg-ctp-mauve/10 text-ctp-mauve hover:bg-ctp-mauve/20",
-    badge: "bg-ctp-mauve/15 text-ctp-mauve",
-  },
-  free: {
-    idle: "bg-muted/20 text-muted-foreground hover:bg-muted/40",
-    badge: "bg-muted/20 text-muted-foreground",
-  },
+const SLOT_BADGE: Record<ActionCategory, string> = {
+  action: "bg-primary/15 text-primary",
+  bonus: "bg-secondary/20 text-secondary",
+  reaction: "bg-accent/60 text-accent-foreground",
+  free: "bg-muted/20 text-muted-foreground",
 };
 
-const ACTION_BTN_COLORS: Record<string, string> = {
-  attack: "bg-ctp-red/10 text-ctp-red hover:bg-ctp-red/20",
-  cast: "bg-ctp-lavender/10 text-ctp-lavender hover:bg-ctp-lavender/20",
-  dash: "bg-ctp-sky/10 text-ctp-sky hover:bg-ctp-sky/20",
-  disengage: "bg-ctp-teal/10 text-ctp-teal hover:bg-ctp-teal/20",
-  dodge: "bg-ctp-green/10 text-ctp-green hover:bg-ctp-green/20",
-  help: "bg-ctp-yellow/10 text-ctp-yellow hover:bg-ctp-yellow/20",
-  hide: "bg-ctp-peach/10 text-ctp-peach hover:bg-ctp-peach/20",
-  ready: "bg-ctp-mauve/10 text-ctp-mauve hover:bg-ctp-mauve/20",
-  search: "bg-ctp-sapphire/10 text-ctp-sapphire hover:bg-ctp-sapphire/20",
-  use_object: "bg-ctp-pink/10 text-ctp-pink hover:bg-ctp-pink/20",
+const SLOT_BTN: Record<ActionCategory, string> = {
+  action: "bg-primary/10 text-primary hover:bg-primary/20 border-0",
+  bonus: "bg-secondary/15 text-secondary hover:bg-secondary/25 border-0",
+  reaction: "bg-accent/40 text-accent-foreground hover:bg-accent/60 border-0",
+  free: "bg-muted/20 text-muted-foreground hover:bg-muted/40 border-0",
+};
+
+// Attack/cast highlighted differently; everything else uses slot color
+const ACTION_BTN_OVERRIDES: Record<string, string> = {
+  attack: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
+  cast: "bg-primary/15 text-primary hover:bg-primary/25 border-0",
 };
 
 const SKILL_ABILITY: Record<string, AbilityName> = {
@@ -221,7 +210,7 @@ export function ActionPanel({
           <img
             src={participant.portrait_url}
             alt={participant.name}
-            className="w-24 h-24 rounded-lg object-cover mb-3"
+            className="w-24 h-24 object-cover mb-3"
           />
         )}
         <p className="text-xs text-muted-foreground italic">
@@ -231,9 +220,6 @@ export function ActionPanel({
     );
   }
 
-  // --- Ability scores & derived stats ---
-  // For player participants, use the character sheet final scores.
-  // For NPCs, fall back to participant-level scores (from monster library).
   let strScore = participant.str_score ?? 10;
   let dexScore = participant.dex_score ?? 10;
   let conScore = participant.con_score ?? 10;
@@ -274,12 +260,7 @@ export function ActionPanel({
   const locked = participant.is_player && !isMyTurn && !isDM;
   const base = { campaignId, encounterId, characterName: participant.name };
 
-  function doRoll(
-    diceType: string,
-    sides: number,
-    modifier: number,
-    rollType: string,
-  ) {
+  function doRoll(diceType: string, sides: number, modifier: number, rollType: string) {
     roll({ ...base, diceType, sides, modifier, rollType });
   }
 
@@ -297,19 +278,15 @@ export function ActionPanel({
   const classBonusActions = CLASS_BONUS_ACTIONS[charClass] ?? [];
   const classReactions = CLASS_REACTIONS[charClass] ?? [];
   const reactions = [...UNIVERSAL_REACTIONS, ...classReactions];
-
   const monsterActions = participant.actions ?? [];
 
-  // Skill check modifiers — proficiency + ability mod for this character
   const skillMod = (skill: string) => {
     const ability = SKILL_ABILITY[skill] ?? "strength";
     const abilityMod = mods[ability];
     if (!participant.is_player) return abilityMod;
     const prof = character?.proficiencies.find((p) => p.skill === skill);
     if (!prof) return abilityMod;
-    return prof.is_expertise
-      ? abilityMod + profBonus * 2
-      : abilityMod + profBonus;
+    return prof.is_expertise ? abilityMod + profBonus * 2 : abilityMod + profBonus;
   };
 
   const saveMod = (ability: AbilityName) => {
@@ -319,379 +296,297 @@ export function ActionPanel({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {participant.name}
-        </span>
-        {isMyTurn && (
-          <Badge className="bg-[hsl(var(--ctp-teal)/0.4)] text-ctp-teal border-[hsl(var(--ctp-teal)/0.7)] animate-pulse">
-            Your Turn
-          </Badge>
-        )}
-        {!participant.is_player && (
-          <Badge variant="secondary" className="text-xs">
-            NPC
-          </Badge>
-        )}
-      </div>
-      {/* ── Action Economy ────────────────────────────────────────────────────── */}
-      {participant.is_player && (
-        <>
-          <div className="space-y-2">
-            {/* Action slot */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <span
-                  className={cn(
-                    "text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
-                    SLOT_STYLE.action.badge,
-                  )}
-                >
-                  Action
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {STANDARD_ACTIONS.map((a) => (
-                  <button
-                    key={a.id}
-                    disabled={locked}
-                    onClick={() => useAction(a.label, "action")}
-                    className={cn(
-                      "text-xs px-3 py-1.5 rounded cursor-pointer transition-colors",
-                      ACTION_BTN_COLORS[a.id] ?? SLOT_STYLE.action.idle,
-                      locked && "opacity-50 cursor-not-allowed",
-                    )}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+    <ScrollArea className="h-full">
+      <div className="space-y-4 pr-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            {participant.name}
+          </span>
+          {isMyTurn && (
+            <Badge className="bg-success/20 text-success border-success/50 animate-pulse">
+              Your Turn
+            </Badge>
+          )}
+          {!participant.is_player && (
+            <Badge variant="secondary" className="text-xs">
+              NPC
+            </Badge>
+          )}
+        </div>
 
-            {/* Bonus action slot */}
-            {classBonusActions.length > 0 && (
+        {/* ── Action Economy ──────────────────────────────────────────────────── */}
+        {participant.is_player && (
+          <>
+            <div className="space-y-2">
+              {/* Action slot */}
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
-                      SLOT_STYLE.bonus.badge,
-                    )}
-                  >
-                    Bonus
+                  <span className={cn("text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5", SLOT_BADGE.action)}>
+                    Action
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {classBonusActions.map((a) => (
-                    <button
+                  {STANDARD_ACTIONS.map((a) => (
+                    <Button
                       key={a.id}
+                      size="sm"
+                      variant="ghost"
                       disabled={locked}
-                      onClick={() => useAction(a.label, "bonus")}
+                      onClick={() => useAction(a.label, "action")}
                       className={cn(
-                        "text-xs px-3 py-1.5 rounded cursor-pointer transition-colors",
-                        SLOT_STYLE.bonus.idle,
-                        locked && "opacity-50 cursor-not-allowed",
+                        "h-7 text-xs px-2",
+                        ACTION_BTN_OVERRIDES[a.id] ?? SLOT_BTN.action,
+                        locked && "opacity-50",
                       )}
                     >
                       {a.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Reaction slot */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <span
-                  className={cn(
-                    "text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
-                    SLOT_STYLE.reaction.badge,
-                  )}
-                >
-                  Reaction
-                </span>
+              {/* Bonus action slot */}
+              {classBonusActions.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className={cn("text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5", SLOT_BADGE.bonus)}>
+                      Bonus
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {classBonusActions.map((a) => (
+                      <Button
+                        key={a.id}
+                        size="sm"
+                        variant="ghost"
+                        disabled={locked}
+                        onClick={() => useAction(a.label, "bonus")}
+                        className={cn("h-7 text-xs px-2", SLOT_BTN.bonus, locked && "opacity-50")}
+                      >
+                        {a.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reaction slot */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className={cn("text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5", SLOT_BADGE.reaction)}>
+                    Reaction
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {reactions.map((a) => (
+                    <Button
+                      key={a.id}
+                      size="sm"
+                      variant="ghost"
+                      disabled={locked}
+                      onClick={() => useAction(a.label, "reaction")}
+                      className={cn("h-7 text-xs px-2", SLOT_BTN.reaction, locked && "opacity-50")}
+                    >
+                      {a.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {reactions.map((a) => (
-                  <button
-                    key={a.id}
-                    disabled={locked}
-                    onClick={() => useAction(a.label, "reaction")}
-                    className={cn(
-                      "text-xs px-3 py-1.5 rounded cursor-pointer transition-colors",
-                      SLOT_STYLE.reaction.idle,
-                      locked && "opacity-50 cursor-not-allowed",
+            </div>
+            <Separator />
+          </>
+        )}
+
+        {/* ── Dice Pool Builder ───────────────────────────────────────────────── */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Dice Pool</p>
+          <DicePoolBuilder
+            disabled={locked}
+            onRoll={({ pool, modifier, advantage, disadvantage, rollType }) =>
+              rollPool({
+                campaignId,
+                encounterId,
+                characterName: participant.name,
+                pool,
+                modifier,
+                advantage,
+                disadvantage,
+                rollType,
+              })
+            }
+          />
+        </div>
+
+        <Separator />
+
+        {/* ── Monster Actions ─────────────────────────────────────────────────── */}
+        {monsterActions.length > 0 && (
+          <>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Actions</p>
+              <div className="space-y-2">
+                {monsterActions.map((action, i) => (
+                  <div key={i} className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground flex-1 min-w-0 truncate" title={action.desc}>
+                      {action.name}
+                    </span>
+                    {action.attack_bonus != null && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs shrink-0"
+                        disabled={locked}
+                        onClick={() => doRoll("d20", 20, action.attack_bonus!, `${action.name} Attack`)}
+                      >
+                        Hit {sign(action.attack_bonus)}
+                      </Button>
                     )}
-                  >
-                    {a.label}
-                  </button>
+                    {action.damage_dice && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs shrink-0"
+                        disabled={locked}
+                        onClick={() => {
+                          const [countStr, rest] = action.damage_dice!.split("d");
+                          const [sidesStr, modStr] = (rest ?? "6").split(/[+-]/);
+                          const sides = parseInt(sidesStr) || 6;
+                          const count = parseInt(countStr) || 1;
+                          const mod = action.damage_dice!.includes("+")
+                            ? parseInt(modStr) || 0
+                            : action.damage_dice!.includes("-")
+                              ? -(parseInt(modStr) || 0)
+                              : 0;
+                          doRoll(`d${sides}`, sides, mod + (count - 1) * Math.ceil(sides / 2), `${action.name} Dmg`);
+                        }}
+                      >
+                        {action.damage_dice} {action.damage_type ?? ""}
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
-          </div>
-          <Separator />
-        </>
-      )}
+            <Separator />
+          </>
+        )}
 
-      {/* ── Dice Pool Builder ─────────────────────────────────────────────────── */}
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-2">
-          Dice Pool
-        </p>
-        <DicePoolBuilder
-          disabled={locked}
-          onRoll={({ pool, modifier, advantage, disadvantage, rollType }) =>
-            rollPool({
-              campaignId,
-              encounterId,
-              characterName: participant.name,
-              pool,
-              modifier,
-              advantage,
-              disadvantage,
-              rollType,
-            })
-          }
-        />
-      </div>
-
-      <Separator />
-
-      {/* ── Monster Actions (from stat block) ───────────────────────────────── */}
-      {monsterActions.length > 0 && (
-        <>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-2">
-              Actions
-            </p>
-            <div className="space-y-2">
-              {monsterActions.map((action, i) => (
-                <div key={i} className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className="text-xs text-muted-foreground flex-1 min-w-0 truncate"
-                    title={action.desc}
-                  >
-                    {action.name}
-                  </span>
-                  {action.attack_bonus != null && (
+        {/* ── Attacks & Damage Spells ─────────────────────────────────────────── */}
+        {(attacks.length > 0 || damageSpells.length > 0) && (
+          <>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                Attacks
+                {locked && <span className="ml-2 text-xs font-normal italic">(wait for your turn)</span>}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {attacks.map((atk) => (
+                  <div key={atk.id} className="flex flex-col gap-1">
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="h-7 text-xs shrink-0"
+                      variant="secondary"
+                      className="h-7 text-xs font-medium"
                       disabled={locked}
-                      onClick={() =>
-                        doRoll(
-                          "d20",
-                          20,
-                          action.attack_bonus!,
-                          `${action.name} Attack`,
-                        )
-                      }
+                      onClick={() => doRoll("d20", 20, atk.attack_modifier, `${atk.name} Attack`)}
                     >
-                      Hit {sign(action.attack_bonus)}
+                      {atk.name} {sign(atk.attack_modifier)}
                     </Button>
-                  )}
-                  {action.damage_dice && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs shrink-0"
-                      disabled={locked}
-                      onClick={() => {
-                        const [countStr, rest] = action.damage_dice!.split("d");
-                        const [sidesStr, modStr] = (rest ?? "6").split(/[+-]/);
-                        const sides = parseInt(sidesStr) || 6;
-                        const count = parseInt(countStr) || 1;
-                        const mod = action.damage_dice!.includes("+")
-                          ? parseInt(modStr) || 0
-                          : action.damage_dice!.includes("-")
-                            ? -(parseInt(modStr) || 0)
-                            : 0;
-                        // Roll count dice summed — simplified as 1 roll with avg extra
-                        doRoll(
-                          `d${sides}`,
-                          sides,
-                          mod + (count - 1) * Math.ceil(sides / 2),
-                          `${action.name} Dmg`,
-                        );
-                      }}
-                    >
-                      {action.damage_dice} {action.damage_type ?? ""}
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-          <Separator />
-        </>
-      )}
-
-      {/* ── Attacks & Damage Spells ──────────────────────────────────────────── */}
-      {(attacks.length > 0 || damageSpells.length > 0) && (
-        <>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-2">
-              Attacks
-              {locked && (
-                <span className="ml-2 text-xs font-normal italic">
-                  (wait for your turn)
-                </span>
-              )}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {attacks.map((atk) => (
-                <div key={atk.id} className="flex flex-col gap-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="h-7 text-xs font-medium"
-                    disabled={locked}
-                    onClick={() =>
-                      doRoll(
-                        "d20",
-                        20,
-                        atk.attack_modifier,
-                        `${atk.name} Attack`,
-                      )
-                    }
-                  >
-                    {atk.name} {sign(atk.attack_modifier)}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    disabled={locked}
-                    onClick={() =>
-                      doRoll(
-                        `d${atk.dice_sides}`,
-                        atk.dice_sides,
-                        atk.damage_modifier,
-                        `${atk.name} Dmg`,
-                      )
-                    }
-                  >
-                    {atk.dice_count}d{atk.dice_sides}
-                    {sign(atk.damage_modifier)}
-                  </Button>
-                </div>
-              ))}
-              {damageSpells.map((spell) => {
-                const spellMod = (() => {
-                  if (
-                    !character?.ability_scores ||
-                    !character.spellcasting_ability
-                  )
-                    return 0;
-                  const final = finalAbilityScores(
-                    character.ability_scores,
-                    character.ability_scores.background_bonus_primary,
-                    character.ability_scores.background_bonus_secondary,
-                  );
-                  const abilityKey =
-                    character.spellcasting_ability as AbilityName;
-                  return abilityModifier(final[abilityKey] ?? 10) + profBonus;
-                })();
-                const [countStr, rest] = spell.damage_dice!.split("d");
-                const [sidesStr, modStr] = (rest ?? "6").split(/[+-]/);
-                const sides = parseInt(sidesStr) || 6;
-                const count = parseInt(countStr) || 1;
-                const flatMod = spell.damage_dice!.includes("+")
-                  ? parseInt(modStr) || 0
-                  : spell.damage_dice!.includes("-")
-                    ? -(parseInt(modStr) || 0)
-                    : 0;
-                return (
-                  <div key={spell.id} className="flex flex-col gap-1">
-                    {spell.attack_type && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-7 text-xs font-medium"
-                        disabled={locked}
-                        onClick={() =>
-                          doRoll("d20", 20, spellMod, `${spell.name} Attack`)
-                        }
-                      >
-                        {spell.name} {sign(spellMod)} ✦
-                      </Button>
-                    )}
                     <Button
                       size="sm"
                       variant="outline"
                       className="h-7 text-xs"
                       disabled={locked}
-                      onClick={() =>
-                        doRoll(
-                          `d${sides}`,
-                          sides,
-                          flatMod + (count - 1) * Math.ceil(sides / 2),
-                          `${spell.name} Dmg`,
-                        )
-                      }
+                      onClick={() => doRoll(`d${atk.dice_sides}`, atk.dice_sides, atk.damage_modifier, `${atk.name} Dmg`)}
                     >
-                      {spell.damage_dice} {spell.damage_type ?? ""} ✦
+                      {atk.dice_count}d{atk.dice_sides}{sign(atk.damage_modifier)}
                     </Button>
                   </div>
-                );
-              })}
+                ))}
+                {damageSpells.map((spell) => {
+                  const spellMod = (() => {
+                    if (!character?.ability_scores || !character.spellcasting_ability) return 0;
+                    const final = finalAbilityScores(
+                      character.ability_scores,
+                      character.ability_scores.background_bonus_primary,
+                      character.ability_scores.background_bonus_secondary,
+                    );
+                    const abilityKey = character.spellcasting_ability as AbilityName;
+                    return abilityModifier(final[abilityKey] ?? 10) + profBonus;
+                  })();
+                  const [countStr, rest] = spell.damage_dice!.split("d");
+                  const [sidesStr, modStr] = (rest ?? "6").split(/[+-]/);
+                  const sides = parseInt(sidesStr) || 6;
+                  const count = parseInt(countStr) || 1;
+                  const flatMod = spell.damage_dice!.includes("+")
+                    ? parseInt(modStr) || 0
+                    : spell.damage_dice!.includes("-")
+                      ? -(parseInt(modStr) || 0)
+                      : 0;
+                  return (
+                    <div key={spell.id} className="flex flex-col gap-1">
+                      {spell.attack_type && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 text-xs font-medium"
+                          disabled={locked}
+                          onClick={() => doRoll("d20", 20, spellMod, `${spell.name} Attack`)}
+                        >
+                          {spell.name} {sign(spellMod)} ✦
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled={locked}
+                        onClick={() => doRoll(`d${sides}`, sides, flatMod + (count - 1) * Math.ceil(sides / 2), `${spell.name} Dmg`)}
+                      >
+                        {spell.damage_dice} {spell.damage_type ?? ""} ✦
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+            <Separator />
+          </>
+        )}
+
+        {/* ── Saving Throws ───────────────────────────────────────────────────── */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Saving Throws</p>
+          <div className="flex flex-wrap gap-1.5">
+            {(["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"] as AbilityName[]).map(
+              (ability) => {
+                const mod = saveMod(ability);
+                const isProficient = savingThrowProfs.includes(ability);
+                const label = ability.slice(0, 3).toUpperCase();
+                return (
+                  <Button
+                    key={ability}
+                    size="sm"
+                    variant={isProficient ? "secondary" : "outline"}
+                    className="h-8 text-xs"
+                    disabled={locked}
+                    onClick={() => doRoll("d20", 20, mod, `${label} Save`)}
+                    title={isProficient ? "Proficient" : undefined}
+                  >
+                    {label} {sign(mod)}{isProficient ? " ★" : ""}
+                  </Button>
+                );
+              }
+            )}
           </div>
-          <Separator />
-        </>
-      )}
-
-      {/* ── Saving Throws ────────────────────────────────────────────────────── */}
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-2">
-          Saving Throws
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              "strength",
-              "dexterity",
-              "constitution",
-              "intelligence",
-              "wisdom",
-              "charisma",
-            ] as AbilityName[]
-          ).map((ability) => {
-            const mod = saveMod(ability);
-            const isProficient = savingThrowProfs.includes(ability);
-            const label = ability.slice(0, 3).toUpperCase();
-            return (
-              <Button
-                key={ability}
-                size="sm"
-                variant={isProficient ? "secondary" : "outline"}
-                className="h-8 text-xs"
-                disabled={locked}
-                onClick={() => doRoll("d20", 20, mod, `${label} Save`)}
-                title={isProficient ? "Proficient" : undefined}
-              >
-                {label} {sign(mod)}
-                {isProficient ? " ★" : ""}
-              </Button>
-            );
-          })}
         </div>
-      </div>
 
-      <Separator />
+        <Separator />
 
-      {/* ── Skill Checks ────────────────────────────────────────────────────── */}
-      {participant.is_player &&
-        character &&
-        character.proficiencies.length > 0 && (
+        {/* ── Skill Checks ────────────────────────────────────────────────────── */}
+        {participant.is_player && character && character.proficiencies.length > 0 && (
           <>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-2">
-                Skill Checks
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Skill Checks</p>
               <div className="flex flex-wrap gap-1.5">
                 {character.proficiencies.map((prof) => {
                   const mod = skillMod(prof.skill);
@@ -702,12 +597,9 @@ export function ActionPanel({
                       variant="outline"
                       className="h-7 text-xs"
                       disabled={locked}
-                      onClick={() =>
-                        doRoll("d20", 20, mod, `${prof.skill} Check`)
-                      }
+                      onClick={() => doRoll("d20", 20, mod, `${prof.skill} Check`)}
                     >
-                      {prof.skill} {sign(mod)}
-                      {prof.is_expertise ? " ★★" : " ★"}
+                      {prof.skill} {sign(mod)}{prof.is_expertise ? " ★★" : " ★"}
                     </Button>
                   );
                 })}
@@ -717,24 +609,12 @@ export function ActionPanel({
           </>
         )}
 
-      {/* ── Ability Checks ──────────────────────────────────────────────────── */}
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-2">
-          Ability Checks
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {(["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const).map(
-            (label, i) => {
-              const ability = (
-                [
-                  "strength",
-                  "dexterity",
-                  "constitution",
-                  "intelligence",
-                  "wisdom",
-                  "charisma",
-                ] as AbilityName[]
-              )[i];
+        {/* ── Ability Checks ──────────────────────────────────────────────────── */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Ability Checks</p>
+          <div className="flex flex-wrap gap-1.5">
+            {(["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const).map((label, i) => {
+              const ability = (["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"] as AbilityName[])[i];
               const mod = mods[ability];
               return (
                 <Button
@@ -748,10 +628,10 @@ export function ActionPanel({
                   {label} {sign(mod)}
                 </Button>
               );
-            },
-          )}
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </ScrollArea>
   );
 }

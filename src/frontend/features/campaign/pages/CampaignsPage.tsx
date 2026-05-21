@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Skeleton } from "@/core/components/ui/skeleton";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -83,9 +84,9 @@ function SessionBlock({
       )}
 
       {isDM && (
-        <Card className="border border-[hsl(var(--ctp-mauve)/0.3)] bg-[hsl(var(--ctp-mauve)/0.04)]">
+        <Card className="border border-primary/20 bg-primary/5">
           <CardHeader className="pb-2 pt-3 px-4">
-            <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[hsl(var(--ctp-mauve))]">
+            <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
               <Lock className="h-3 w-3" />
               DM Notes
             </CardTitle>
@@ -137,8 +138,18 @@ export default function CampaignsPage() {
 
   if (campaignLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="px-4 sm:px-6 py-8 space-y-6">
+        <div className="space-y-1">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-56" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+        <Skeleton className="h-px w-full" />
+        <Skeleton className="h-40 w-full" />
       </div>
     );
   }
@@ -157,7 +168,7 @@ export default function CampaignsPage() {
     <div className="px-4 sm:px-6 py-8 space-y-6">
       {/* Campaign index */}
       <div>
-        <h1 className="text-2xl font-bold ctp-gradient-text">Campaigns</h1>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Campaigns</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           Campaigns you are a member of
         </p>
@@ -187,17 +198,9 @@ export default function CampaignsPage() {
                   className={cn(
                     "rounded-lg border p-4 transition-colors",
                     isActive
-                      ? "border-[hsl(var(--ctp-lavender)/0.4)]"
+                      ? "border-primary/40 bg-primary/10"
                       : "bg-card hover:bg-muted/30",
                   )}
-                  style={
-                    isActive
-                      ? {
-                          background:
-                            "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.14), hsl(var(--ctp-lavender) / 0.08))",
-                        }
-                      : undefined
-                  }
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -208,22 +211,14 @@ export default function CampaignsPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {hasEncounter && (
-                        <div className="flex items-center gap-1 text-[11px] font-medium text-[hsl(var(--ctp-green))]">
+                        <div className="flex items-center gap-1 text-[11px] font-medium text-success">
                           <Swords className="h-3 w-3" />
                           <span>Encounter</span>
                         </div>
                       )}
                       <Badge
-                        variant="secondary"
+                        variant={mem?.role === "dm" ? "default" : "secondary"}
                         className="text-[10px]"
-                        style={
-                          mem?.role === "dm"
-                            ? {
-                                color: "hsl(var(--ctp-mauve))",
-                                borderColor: "hsl(var(--ctp-mauve) / 0.3)",
-                              }
-                            : {}
-                        }
                       >
                         {mem?.role === "dm" ? "DM" : "Player"}
                       </Badge>
@@ -307,7 +302,7 @@ export default function CampaignsPage() {
                   <PartyStatsPanel />
                   {activeCharacters.length > 0 && (
                     <div className="space-y-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--ctp-sapphire))]">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-primary">
                         Per-Character Stats
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

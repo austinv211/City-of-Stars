@@ -7,72 +7,58 @@ export default {
   theme: {
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "var(--secondary)",
+          hover: "var(--secondary-hover)",
+          foreground: "var(--secondary-foreground)",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
-        "accent-turn": "hsl(var(--accent-turn))",
-        ctp: {
-          rosewater: "hsl(var(--ctp-rosewater))",
-          flamingo:  "hsl(var(--ctp-flamingo))",
-          pink:      "hsl(var(--ctp-pink))",
-          mauve:     "hsl(var(--ctp-mauve))",
-          red:       "hsl(var(--ctp-red))",
-          maroon:    "hsl(var(--ctp-maroon))",
-          peach:     "hsl(var(--ctp-peach))",
-          yellow:    "hsl(var(--ctp-yellow))",
-          green:     "hsl(var(--ctp-green))",
-          teal:      "hsl(var(--ctp-teal))",
-          sky:       "hsl(var(--ctp-sky))",
-          sapphire:  "hsl(var(--ctp-sapphire))",
-          blue:      "hsl(var(--ctp-blue))",
-          lavender:  "hsl(var(--ctp-lavender))",
-        },
+        success: "var(--success)",
+        "accent-turn": "var(--accent-turn)",
       },
       borderRadius: {
-        // --radius = 4px (0.25rem); flat material scale
-        sm:  "var(--radius)",                   // 4px
-        DEFAULT: "calc(var(--radius) + 2px)",   // 6px
-        md:  "calc(var(--radius) + 2px)",       // 6px
-        lg:  "calc(var(--radius) + 4px)",       // 8px
-        xl:  "calc(var(--radius) + 8px)",       // 12px
-        "2xl": "calc(var(--radius) + 12px)",    // 16px
+        // --radius: 0px — sharp corners everywhere
+        DEFAULT: "var(--radius)",
+        sm: "var(--radius)",
+        md: "var(--radius)",
+        lg: "var(--radius)",
+        xl: "var(--radius)",
+        "2xl": "var(--radius)",
         full: "9999px",
       },
       boxShadow: {
-        panel:    "var(--shadow-panel)",
-        card:     "var(--shadow-card)",
+        panel: "var(--shadow-panel)",
+        card: "var(--shadow-card)",
         elevated: "var(--shadow-elevated)",
-        glow:     "var(--shadow-glow)",
+        glow: "var(--shadow-glow)",
       },
       keyframes: {
         "dice-spin": {
@@ -88,8 +74,12 @@ export default {
           "100%": { transform: "scale(1) rotateY(720deg) rotateX(360deg)" },
         },
         "level-up-pulse": {
-          "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--primary) / 0.7)" },
-          "50%": { boxShadow: "0 0 0 12px hsl(var(--primary) / 0)" },
+          "0%, 100%": {
+            boxShadow: "0 0 0 0 color-mix(in oklch, var(--primary) 70%, transparent)",
+          },
+          "50%": {
+            boxShadow: "0 0 0 12px color-mix(in oklch, var(--primary) 0%, transparent)",
+          },
         },
         "fade-in": {
           from: { opacity: "0" },

@@ -12,14 +12,14 @@ export function AnimatedStar({ size = 18 }: { size?: number }) {
       aria-hidden
       className="star-icon shrink-0"
     >
-      {/* Top arm — Mauve */}
-      <polygon points="10,10 7.5,7.5 10,0 12.5,7.5"   fill="#cba6f7" />
-      {/* Right arm — Blue */}
-      <polygon points="10,10 12.5,7.5 20,10 12.5,12.5" fill="#89b4fa" />
-      {/* Bottom arm — Peach */}
-      <polygon points="10,10 12.5,12.5 10,20 7.5,12.5" fill="#fab387" />
-      {/* Left arm — Green */}
-      <polygon points="10,10 7.5,12.5 0,10 7.5,7.5"   fill="#a6e3a1" />
+      {/* Top arm — steel blue (Polaris primary) */}
+      <polygon points="10,10 7.5,7.5 10,0 12.5,7.5"   fill="#5b9bd5" />
+      {/* Right arm — amber (Polaris secondary) */}
+      <polygon points="10,10 12.5,7.5 20,10 12.5,12.5" fill="#d4a054" />
+      {/* Bottom arm — steel blue */}
+      <polygon points="10,10 12.5,12.5 10,20 7.5,12.5" fill="#5b9bd5" />
+      {/* Left arm — amber */}
+      <polygon points="10,10 7.5,12.5 0,10 7.5,7.5"   fill="#d4a054" />
     </svg>
   );
 }
@@ -64,15 +64,12 @@ async function tauriWindow() {
 
 export function TitleBar() {
   return (
-    <div
-      className="flex w-full shrink-0 select-none flex-col"
-      style={{ background: "hsl(var(--titlebar))" }}
-    >
+    <div className="flex w-full shrink-0 select-none flex-col bg-[var(--titlebar)]">
       <div className="flex h-8 w-full items-center" data-tauri-drag-region>
         {/* Brand — not interactive, part of drag region */}
         <div className="flex items-center gap-2 px-3 pointer-events-none">
           <AnimatedStar size={16} />
-          <span className="text-xs font-semibold tracking-tight ctp-gradient-text">
+          <span className="text-xs font-semibold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             City of Stars
           </span>
         </div>
@@ -84,21 +81,21 @@ export function TitleBar() {
         <div className="flex items-stretch h-8">
           <WinBtn
             title="Minimize"
-            hoverColor="hover:bg-[hsl(var(--ctp-yellow)/0.25)] hover:text-[hsl(var(--ctp-yellow))]"
+            hoverColor="hover:bg-[#f9e2af26] hover:text-[#f9e2af]"
             onClick={() => tauriWindow().then((w) => w?.minimize())}
           >
             <Minus className="h-3 w-3" />
           </WinBtn>
           <WinBtn
             title="Maximize"
-            hoverColor="hover:bg-[hsl(var(--ctp-green)/0.25)] hover:text-[hsl(var(--ctp-green))]"
+            hoverColor="hover:bg-[#a6e3a126] hover:text-[#a6e3a1]"
             onClick={() => tauriWindow().then((w) => w?.toggleMaximize())}
           >
             <Square className="h-3 w-3" />
           </WinBtn>
           <WinBtn
             title="Close"
-            hoverColor="hover:bg-[hsl(var(--ctp-red)/0.30)] hover:text-[hsl(var(--ctp-red))]"
+            hoverColor="hover:bg-[#f38ba84d] hover:text-[#f38ba8]"
             onClick={() => tauriWindow().then((w) => w?.close())}
           >
             <X className="h-3.5 w-3.5" />
@@ -106,7 +103,7 @@ export function TitleBar() {
         </div>
       </div>
 
-      {/* Rainbow accent bar */}
+      {/* Rainbow accent bar — hardcoded Catppuccin branding colors */}
       <div className="h-[2px] w-full ctp-accent-bar" />
     </div>
   );

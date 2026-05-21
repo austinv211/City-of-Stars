@@ -34,20 +34,20 @@ export function ParticipantCard({
 }: Props) {
   const initials = participant.name.slice(0, 2).toUpperCase();
 
-  let cardStyle: Record<string, string> = {};
+  const cardStyle: Record<string, string> = {};
   if (selected) {
-    cardStyle["background"] = "hsl(var(--ctp-surface2)/0.15)";
-    cardStyle["box-shadow"] = "0 0 0 1px hsl(var(--ctp-teal))";
-  }
-  if (isActive) {
-    cardStyle["border"] = "1px solid hsl(var(--ctp-teal))";
+    cardStyle["background"] = "color-mix(in oklch, var(--accent-turn) 20%, transparent)";
   }
 
   return (
     <Card
       className={cn(
         "cursor-pointer transition-all duration-300",
-        !selected && !isActive && "hover:bg-secondary hover:shadow-md",
+        selected
+          ? "border-primary"
+          : isActive
+          ? "border-transparent bg-[var(--participant-active-bg)] hover:bg-[var(--participant-active-hover)] hover:shadow-md"
+          : "border-transparent hover:bg-accent hover:shadow-md",
       )}
       style={cardStyle}
       onClick={onClick}
@@ -66,8 +66,8 @@ export function ParticipantCard({
             </Avatar>
             {isActive && (
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--ctp-teal))] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[hsl(var(--ctp-teal))]" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
               </span>
             )}
           </div>

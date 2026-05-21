@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  if (session) return <Navigate to="/characters" replace />;
+  if (session) return <Navigate to="/" replace />;
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -47,6 +47,18 @@ export default function LoginPage() {
 
     setLoading(true);
 
+    // Check whitelist before touching auth — works for both anon and authenticated callers.
+    const { data: allowed } = await supabase.rpc("is_email_allowed", {
+      user_email: email.trim(),
+    });
+    if (!allowed) {
+      setError(
+        "This email is not authorized to access City of Stars. Contact the administrator for access."
+      );
+      setLoading(false);
+      return;
+    }
+
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
@@ -66,44 +78,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center p-4"
-      style={{ background: "hsl(var(--background))" }}
-    >
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
       {/* Subtle radial glow behind the card */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 60% at 40% 35%, hsl(var(--ctp-peach) / 0.06) 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 65% 55%, hsl(var(--ctp-mauve) / 0.07) 0%, transparent 60%)",
+            "radial-gradient(ellipse 70% 60% at 40% 35%, color-mix(in oklch, var(--secondary) 6%, transparent) 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 65% 55%, color-mix(in oklch, var(--primary) 7%, transparent) 0%, transparent 60%)",
         }}
       />
 
       <div className="relative w-full max-w-sm">
         {/* Card */}
         <div
-          className="relative rounded-xl border px-8 py-9 overflow-hidden"
-          style={{
-            background:    "hsl(var(--card))",
-            borderColor:   "hsl(var(--border))",
-            boxShadow:     "var(--shadow-elevated)",
-          }}
+          className="relative border border-border bg-card px-8 py-9 overflow-hidden"
+          style={{ boxShadow: "var(--shadow-elevated)" }}
         >
           <div className="absolute inset-x-0 top-0 h-[2px] ctp-accent-bar pointer-events-none" aria-hidden />
           {/* Logo + title */}
           <div className="mb-8 flex flex-col items-center gap-3 text-center">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl"
-              style={{
-                background: "linear-gradient(135deg, hsl(var(--ctp-mauve) / 0.24), hsl(var(--ctp-blue) / 0.24))",
-                boxShadow:
-                  "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.3), 0 0 12px hsl(var(--ctp-mauve) / 0.15)",
-              }}
-            >
+            <div className="flex h-14 w-14 items-center justify-center bg-primary/15 border border-primary/20">
               <AnimatedStar size={32} />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight ctp-gradient-text">City of Stars</h1>
+              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">City of Stars</h1>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {mode === "signin" ? "Sign in to your account" : "Create a new account"}
               </p>
@@ -112,26 +110,18 @@ export default function LoginPage() {
 
           {/* Mode tabs */}
           <div
-            className="mb-6 grid grid-cols-2 rounded-md p-0.5 text-sm"
-            style={{
-              background: "hsl(var(--input))",
-              boxShadow: "inset 0 1px 3px hsl(0 0% 0% / 0.4)",
-            }}
+            className="mb-6 grid grid-cols-2 p-0.5 text-sm bg-input"
+            style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.4)" }}
           >
             {(["signin", "signup"] as Mode[]).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => switchMode(m)}
-                className="rounded py-1.5 font-medium transition-all"
-                style={
+                className={
                   mode === m
-                    ? {
-                        background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.22), hsl(var(--ctp-lavender) / 0.12))",
-                        color: "hsl(var(--ctp-lavender))",
-                        boxShadow: "var(--shadow-sm)",
-                      }
-                    : { color: "hsl(var(--muted-foreground))" }
+                    ? "py-1.5 font-medium bg-primary/20 text-primary transition-all"
+                    : "py-1.5 font-medium text-muted-foreground transition-all"
                 }
               >
                 {m === "signin" ? "Sign In" : "Sign Up"}
@@ -141,15 +131,7 @@ export default function LoginPage() {
 
           {/* Success message */}
           {successMessage && (
-            <div
-              className="mb-5 rounded-md px-4 py-3 text-sm"
-              style={{
-                background:  "hsl(142 70% 45% / 0.1)",
-                border:      "1px solid hsl(142 70% 45% / 0.3)",
-                color:       "hsl(142 70% 70%)",
-                boxShadow:   "inset 0 1px 0 hsl(142 70% 45% / 0.1)",
-              }}
-            >
+            <div className="mb-5 rounded-md px-4 py-3 text-sm bg-success/10 border border-success/30 text-success">
               {successMessage}
             </div>
           )}
@@ -169,11 +151,6 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="h-10"
-                style={{
-                  background:  "hsl(var(--input))",
-                  borderColor: "hsl(var(--border))",
-                  boxShadow:   "inset 0 1px 3px hsl(0 0% 0% / 0.35)",
-                }}
               />
             </div>
 
@@ -191,11 +168,6 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="h-10 pr-10"
-                  style={{
-                    background:  "hsl(var(--input))",
-                    borderColor: "hsl(var(--border))",
-                    boxShadow:   "inset 0 1px 3px hsl(0 0% 0% / 0.35)",
-                  }}
                 />
                 <button
                   type="button"
@@ -222,26 +194,13 @@ export default function LoginPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   className="h-10"
-                  style={{
-                    background:  "hsl(var(--input))",
-                    borderColor: "hsl(var(--border))",
-                    boxShadow:   "inset 0 1px 3px hsl(0 0% 0% / 0.35)",
-                  }}
                 />
               </div>
             )}
 
             {/* Error */}
             {error && (
-              <div
-                className="rounded-md px-4 py-3 text-sm"
-                style={{
-                  background:  "hsl(var(--destructive) / 0.1)",
-                  border:      "1px solid hsl(var(--destructive) / 0.3)",
-                  color:       "hsl(var(--destructive))",
-                  boxShadow:   "inset 0 1px 0 hsl(var(--destructive) / 0.1)",
-                }}
-              >
+              <div className="rounded-md px-4 py-3 text-sm bg-destructive/10 border border-destructive/30 text-destructive">
                 {error}
               </div>
             )}
@@ -250,9 +209,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="mt-2 w-full h-10 font-medium"
-              style={{
-                boxShadow: "var(--shadow-glow), var(--shadow-sm)",
-              }}
+              style={{ boxShadow: "var(--shadow-glow), var(--shadow-sm)" }}
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

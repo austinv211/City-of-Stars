@@ -1,9 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
-import { AuthProvider } from "@/core/context/AuthContext";
-import { CampaignProvider } from "@/core/context/CampaignContext";
+import { Toaster } from "@/core/components/ui/sonner";
+import { AuthProvider, useAuth } from "@/core/context/AuthContext";
+import { CampaignProvider, useCampaign } from "@/core/context/CampaignContext";
 import ProtectedRoute from "@/core/components/ProtectedRoute";
 import AppShell from "@/core/components/AppShell";
 import EncounterGuard from "@/core/components/EncounterGuard";
+import DmGuard from "@/core/components/DmGuard";
+import PlayerGuard from "@/core/components/PlayerGuard";
 import LoginPage from "@/core/pages/LoginPage";
 import NotFoundPage from "@/core/pages/NotFoundPage";
 import CharactersPage from "@/features/characters/pages/CharactersPage";
@@ -16,7 +19,18 @@ import DmEncountersPage from "@/features/dm/pages/DmEncountersPage";
 import DmMonstersPage from "@/features/dm/pages/DmMonstersPage";
 import DmCampaignsPage from "@/features/dm/pages/DmCampaignsPage";
 import DmMembersPage from "@/features/dm/pages/DmMembersPage";
+import DmCharactersPage from "@/features/dm/pages/DmCharactersPage";
 import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
+import AdminCampaignsPage from "@/features/admin/pages/AdminCampaignsPage";
+
+function RootRedirect() {
+  const { isPlayer, isDM, loading } = useCampaign();
+  const { isAdmin, isPlayerRole, loading: authLoading } = useAuth();
+  if (loading || authLoading) return null;
+  if (isPlayer || isPlayerRole) return <Navigate to="/characters" replace />;
+  if (isDM || isAdmin) return <Navigate to="/dm/campaigns" replace />;
+  return <Navigate to="/campaigns" replace />;
+}
 
 export default function App() {
   return (
@@ -32,29 +46,40 @@ export default function App() {
                 </CampaignProvider>
               }
             >
-              <Route path="/" element={<Navigate to="/characters" replace />} />
-              <Route path="/characters" element={<CharactersPage />} />
-              <Route path="/characters/new" element={<CharacterCreatePage />} />
-              <Route path="/characters/:characterId" element={<CharacterViewPage />} />
-              <Route path="/campaign" element={<Navigate to="/campaigns" replace />} />
+              <Route path="/" element={<RootRedirect />} />
+              {/* Campaigns page is accessible to all authenticated users as a fallback */}
               <Route path="/campaigns" element={<CampaignsPage />} />
+              <Route path="/campaign" element={<Navigate to="/campaigns" replace />} />
+              {/* Player-only routes */}
+              <Route element={<PlayerGuard />}>
+                <Route path="/characters" element={<CharactersPage />} />
+                <Route path="/characters/new" element={<CharacterCreatePage />} />
+                <Route path="/characters/:characterId" element={<CharacterViewPage />} />
+              </Route>
+              {/* Encounter — accessible to players AND DMs running an encounter */}
               <Route element={<EncounterGuard />}>
                 <Route path="/encounter" element={<EncounterPage />} />
               </Route>
-              {/* DM-only routes — access is enforced at the DB/policy level */}
+              {/* DM-only routes */}
               <Route path="/dm" element={<Navigate to="/dm/campaigns" replace />} />
-              <Route path="/dm/campaigns" element={<DmCampaignsPage />} />
-              <Route path="/dm/members" element={<DmMembersPage />} />
-              <Route path="/dm/sessions" element={<DmSessionsPage />} />
-              <Route path="/dm/encounters" element={<DmEncountersPage />} />
-              <Route path="/dm/monsters" element={<DmMonstersPage />} />
+              <Route element={<DmGuard />}>
+                <Route path="/dm/campaigns" element={<DmCampaignsPage />} />
+                <Route path="/dm/members" element={<DmMembersPage />} />
+                <Route path="/dm/characters" element={<DmCharactersPage />} />
+                <Route path="/dm/characters/:characterId" element={<CharacterViewPage />} />
+                <Route path="/dm/sessions" element={<DmSessionsPage />} />
+                <Route path="/dm/encounters" element={<DmEncountersPage />} />
+                <Route path="/dm/monsters" element={<DmMonstersPage />} />
+              </Route>
               {/* Admin-only routes */}
               <Route path="/admin/whitelist" element={<AdminWhitelistPage />} />
+              <Route path="/admin/campaigns" element={<AdminCampaignsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="bottom-right" />
     </AuthProvider>
   );
 }
