@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
+import { Input } from "@/core/components/ui/input";
 import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Separator } from "@/core/components/ui/separator";
@@ -63,21 +64,23 @@ function SavingThrowsCard({ final, proficiencyBonus, savingThrowProficiencies, c
             const isProficient = savingThrowProficiencies.includes(ability);
             const mod = abilityModifier(final[ability]) + (isProficient ? proficiencyBonus : 0);
             return (
-              <button
+              <Button
                 key={ability}
                 type="button"
+                size="sm"
+                variant="ghost"
                 disabled={!canEdit || busy}
                 onClick={() => toggle(ability)}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs border transition-colors ${
+                className={`h-8 text-xs px-3 border transition-colors ${
                   canEdit ? "cursor-pointer hover:border-primary/60" : "cursor-default"
                 } ${
-                  isProficient ? "border-primary bg-primary/5" : "border-transparent bg-muted/40"
-                } disabled:opacity-60`}
+                  isProficient ? "border-primary/60 bg-primary/10 text-primary" : "border-transparent bg-muted/40 text-muted-foreground"
+                }`}
               >
-                <span className={`w-2 h-2 rounded-full ${isProficient ? "bg-primary" : "border border-muted-foreground/40"}`} />
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isProficient ? "bg-primary" : "border border-muted-foreground/40"}`} />
                 <span className="font-medium uppercase">{ability.slice(0, 3)}</span>
                 <span className="font-bold">{sign(mod)}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -207,13 +210,14 @@ export function CharacterSheet({
               {character.status}
             </Badge>
             {character.level_up_pending && isOwn && (
-              <button
-                type="button"
+              <Button
+                size="sm"
+                variant="secondary"
+                className="text-xs h-7"
                 onClick={() => setLevelUpOpen(true)}
-                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-500 hover:bg-yellow-400 text-black transition-colors cursor-pointer"
               >
                 Level Up Available! →
-              </button>
+              </Button>
             )}
             {character.level_up_pending && !isOwn && (
               <Badge variant="default" className="bg-yellow-500 text-black">
@@ -360,13 +364,13 @@ export function CharacterSheet({
           </div>
           {editingCurrency ? (
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-green-600">$</span>
-              <input
+              <span className="text-lg font-bold text-success">$</span>
+              <Input
                 type="number"
                 min={0}
                 value={currencyDraft}
                 onChange={(e) => setCurrencyDraft(e.target.value)}
-                className="w-32 rounded border px-2 py-1 text-sm"
+                className="w-32 h-8 text-sm"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") saveCurrency();
@@ -377,7 +381,7 @@ export function CharacterSheet({
               <Button size="sm" variant="outline" onClick={() => setEditingCurrency(false)}>Cancel</Button>
             </div>
           ) : (
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-success">
               ${currency.toLocaleString()}
             </p>
           )}

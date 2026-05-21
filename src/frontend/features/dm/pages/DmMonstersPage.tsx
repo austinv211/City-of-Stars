@@ -21,9 +21,11 @@ import {
   SelectValue,
 } from "@/core/components/ui/select";
 import { Plus, Trash2, Loader2, Search, Camera, Skull } from "lucide-react";
+import { Skeleton } from "@/core/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
+import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
 import { searchMonsters, getMonster, monsterToDbForm } from "@/lib/dnd5eApi";
 import type { DndMonsterSummary } from "@/lib/dnd5eApi";
 import type { MonsterAction, MonsterSpecialAbility } from "@/features/encounter/types/encounter.types";
@@ -410,10 +412,24 @@ export default function DmMonstersPage() {
     ? monsters.filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
     : monsters;
 
+  if (!campaign) return <NoCampaignMessage />;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="px-4 sm:px-6 py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <Skeleton className="h-9 w-64" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -444,7 +460,7 @@ export default function DmMonstersPage() {
     <div className="px-4 sm:px-6 py-8 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Monster Library</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Monster Library</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Build and manage the campaign's monster roster. Import from D&amp;D 5e or create custom stat blocks.
           </p>
@@ -542,13 +558,15 @@ export default function DmMonstersPage() {
                 )}
               </div>
               {importResults.length > 0 && (
-                <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
+                <div className="border border-border divide-y divide-border max-h-40 overflow-y-auto">
                   {importResults.map((r) => {
                     const isLoading = importLoading === r.index;
                     return (
-                      <button
+                      <Button
                         key={r.index}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 flex items-center justify-between"
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-between h-auto px-3 py-2 text-sm font-normal"
                         onClick={() => importMonster(r)}
                         disabled={isLoading}
                       >
@@ -558,7 +576,7 @@ export default function DmMonstersPage() {
                         ) : (
                           <Search className="h-3 w-3 text-muted-foreground" />
                         )}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

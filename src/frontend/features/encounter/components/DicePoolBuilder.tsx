@@ -89,8 +89,11 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
             <div key={sides} className="relative">
               <Button
                 size="sm"
-                variant={count > 0 ? "default" : "outline"}
-                className="h-9 px-3 font-bold text-xs"
+                variant={count > 0 ? "default" : "ghost"}
+                className={cn(
+                  "h-9 px-3 font-bold text-xs",
+                  count === 0 && "bg-accent text-accent-foreground hover:bg-[var(--primary-hover)] hover:text-primary-foreground",
+                )}
                 disabled={disabled}
                 onClick={() => increment(sides)}
                 onContextMenu={(e) => {
@@ -103,8 +106,7 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
               </Button>
               {count > 0 && (
                 <Badge
-                  className="absolute -top-2 -right-2 h-4 min-w-4 flex items-center justify-center text-[10px] px-1 pointer-events-none"
-                  variant="secondary"
+                  className="absolute -top-2 -right-2 z-10 h-4 min-w-4 flex items-center justify-center text-[10px] px-1 pointer-events-none border-0 bg-secondary text-secondary-foreground"
                 >
                   {count}
                 </Badge>

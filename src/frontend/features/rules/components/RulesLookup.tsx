@@ -25,21 +25,21 @@ import { cn } from "@/lib/utils";
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Condition: "bg-[hsl(var(--ctp-red)/0.15)] text-[hsl(var(--ctp-red))] border-[hsl(var(--ctp-red)/0.3)]",
-  Action:    "bg-[hsl(var(--ctp-blue)/0.15)] text-[hsl(var(--ctp-blue))] border-[hsl(var(--ctp-blue)/0.3)]",
-  Hazard:    "bg-[hsl(var(--ctp-peach)/0.15)] text-[hsl(var(--ctp-peach))] border-[hsl(var(--ctp-peach)/0.3)]",
-  General:   "bg-[hsl(var(--ctp-overlay0)/0.2)] text-[hsl(var(--ctp-subtext0))] border-border",
+  Condition: "bg-destructive/15 text-destructive border-destructive/30",
+  Action:    "bg-primary/15 text-primary border-primary/30",
+  Hazard:    "bg-secondary/15 text-secondary border-secondary/30",
+  General:   "bg-muted/20 text-muted-foreground border-border",
 };
 
 const SCHOOL_COLORS: Record<string, string> = {
-  Evocation:     "bg-[hsl(var(--ctp-red)/0.15)] text-[hsl(var(--ctp-red))] border-[hsl(var(--ctp-red)/0.3)]",
-  Abjuration:    "bg-[hsl(var(--ctp-blue)/0.15)] text-[hsl(var(--ctp-blue))] border-[hsl(var(--ctp-blue)/0.3)]",
-  Conjuration:   "bg-[hsl(var(--ctp-green)/0.15)] text-[hsl(var(--ctp-green))] border-[hsl(var(--ctp-green)/0.3)]",
-  Divination:    "bg-[hsl(var(--ctp-lavender)/0.15)] text-[hsl(var(--ctp-lavender))] border-[hsl(var(--ctp-lavender)/0.3)]",
-  Enchantment:   "bg-[hsl(var(--ctp-pink)/0.15)] text-[hsl(var(--ctp-pink))] border-[hsl(var(--ctp-pink)/0.3)]",
-  Illusion:      "bg-[hsl(var(--ctp-mauve)/0.15)] text-[hsl(var(--ctp-mauve))] border-[hsl(var(--ctp-mauve)/0.3)]",
-  Necromancy:    "bg-[hsl(var(--ctp-overlay1)/0.25)] text-[hsl(var(--ctp-subtext1))] border-[hsl(var(--ctp-overlay0)/0.4)]",
-  Transmutation: "bg-[hsl(var(--ctp-yellow)/0.15)] text-[hsl(var(--ctp-yellow))] border-[hsl(var(--ctp-yellow)/0.3)]",
+  Evocation:     "bg-destructive/15 text-destructive border-destructive/30",
+  Abjuration:    "bg-primary/15 text-primary border-primary/30",
+  Conjuration:   "bg-success/15 text-success border-success/30",
+  Divination:    "bg-primary/10 text-primary/80 border-primary/20",
+  Enchantment:   "bg-[#f5c2e715] text-[#f5c2e7] border-[#f5c2e730]",
+  Illusion:      "bg-accent/20 text-accent-foreground border-accent/30",
+  Necromancy:    "bg-muted/25 text-muted-foreground border-muted-foreground/40",
+  Transmutation: "bg-secondary/15 text-secondary border-secondary/30",
 };
 
 function useDebounce<T>(value: T, delay = 300): T {
@@ -60,7 +60,7 @@ function RulesText({ text }: { text: string }) {
         part.startsWith("_") && part.endsWith("_") && part.length > 2 ? (
           <span
             key={i}
-            className="text-[hsl(var(--primary))] font-semibold not-italic"
+            className="text-primary font-semibold not-italic"
           >
             {part.slice(1, -1)}
           </span>
@@ -78,7 +78,7 @@ const listPanelCls =
 const detailPanelCls =
   "flex-1 overflow-y-auto rounded-lg border border-border bg-background p-5";
 const searchInputCls =
-  "h-9 text-sm bg-card border-border focus-visible:ring-1 focus-visible:ring-[hsl(var(--ctp-lavender))]";
+  "h-9 text-sm bg-card border-border focus-visible:ring-1 focus-visible:ring-primary";
 
 // ── Sub-panels ─────────────────────────────────────────────────────────────
 
@@ -119,14 +119,9 @@ function GlossaryPanel() {
               className={cn(
                 "text-[10px] rounded-full px-2.5 py-0.5 border transition-colors",
                 filter === c
-                  ? "border-[hsl(var(--ctp-lavender))] text-[hsl(var(--ctp-lavender))]"
-                  : "border-border text-muted-foreground hover:border-[hsl(var(--primary)/0.5)] hover:text-foreground"
+                  ? "border-primary text-primary bg-primary/15"
+                  : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
               )}
-              style={
-                filter === c
-                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.14))" }
-                  : undefined
-              }
             >
               {c}
             </button>
@@ -145,14 +140,9 @@ function GlossaryPanel() {
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
                 selected?.id === r.id
-                  ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                  ? "font-semibold text-primary bg-primary/15"
                   : "hover:bg-muted/60 text-foreground/80"
               )}
-              style={
-                selected?.id === r.id
-                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
-                  : undefined
-              }
             >
               <span className="block truncate">{r.title}</span>
               {r.category !== "General" && (
@@ -231,14 +221,9 @@ function SpellsPanel() {
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
                 selected?.index === s.index
-                  ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                  ? "font-semibold text-primary bg-primary/15"
                   : "hover:bg-muted/60 text-foreground/80"
               )}
-              style={
-                selected?.index === s.index
-                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
-                  : undefined
-              }
             >
               <span className="block truncate">{s.name}</span>
               <span className="text-[10px] text-muted-foreground">
@@ -311,7 +296,7 @@ function ClassFeaturesPanel() {
     <div className="flex gap-4 h-[520px]">
       <div className="w-64 shrink-0 flex flex-col gap-2">
         <select
-          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[hsl(var(--primary))]"
+          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           value={selectedClass}
           onChange={(e) => setSelectedClass(e.target.value)}
         >
@@ -334,14 +319,9 @@ function ClassFeaturesPanel() {
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
                 selected?.feature_name === f.feature_name
-                  ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                  ? "font-semibold text-primary bg-primary/15"
                   : "hover:bg-muted/60 text-foreground/80"
               )}
-              style={
-                selected?.feature_name === f.feature_name
-                  ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
-                  : undefined
-              }
             >
               <span className="block truncate">{f.feature_name}</span>
               {f.level && (
@@ -423,18 +403,13 @@ function FeatsPanel() {
                   className={cn(
                     "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
                     selected?.index === f.index
-                      ? "font-semibold text-[hsl(var(--ctp-lavender))]"
+                      ? "font-semibold text-primary bg-primary/15"
                       : "hover:bg-muted/60 text-foreground/80"
                   )}
-                  style={
-                    selected?.index === f.index
-                      ? { background: "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.25), hsl(var(--ctp-lavender) / 0.12))" }
-                      : undefined
-                  }
                 >
                   {f.name}
                   {f.prerequisite && (
-                    <span className="block text-[10px] text-[hsl(var(--ctp-peach))] truncate">
+                    <span className="block text-[10px] text-secondary truncate">
                       Req: {f.prerequisite}
                     </span>
                   )}
@@ -455,7 +430,7 @@ function FeatsPanel() {
               )}
             </div>
             {selected.prerequisite && (
-              <p className="text-xs text-[hsl(var(--ctp-peach))] font-medium">
+              <p className="text-xs text-secondary font-medium">
                 Prerequisite: {selected.prerequisite}
               </p>
             )}

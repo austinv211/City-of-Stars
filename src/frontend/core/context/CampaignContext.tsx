@@ -15,6 +15,7 @@ interface CampaignContextValue {
   memberships: CampaignMember[];
   membership: CampaignMember | null;
   isDM: boolean;
+  isPlayer: boolean;
   activeEncounterId: string | null;
   // encounter id (or null) for every campaign the user belongs to
   campaignEncounters: Record<string, string | null>;
@@ -35,17 +36,34 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const campaigns = allMemberships.map((m) => m.campaigns);
+  // When a user holds multiple roles in one campaign there are multiple rows per
+  // campaign_id. Deduplicate for the campaigns list and active-membership lookup,
+  // preferring the dm row so isDM resolves correctly.
+  const deduplicatedMemberships = (() => {
+    const seen = new Map<string, MembershipRow>();
+    for (const m of allMemberships) {
+      const existing = seen.get(m.campaign_id);
+      if (!existing || (m.role === "dm" && existing.role !== "dm")) {
+        seen.set(m.campaign_id, m);
+      }
+    }
+    return Array.from(seen.values());
+  })();
+
+  const campaigns = deduplicatedMemberships.map((m) => m.campaigns);
   const memberships: CampaignMember[] = allMemberships.map(({ id, campaign_id, user_id, role, joined_at }) => ({
     id, campaign_id, user_id, role, joined_at,
   }));
   const activeMembership =
-    allMemberships.find((m) => m.campaign_id === selectedId) ?? allMemberships[0] ?? null;
+    deduplicatedMemberships.find((m) => m.campaign_id === selectedId) ?? deduplicatedMemberships[0] ?? null;
   const campaign = activeMembership?.campaigns ?? null;
   const membership = activeMembership
     ? { id: activeMembership.id, campaign_id: activeMembership.campaign_id, user_id: activeMembership.user_id, role: activeMembership.role, joined_at: activeMembership.joined_at }
     : null;
   const activeEncounterId = campaign ? (campaignEncounters[campaign.id] ?? null) : null;
+  // isDM / isPlayer are true if the user has ANY matching-role row for the active campaign
+  const isDM = allMemberships.some((m) => m.campaign_id === activeMembership?.campaign_id && m.role === "dm");
+  const isPlayer = allMemberships.some((m) => m.campaign_id === activeMembership?.campaign_id && m.role === "player");
 
   // ── Load memberships + active encounters for all campaigns ─────────────────
   async function loadMemberships() {
@@ -71,7 +89,7 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
 
     // Load active encounter for every campaign in one query
     if (rows.length > 0) {
-      const ids = rows.map((r) => r.campaign_id);
+      const ids = [...new Set(rows.map((r) => r.campaign_id))];
       const { data: encData } = await supabase
         .from("encounters")
         .select("id, campaign_id")
@@ -103,27 +121,43 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, id);
   }
 
+  // ── Subscribe to current user's membership changes ────────────────────────
+  // Catches role additions/removals so isDM and isPlayer update without a reload.
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("user-memberships")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "campaign_members", filter: `user_id=eq.${user.id}` },
+        () => { loadMemberships(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
+
   // ── Subscribe to encounters for ALL campaigns ──────────────────────────────
   // One channel per campaign — updates the shared map so the selector can show
   // live encounter indicators for every campaign, not just the active one.
   useEffect(() => {
     if (allMemberships.length === 0) return;
 
-    const channels = allMemberships.map((m) =>
+    const uniqueIds = [...new Set(allMemberships.map((m) => m.campaign_id))];
+    const channels = uniqueIds.map((campaignId) =>
       supabase
-        .channel(`enc:${m.campaign_id}`)
+        .channel(`enc:${campaignId}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "encounters", filter: `campaign_id=eq.${m.campaign_id}` },
+          { event: "*", schema: "public", table: "encounters", filter: `campaign_id=eq.${campaignId}` },
           (payload) => {
             const row = payload.new as { id: string; status: string } | undefined;
             setCampaignEncounters((prev) => {
-              if (!row) return { ...prev, [m.campaign_id]: null };
-              if (row.status === "active") return { ...prev, [m.campaign_id]: row.id };
+              if (!row) return { ...prev, [campaignId]: null };
+              if (row.status === "active") return { ...prev, [campaignId]: row.id };
               // Clear only if this encounter was the tracked one
               return {
                 ...prev,
-                [m.campaign_id]: prev[m.campaign_id] === row.id ? null : prev[m.campaign_id],
+                [campaignId]: prev[campaignId] === row.id ? null : prev[campaignId],
               };
             });
           }
@@ -134,12 +168,12 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     return () => { channels.forEach((ch) => supabase.removeChannel(ch)); };
   }, [allMemberships]);
 
-  // ── Subscribe to active campaign row updates and deletes ───────────────────
+  // ── Subscribe to active campaign UPDATE (field changes only) ─────────────
   useEffect(() => {
     if (!campaign) return;
 
     const ch = supabase
-      .channel(`campaign:${campaign.id}`)
+      .channel(`campaign-update:${campaign.id}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "campaigns", filter: `id=eq.${campaign.id}` },
@@ -153,19 +187,37 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
           );
         }
       )
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  }, [campaign?.id]);
+
+  // ── Global campaign DELETE listener — covers active AND non-active campaigns
+  // Fires whenever any campaign row is deleted; handler checks if user was a member.
+  // payload.old contains at least {id} (DEFAULT replica identity on campaigns table).
+  useEffect(() => {
+    if (!user) return;
+
+    const ch = supabase
+      .channel("campaign-deletions")
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "campaigns", filter: `id=eq.${campaign.id}` },
-        () => {
-          setAllMemberships((prev) => prev.filter((m) => m.campaign_id !== campaign.id));
-          setSelectedId((prev) => (prev === campaign.id ? null : prev));
-          localStorage.removeItem(STORAGE_KEY);
+        { event: "DELETE", schema: "public", table: "campaigns" },
+        (payload) => {
+          const deletedId = (payload.old as { id?: string })?.id;
+          if (!deletedId) return;
+          setAllMemberships((prev) => prev.filter((m) => m.campaign_id !== deletedId));
+          setSelectedId((prev) => {
+            if (prev !== deletedId) return prev;
+            localStorage.removeItem(STORAGE_KEY);
+            return null;
+          });
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
-  }, [campaign?.id]);
+  }, [user?.id]);
 
   return (
     <CampaignContext.Provider
@@ -174,7 +226,8 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
         campaigns,
         memberships,
         membership,
-        isDM: membership?.role === "dm",
+        isDM,
+        isPlayer,
         activeEncounterId,
         campaignEncounters,
         loading,

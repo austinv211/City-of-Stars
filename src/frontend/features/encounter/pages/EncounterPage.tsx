@@ -33,19 +33,19 @@ import { cn } from "@/lib/utils";
 
 const ACTION_CATEGORY_STYLE = {
   action: {
-    bg: "bg-ctp-blue/10",
+    bg: "bg-primary/10",
     label: "Action",
-    labelClass: "text-ctp-blue",
+    labelClass: "text-primary",
   },
   bonus: {
-    bg: "bg-ctp-peach/10",
+    bg: "bg-secondary/10",
     label: "Bonus",
-    labelClass: "text-ctp-peach",
+    labelClass: "text-secondary",
   },
   reaction: {
-    bg: "bg-ctp-mauve/10",
+    bg: "bg-accent/20",
     label: "Reaction",
-    labelClass: "text-ctp-mauve",
+    labelClass: "text-accent-foreground",
   },
   free: {
     bg: "bg-muted/20",
@@ -110,10 +110,10 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
             key={entry.id}
             className={cn(
               "rounded-md px-3 py-2 text-xs",
-              isCrit && "bg-ctp-yellow/10",
-              isFumble && "bg-ctp-red/10",
-              entry.advantage && !isCrit && !isFumble && "bg-ctp-green/8",
-              entry.disadvantage && !isCrit && !isFumble && "bg-ctp-red/8",
+              isCrit && "bg-secondary/10",
+              isFumble && "bg-destructive/10",
+              entry.advantage && !isCrit && !isFumble && "bg-success/10",
+              entry.disadvantage && !isCrit && !isFumble && "bg-destructive/8",
               !isCrit &&
                 !isFumble &&
                 !entry.advantage &&
@@ -128,10 +128,10 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
               <span
                 className={cn(
                   "text-base font-black shrink-0",
-                  isCrit && "text-ctp-yellow",
-                  isFumble && "text-ctp-red",
-                  entry.advantage && !isCrit && !isFumble && "text-ctp-green",
-                  entry.disadvantage && !isCrit && !isFumble && "text-ctp-red",
+                  isCrit && "text-secondary",
+                  isFumble && "text-destructive",
+                  entry.advantage && !isCrit && !isFumble && "text-success",
+                  entry.disadvantage && !isCrit && !isFumble && "text-destructive",
                   !isCrit &&
                     !isFumble &&
                     !entry.advantage &&
@@ -157,18 +157,18 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
                 </span>
               )}
               {isCrit && (
-                <span className="ml-1 text-yellow-500 font-semibold">
+                <span className="ml-1 text-secondary font-semibold">
                   CRIT!
                 </span>
               )}
               {isFumble && (
-                <span className="ml-1 text-red-500 font-semibold">FAIL</span>
+                <span className="ml-1 text-destructive font-semibold">FAIL</span>
               )}
               {entry.advantage && !isCrit && (
-                <span className="ml-1 text-ctp-green font-semibold">ADV</span>
+                <span className="ml-1 text-success font-semibold">ADV</span>
               )}
               {entry.disadvantage && !isFumble && (
-                <span className="ml-1 text-ctp-red font-semibold">DIS</span>
+                <span className="ml-1 text-destructive font-semibold">DIS</span>
               )}
             </div>
           </div>
@@ -251,17 +251,14 @@ export default function EncounterPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Header — 3 zones aligned with columns below ── */}
-      <div
-        className="bg-card h-12 flex items-center shrink-0"
-        style={{ boxShadow: "inset 0 -1px 0 hsl(var(--border)/0.3)" }}
-      >
+      <div className="bg-card h-12 flex items-center shrink-0 border-b border-border/40">
         {/* Zone 1 — w-64, aligns with Initiative column */}
         <div className="w-64 shrink-0 flex items-center gap-2 px-3">
           <Swords className="h-4 w-4 text-primary shrink-0" />
           <h1 className="font-bold text-sm truncate">
             {encounter.name ?? "Encounter"}
           </h1>
-          <Badge className="shrink-0 text-[10px] h-5 bg-[hsl(var(--ctp-green)/0.18)] text-ctp-green border-[hsl(var(--ctp-green)/0.35)]">
+          <Badge className="shrink-0 text-[10px] h-5 bg-success/20 text-success border-success/40">
             Active
           </Badge>
         </div>
@@ -270,7 +267,7 @@ export default function EncounterPage() {
           {activeParticipant && (
             <span className="text-sm">
               <span className="text-muted-foreground">Turn: </span>
-              <span className="font-semibold text-ctp-lavender">
+              <span className="font-semibold text-primary">
                 {activeParticipant.name}
               </span>
             </span>
@@ -307,10 +304,7 @@ export default function EncounterPage() {
       {/* ── Three-column body ── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Col 1 — Initiative Tracker */}
-        <div
-          className="w-64 shrink-0 flex flex-col bg-card"
-          style={{ boxShadow: "inset -1px 0 0 hsl(var(--border)/0.3)" }}
-        >
+        <div className="w-64 shrink-0 flex flex-col bg-card border-r border-border/40">
           <div className="flex-1 overflow-y-auto p-2 pt-2">
             <InitiativeTracker
               participants={participants}
@@ -351,10 +345,7 @@ export default function EncounterPage() {
         </div>
 
         {/* Col 3 — Roll Log / Character Sheet */}
-        <div
-          className="w-64 shrink-0 flex flex-col bg-card overflow-hidden"
-          style={{ boxShadow: "inset 1px 0 0 hsl(var(--border)/0.3)" }}
-        >
+        <div className="w-64 shrink-0 flex flex-col bg-card overflow-hidden border-l border-border/40">
           {(() => {
             const showCharTab =
               (!isDM && !!ownCharacterFull && !!ownParticipant) ||

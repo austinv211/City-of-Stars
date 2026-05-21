@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Button } from "@/core/components/ui/button";
+import { Skeleton } from "@/core/components/ui/skeleton";
 import { ChevronLeft } from "lucide-react";
 import { CharacterSheet } from "../components/CharacterSheet";
 import { CharacterAuditLog } from "../components/CharacterAuditLog";
@@ -59,8 +60,19 @@ export default function CharacterViewPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="px-4 sm:px-6 py-8 space-y-6">
+        <Skeleton className="h-8 w-24" />
+        <div className="flex items-start gap-6">
+          <Skeleton className="h-32 w-32 rounded-full" />
+          <div className="flex-1 space-y-3 pt-1">
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        </div>
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
@@ -80,9 +92,9 @@ export default function CharacterViewPage() {
 
   return (
     <div className="px-4 sm:px-6 py-8">
-      <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/characters")}>
+      <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(-1)}>
         <ChevronLeft className="h-4 w-4 mr-1" />
-        Characters
+        Back
       </Button>
       <CharacterSheet
         character={character}

@@ -12,6 +12,7 @@ import { useCampaign } from "@/core/context/CampaignContext";
 import { useSessionNotes } from "@/features/campaign/hooks/useSessionNotes";
 import { supabase } from "@/lib/supabase";
 import type { SessionNoteVisibility } from "@/features/campaign/types/campaign.types";
+import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
 
 function InlineLabelEdit({
   label,
@@ -56,13 +57,15 @@ function InlineLabelEdit({
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="sm"
       onClick={open}
-      className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors group"
+      className="gap-1.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground group"
     >
       {label}
       <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-    </button>
+    </Button>
   );
 }
 
@@ -74,7 +77,7 @@ export default function DmSessionsPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [draftContent, setDraftContent] = useState("");
 
-  if (!campaign) return null;
+  if (!campaign) return <NoCampaignMessage />;
 
   const currentSession = campaign.current_session;
   const sessionLabel = campaign.session_label ?? "Session";
@@ -134,7 +137,7 @@ export default function DmSessionsPage() {
   return (
     <div className="px-4 sm:px-6 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Session Manager</h1>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Session Manager</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Advance the session number and write notes for your players.
         </p>

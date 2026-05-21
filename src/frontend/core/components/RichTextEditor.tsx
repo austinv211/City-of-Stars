@@ -88,8 +88,7 @@ export function RichTextEditor({
     >
       {/* Toolbar */}
       <div
-        className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap"
-        style={{ borderBottom: "1px solid hsl(var(--border))" }}
+        className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap border-b border-border"
       >
         <ToolbarBtn title="Bold" onClick={() => chain().toggleBold().run()} active={editor.isActive("bold")}>
           <Bold className="h-3.5 w-3.5" />

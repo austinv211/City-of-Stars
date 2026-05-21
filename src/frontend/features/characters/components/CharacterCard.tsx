@@ -17,6 +17,7 @@ interface Props {
   isOwn?: boolean;
   onDelete?: (character: Character) => void;
   onSetActive?: (character: Character) => void;
+  onView?: (character: Character) => void;
 }
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
@@ -30,6 +31,7 @@ export function CharacterCard({
   isOwn,
   onDelete,
   onSetActive,
+  onView,
 }: Props) {
   const navigate = useNavigate();
 
@@ -46,9 +48,9 @@ export function CharacterCard({
   return (
     <Card
       className={cn(
-        "cursor-pointer border-border/60 transition-all duration-150 hover:border-[hsl(var(--ctp-lavender)/0.5)] hover:shadow-sm",
+        "cursor-pointer border-border/60 transition-all duration-150 hover:border-primary/50 hover:shadow-sm",
       )}
-      onClick={() => navigate(`/characters/${character.id}`)}
+      onClick={() => onView ? onView(character) : navigate(`/characters/${character.id}`)}
     >
       <CardContent className="p-4 flex items-center gap-4">
         <Avatar className="h-14 w-14 border-2 border-border shrink-0">
@@ -76,9 +78,9 @@ export function CharacterCard({
               {character.status}
             </Badge>
             {character.level_up_pending && (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border animate-pulse bg-[hsl(var(--ctp-yellow)/0.15)] text-[hsl(var(--ctp-yellow))] border-[hsl(var(--ctp-yellow)/0.35)]">
+              <Badge variant="secondary" className="text-xs animate-pulse">
                 Level Up! →
-              </span>
+              </Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground truncate mt-0.5">

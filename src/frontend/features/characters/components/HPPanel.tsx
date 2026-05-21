@@ -186,94 +186,95 @@ export function HPPanel({
         </CardHeader>
         <CardContent className="space-y-4">
 
-          {/* HP row */}
-          <div className="flex items-end gap-4 flex-wrap">
-            {/* Current HP */}
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Current</p>
-              {editingHp && canEdit ? (
-                <Input
-                  type="number"
-                  className="w-20 text-center text-2xl font-bold h-10"
-                  value={hpCurrent}
-                  autoFocus
-                  onChange={(e) => setHpCurrent(parseInt(e.target.value) || 0)}
-                  onBlur={() => { save({ hp_current: hpCurrent }); setEditingHp(false); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { save({ hp_current: hpCurrent }); setEditingHp(false); }
-                    if (e.key === "Escape") { setHpCurrent(character.hp_current ?? 0); setEditingHp(false); }
-                  }}
-                />
-              ) : (
-                <p
-                  className={`text-4xl font-black transition-colors ${canEdit ? "cursor-pointer hover:text-primary" : ""}`}
-                  onClick={() => canEdit && setEditingHp(true)}
-                  title={canEdit ? "Click to edit" : undefined}
-                >
-                  {hpCurrent}
-                </p>
-              )}
+          {/* HP block — label row then value row, fixed column widths keep them aligned */}
+          <div className="space-y-1.5">
+            {/* Label row */}
+            <div className="flex items-center gap-3">
+              <p className="w-16 text-center text-[10px] uppercase tracking-wide text-muted-foreground">Current</p>
+              <span className="w-5" />
+              <p className="w-16 text-center text-[10px] uppercase tracking-wide text-muted-foreground" title={canEdit ? `Suggested: ${suggestedMaxHp}` : undefined}>Max</p>
+              <p className="border-l border-border/40 pl-3 ml-1 w-14 text-center text-[10px] uppercase tracking-wide text-muted-foreground">Temp</p>
             </div>
 
-            <p className="text-2xl font-bold text-muted-foreground mb-1">/</p>
-
-            {/* Max HP */}
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">
-                Max
-                {canEdit && (
-                  <span className="ml-1 text-muted-foreground/50" title={`Suggested: ${suggestedMaxHp}`}>
-                    (suggest {suggestedMaxHp})
-                  </span>
+            {/* Value row */}
+            <div className="flex items-end gap-3">
+              {/* Current */}
+              <div className="w-16 text-center">
+                {editingHp && canEdit ? (
+                  <Input
+                    type="number"
+                    className="w-16 text-center text-xl font-bold h-9"
+                    value={hpCurrent}
+                    autoFocus
+                    onChange={(e) => setHpCurrent(parseInt(e.target.value) || 0)}
+                    onBlur={() => { save({ hp_current: hpCurrent }); setEditingHp(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { save({ hp_current: hpCurrent }); setEditingHp(false); }
+                      if (e.key === "Escape") { setHpCurrent(character.hp_current ?? 0); setEditingHp(false); }
+                    }}
+                  />
+                ) : (
+                  <p
+                    className={`text-4xl font-black leading-none transition-colors ${canEdit ? "cursor-pointer hover:text-primary" : ""}`}
+                    onClick={() => canEdit && setEditingHp(true)}
+                    title={canEdit ? "Click to edit" : undefined}
+                  >
+                    {hpCurrent}
+                  </p>
                 )}
-              </p>
-              {editingMax && canEdit ? (
-                <Input
-                  type="number"
-                  className="w-20 text-center text-xl font-bold h-9"
-                  value={hpMax}
-                  autoFocus
-                  onChange={(e) => setHpMax(parseInt(e.target.value) || 0)}
-                  onBlur={() => { save({ hp_max: hpMax }); setEditingMax(false); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { save({ hp_max: hpMax }); setEditingMax(false); }
-                    if (e.key === "Escape") { setHpMax(character.hp_max ?? 0); setEditingMax(false); }
-                  }}
-                />
-              ) : (
-                <p
-                  className={`text-2xl font-bold ${canEdit ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
-                  onClick={() => canEdit && setEditingMax(true)}
-                >
-                  {hpMax}
-                </p>
-              )}
-            </div>
+              </div>
 
-            {/* Temp HP */}
-            <div className="text-center ml-2">
-              <p className="text-xs text-muted-foreground mb-1">Temp</p>
-              {editingTemp && canEdit ? (
-                <Input
-                  type="number"
-                  className="w-16 text-center text-lg font-bold h-8"
-                  value={hpTemp}
-                  autoFocus
-                  onChange={(e) => setHpTemp(parseInt(e.target.value) || 0)}
-                  onBlur={() => { save({ hp_temp: hpTemp }); setEditingTemp(false); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { save({ hp_temp: hpTemp }); setEditingTemp(false); }
-                    if (e.key === "Escape") { setHpTemp(character.hp_temp ?? 0); setEditingTemp(false); }
-                  }}
-                />
-              ) : (
-                <p
-                  className={`text-xl font-bold text-blue-400 ${canEdit ? "cursor-pointer hover:text-blue-300 transition-colors" : ""}`}
-                  onClick={() => canEdit && setEditingTemp(true)}
-                >
-                  {hpTemp > 0 ? `+${hpTemp}` : "—"}
-                </p>
-              )}
+              <span className="w-5 text-center text-2xl font-light text-muted-foreground leading-none">/</span>
+
+              {/* Max */}
+              <div className="w-16 text-center" title={canEdit ? `Suggested: ${suggestedMaxHp}` : undefined}>
+                {editingMax && canEdit ? (
+                  <Input
+                    type="number"
+                    className="w-16 text-center text-xl font-bold h-9"
+                    value={hpMax}
+                    autoFocus
+                    onChange={(e) => setHpMax(parseInt(e.target.value) || 0)}
+                    onBlur={() => { save({ hp_max: hpMax }); setEditingMax(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { save({ hp_max: hpMax }); setEditingMax(false); }
+                      if (e.key === "Escape") { setHpMax(character.hp_max ?? 0); setEditingMax(false); }
+                    }}
+                  />
+                ) : (
+                  <p
+                    className={`text-2xl font-bold leading-none ${canEdit ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
+                    onClick={() => canEdit && setEditingMax(true)}
+                  >
+                    {hpMax}
+                  </p>
+                )}
+              </div>
+
+              {/* Temp */}
+              <div className="border-l border-border/40 pl-3 ml-1 w-14 text-center">
+                {editingTemp && canEdit ? (
+                  <Input
+                    type="number"
+                    className="w-14 text-center text-base font-bold h-8"
+                    value={hpTemp}
+                    autoFocus
+                    onChange={(e) => setHpTemp(parseInt(e.target.value) || 0)}
+                    onBlur={() => { save({ hp_temp: hpTemp }); setEditingTemp(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { save({ hp_temp: hpTemp }); setEditingTemp(false); }
+                      if (e.key === "Escape") { setHpTemp(character.hp_temp ?? 0); setEditingTemp(false); }
+                    }}
+                  />
+                ) : (
+                  <p
+                    className={`text-xl font-bold leading-none text-primary ${canEdit ? "cursor-pointer hover:text-primary/70 transition-colors" : ""}`}
+                    onClick={() => canEdit && setEditingTemp(true)}
+                  >
+                    {hpTemp > 0 ? `+${hpTemp}` : "—"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

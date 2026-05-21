@@ -7,6 +7,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  isPlayerRole: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -16,14 +17,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPlayerRole, setIsPlayerRole] = useState(false);
 
   async function loadRole(userId: string) {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("app_role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setIsAdmin(data?.app_role === "admin");
+    const [{ data: roleData }, { data: appRoles }] = await Promise.all([
+      supabase.from("user_roles").select("app_role").eq("user_id", userId).maybeSingle(),
+      supabase.rpc("get_my_app_roles"),
+    ]);
+    const roles: string[] = appRoles ?? [];
+    setIsAdmin(roleData?.app_role === "admin" || roles.includes("admin"));
+    setIsPlayerRole(roles.includes("player"));
   }
 
   useEffect(() => {
@@ -36,9 +39,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // visibilitychange on focus) and would hammer the DB otherwise.
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "USER_UPDATED") {
         if (session?.user) loadRole(session.user.id);
-        else setIsAdmin(false);
+        else { setIsAdmin(false); setIsPlayerRole(false); }
       } else if (event === "SIGNED_OUT") {
         setIsAdmin(false);
+        setIsPlayerRole(false);
       }
       // INITIAL_SESSION fires once on subscribe with the stored session (or null).
       // Clearing loading here — instead of a separate getSession() call — prevents a
@@ -49,6 +53,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Re-fetch roles whenever allowed_emails or user_roles change for this user.
+  useEffect(() => {
+    const userId = session?.user?.id;
+    const email = session?.user?.email;
+    if (!userId || !email) return;
+
+    const channel = supabase
+      .channel(`auth-roles-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "allowed_emails", filter: `email=eq.${email}` },
+        () => loadRole(userId),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${userId}` },
+        () => loadRole(userId),
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user?.id]);
 
   // Proactively refresh the token 10 minutes before it expires.
   // autoRefreshToken is disabled on the client to stop WebView2 from firing
@@ -69,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, loading, isAdmin, signOut }}
+      value={{ session, user: session?.user ?? null, loading, isAdmin, isPlayerRole, signOut }}
     >
       {children}
     </AuthContext.Provider>

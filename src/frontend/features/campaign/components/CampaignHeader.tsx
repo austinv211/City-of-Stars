@@ -12,7 +12,7 @@ export function CampaignHeader({ campaign, isDM, memberCount }: Props) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-3 flex-wrap">
-        <h1 className="text-2xl font-bold">{campaign.name}</h1>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{campaign.name}</h1>
         {isDM && <Badge>DM</Badge>}
       </div>
       {campaign.description && (

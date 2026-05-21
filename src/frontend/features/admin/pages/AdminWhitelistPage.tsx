@@ -1,11 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Badge } from "@/core/components/ui/badge";
+import { Skeleton } from "@/core/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/core/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/core/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
-import { Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
 
@@ -16,50 +25,103 @@ interface WhitelistEntry {
   created_at: string;
 }
 
+type AppRole = "admin" | "dm" | "player";
+const ALL_ROLES: AppRole[] = ["admin", "dm", "player"];
 const PAGE_SIZE = 10;
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: "text-red-500 border-red-500/30",
-  dm: "text-purple-500 border-purple-500/30",
-  player: "",
+  admin: "text-destructive border-destructive/30",
+  dm: "text-primary border-primary/30",
+  player: "text-muted-foreground border-border",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  dm: "DM",
+  player: "Player",
 };
 
 export default function AdminWhitelistPage() {
   const { user } = useAuth();
-  const [entries, setEntries] = useState<WhitelistEntry[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
+  // Load all entries; group by email client-side so multiple roles show on one row
+  const [allEntries, setAllEntries] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
 
+  // Add dialog — can be pre-filled with an email when adding a role to existing entry
   const [addOpen, setAddOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState<"admin" | "dm" | "player">("player");
+  const [newRole, setNewRole] = useState<AppRole>("player");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
+  // Remove confirmation
   const [deleteTarget, setDeleteTarget] = useState<WhitelistEntry | null>(null);
 
-  async function load(p = page) {
+  async function load() {
     setLoading(true);
-    const from = p * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-    const { data, count } = await supabase
+    const { data } = await supabase
       .from("allowed_emails")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(from, to);
-    setEntries((data as WhitelistEntry[]) ?? []);
-    setTotal(count ?? 0);
+      .select("*")
+      .order("email", { ascending: true })
+      .order("created_at", { ascending: true });
+    setAllEntries((data as WhitelistEntry[]) ?? []);
     setLoading(false);
   }
 
-  useEffect(() => { load(page); }, [page]);
+  useEffect(() => { load(); }, []);
+
+  // Group entries by email → one row per unique email with an array of role entries
+  const grouped = useMemo(() => {
+    const map = new Map<string, WhitelistEntry[]>();
+    for (const entry of allEntries) {
+      const list = map.get(entry.email) ?? [];
+      list.push(entry);
+      map.set(entry.email, list);
+    }
+    return Array.from(map.entries()); // [email, entries[]][]
+  }, [allEntries]);
+
+  const totalPages = Math.max(1, Math.ceil(grouped.length / PAGE_SIZE));
+  const pageRows = grouped.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  function rolesForEmail(email: string): AppRole[] {
+    return allEntries.filter((e) => e.email === email).map((e) => e.app_role);
+  }
+
+  function missingRoles(email: string): AppRole[] {
+    const existing = rolesForEmail(email);
+    return ALL_ROLES.filter((r) => !existing.includes(r));
+  }
+
+  function openAddForEmail(email: string) {
+    const missing = missingRoles(email);
+    setNewEmail(email);
+    setNewRole(missing[0] ?? "player");
+    setAddError(null);
+    setAddOpen(true);
+  }
+
+  function openAddNew() {
+    setNewEmail("");
+    setNewRole("player");
+    setAddError(null);
+    setAddOpen(true);
+  }
 
   async function handleAdd() {
     const email = newEmail.trim().toLowerCase();
     if (!email) return;
     setSaving(true);
     setAddError(null);
+
+    // Pre-check: block exact (email, role) duplicates before hitting DB
+    if (allEntries.some((e) => e.email === email && e.app_role === newRole)) {
+      setAddError(`${email} already has the ${ROLE_LABELS[newRole]} role.`);
+      setSaving(false);
+      return;
+    }
+
     const { error } = await supabase.from("allowed_emails").insert({
       email,
       app_role: newRole,
@@ -67,130 +129,171 @@ export default function AdminWhitelistPage() {
     });
     setSaving(false);
     if (error) {
-      setAddError(error.message.includes("unique") ? "Email already on the whitelist." : error.message);
+      setAddError(error.message);
       return;
     }
     setAddOpen(false);
     setNewEmail("");
     setNewRole("player");
-    setPage(0);
-    load(0);
+    await load();
   }
 
   async function handleDelete(entry: WhitelistEntry) {
     await supabase.from("allowed_emails").delete().eq("id", entry.id);
     setDeleteTarget(null);
-    load(page);
+    await load();
   }
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
   return (
-    <div className="px-4 sm:px-6 py-8 space-y-6 max-w-3xl">
+    <div className="px-4 sm:px-6 py-8 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Email Whitelist</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Email Whitelist</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Only listed emails can sign up. {total} {total === 1 ? "entry" : "entries"}.
+            Only listed emails can sign up. {grouped.length} {grouped.length === 1 ? "email" : "emails"}, {allEntries.length} {allEntries.length === 1 ? "role" : "roles"}.
           </p>
         </div>
-        <Button onClick={() => { setAddOpen(true); setAddError(null); }}>
+        <Button onClick={openAddNew}>
           <Plus className="h-4 w-4 mr-2" />
           Add Email
         </Button>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : entries.length === 0 ? (
-        <p className="text-muted-foreground py-12 text-center">No entries yet.</p>
-      ) : (
-        <>
-          <div className="rounded-lg border divide-y divide-border">
-            {entries.map((entry) => (
-              <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{entry.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(entry.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={`capitalize text-xs shrink-0 ${ROLE_COLORS[entry.app_role] ?? ""}`}
-                >
-                  {entry.app_role}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
-                  onClick={() => setDeleteTarget(entry)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
+      <div className="border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Roles</TableHead>
+              <TableHead>Added</TableHead>
+              <TableHead className="w-28" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell />
+                </TableRow>
+              ))
+            ) : pageRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
+                  No entries yet.
+                </TableCell>
+              </TableRow>
+            ) : (
+              pageRows.map(([email, entries]) => (
+                <TableRow key={email}>
+                  <TableCell className="font-medium">{email}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {entries.map((entry) => (
+                        <Badge
+                          key={entry.id}
+                          variant="outline"
+                          className={`capitalize text-xs gap-1 pr-1 ${ROLE_COLORS[entry.app_role] ?? ""}`}
+                        >
+                          {ROLE_LABELS[entry.app_role]}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(entry)}
+                            className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                            title={`Remove ${entry.app_role} role`}
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {new Date(entries[0].created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {missingRoles(email).length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => openAddForEmail(email)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Role
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Page {page + 1} of {totalPages}</span>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Page {page + 1} of {totalPages}</span>
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* Add dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      {/* Add / Add Role dialog */}
+      <Dialog open={addOpen} onOpenChange={(o) => { if (!o) setAddOpen(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Email to Whitelist</DialogTitle>
+            <DialogTitle>{newEmail ? "Add Role" : "Add Email to Whitelist"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Email Address</Label>
               <Input
                 type="email"
-                autoFocus
+                autoFocus={!newEmail}
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="player@example.com"
+                readOnly={!!newEmail && rolesForEmail(newEmail.trim().toLowerCase()).length > 0}
+                className={newEmail && rolesForEmail(newEmail.trim().toLowerCase()).length > 0 ? "bg-muted/40" : ""}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
               />
             </div>
             <div className="space-y-1.5">
               <Label>Role</Label>
-              <Select value={newRole} onValueChange={(v) => setNewRole(v as typeof newRole)}>
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="player">Player</SelectItem>
-                  <SelectItem value="dm">Dungeon Master</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  {(newEmail && rolesForEmail(newEmail.trim().toLowerCase()).length > 0
+                    ? missingRoles(newEmail.trim().toLowerCase())
+                    : ALL_ROLES
+                  ).map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r === "admin" ? "Admin" : r === "dm" ? "Dungeon Master" : "Player"}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -205,15 +308,18 @@ export default function AdminWhitelistPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
+      {/* Remove role confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Remove from whitelist?</DialogTitle>
+            <DialogTitle>Remove role?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{deleteTarget?.email}</span> will no longer be able to sign up.
-            Existing accounts are not affected.
+            Remove the <span className="font-medium text-foreground">{deleteTarget && ROLE_LABELS[deleteTarget.app_role]}</span> role
+            from <span className="font-medium text-foreground">{deleteTarget?.email}</span>?
+            {allEntries.filter((e) => e.email === deleteTarget?.email).length === 1 && (
+              <span className="block mt-1">This is their only role — they will no longer be able to sign up.</span>
+            )}
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>

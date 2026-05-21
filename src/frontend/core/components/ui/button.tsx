@@ -8,10 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-[0_0_16px_hsl(var(--primary)/0.35)]",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-[0_0_12px_hsl(var(--destructive)/0.4)]",
-        outline: "bg-secondary text-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:shadow-sm",
+        default: "relative group isolate overflow-hidden bg-primary text-primary-foreground ring-1 ring-primary hover:bg-[var(--primary-hover)] hover:shadow-[0_0_16px_color-mix(in_oklch,var(--primary)_35%,transparent)] transition-all duration-300 ease-[cubic-bezier(0.4,0.36,0,1)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-b before:from-white/20 before:to-transparent before:opacity-80 before:transition-opacity before:duration-300 after:pointer-events-none after:absolute after:inset-0 after:-z-10 after:bg-gradient-to-b after:from-white/10 after:to-transparent after:mix-blend-overlay",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-[0_0_12px_color-mix(in_oklch,var(--destructive)_40%,transparent)]",
+        outline: "bg-secondary text-secondary-foreground hover:bg-[var(--secondary-hover)] hover:shadow-sm",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-[var(--secondary-hover)] hover:shadow-sm",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

@@ -11,6 +11,7 @@ import {
   BookMarked,
   UserCog,
   ChevronDown,
+  Globe,
 } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
@@ -47,6 +48,7 @@ const navItems = [
 const dmNavItems = [
   { to: "/dm/campaigns", label: "Campaigns", icon: BookMarked },
   { to: "/dm/members", label: "Members", icon: UserCog },
+  { to: "/dm/characters", label: "Characters", icon: Users },
   { to: "/dm/sessions", label: "Session Manager", icon: ScrollText },
   { to: "/dm/encounters", label: "Encounters", icon: ListChecks },
   { to: "/dm/monsters", label: "Monster Library", icon: Skull },
@@ -54,6 +56,7 @@ const dmNavItems = [
 
 const adminNavItems = [
   { to: "/admin/whitelist", label: "Email Whitelist", icon: ShieldCheck },
+  { to: "/admin/campaigns", label: "All Campaigns", icon: Globe },
 ];
 
 function NavItem({
@@ -75,7 +78,7 @@ function NavItem({
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground opacity-40 select-none">
+          <span className="flex cursor-not-allowed items-center gap-3 px-3 py-2 text-sm text-muted-foreground opacity-40 select-none">
             <Icon className="h-4 w-4" />
             {label}
           </span>
@@ -90,19 +93,11 @@ function NavItem({
       to={to}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-150",
+          "flex items-center gap-3 px-3 py-2 text-sm transition-all duration-150",
           isActive
-            ? "font-medium text-[hsl(var(--ctp-lavender))]"
-            : "text-muted-foreground hover:bg-[hsl(var(--ctp-mauve)/0.08)] hover:text-foreground",
+            ? "bg-primary/10 font-medium text-primary border-l-2 border-primary"
+            : "text-muted-foreground hover:bg-accent/30 hover:text-foreground",
         )
-      }
-      style={({ isActive }) =>
-        isActive
-          ? {
-              background:
-                "linear-gradient(90deg, hsl(var(--ctp-mauve) / 0.05), hsl(var(--ctp-lavender) / 0.03))",
-            }
-          : {}
       }
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -119,7 +114,7 @@ function CampaignSelector() {
   if (campaigns.length <= 1) {
     return (
       <div className="min-w-0">
-        <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">
+        <p className="text-sm font-bold tracking-tight leading-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
           City of Stars
         </p>
         {campaign && (
@@ -135,7 +130,7 @@ function CampaignSelector() {
     <Popover>
       <PopoverTrigger asChild>
         <button type="button" className="min-w-0 text-left group">
-          <p className="text-sm font-bold tracking-tight leading-tight ctp-gradient-text">
+          <p className="text-sm font-bold tracking-tight leading-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             City of Stars
           </p>
           <div className="flex items-center gap-1 mt-0.5">
@@ -156,15 +151,15 @@ function CampaignSelector() {
             type="button"
             onClick={() => switchCampaign(c.id)}
             className={cn(
-              "w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2",
+              "w-full text-left px-2 py-1.5 text-sm transition-colors flex items-center gap-2",
               c.id === campaign?.id
-                ? "bg-[hsl(var(--ctp-lavender)/0.12)] text-[hsl(var(--ctp-lavender))] font-medium"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                ? "bg-primary/15 text-primary font-medium"
+                : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground",
             )}
           >
             <span className="flex-1 truncate">{c.name}</span>
             {campaignEncounters[c.id] && (
-              <Swords className="h-3 w-3 shrink-0 text-[hsl(var(--ctp-green))]" />
+              <Swords className="h-3 w-3 shrink-0 text-success" />
             )}
           </button>
         ))}
@@ -175,7 +170,9 @@ function CampaignSelector() {
 
 export default function AppShell() {
   const { activeEncounterId, isDM } = useCampaign();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isPlayerRole, signOut } = useAuth();
+  // DMs who don't have the player app-role still need the Encounter tab when running one
+  const showDmEncounterTab = (isDM || isAdmin) && !isPlayerRole && !!activeEncounterId;
 
   return (
     <DiceProvider>
@@ -185,28 +182,10 @@ export default function AppShell() {
 
           <div className="flex flex-1 overflow-hidden">
             {/* Sidebar */}
-            <aside
-              className="flex w-56 shrink-0 flex-col"
-              style={{
-                background:
-                  "linear-gradient(180deg, hsl(var(--ctp-mantle)), hsl(var(--ctp-crust)) 100%)",
-                boxShadow: "inset -1px 0 0 hsl(var(--border)/0.3)",
-              }}
-            >
+            <aside className="flex w-56 shrink-0 flex-col bg-card border-r border-border/40">
               {/* Brand + Campaign Selector */}
-              <div
-                className="h-12 flex items-center gap-2.5 px-4"
-                style={{ boxShadow: "inset 0 -1px 0 hsl(var(--border)/0.3)" }}
-              >
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, hsl(var(--ctp-mauve) / 0.24), hsl(var(--ctp-blue) / 0.24))",
-                    boxShadow:
-                      "inset 0 1px 0 hsl(var(--ctp-lavender) / 0.3), 0 0 8px hsl(var(--ctp-mauve) / 0.15)",
-                  }}
-                >
+              <div className="h-12 flex items-center gap-2.5 px-4 border-b border-border/40">
+                <div className="flex h-8 w-8 items-center justify-center shrink-0 bg-primary/15">
                   <AnimatedStar size={20} />
                 </div>
                 <CampaignSelector />
@@ -214,7 +193,7 @@ export default function AppShell() {
 
               {/* Nav */}
               <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3">
-                {navItems.map(({ to, label, icon, requiresEncounter }) => {
+                {isPlayerRole && navItems.map(({ to, label, icon, requiresEncounter }) => {
                   const disabled = requiresEncounter && !activeEncounterId;
                   return (
                     <NavItem
@@ -226,30 +205,38 @@ export default function AppShell() {
                       disabledTip="No active encounter"
                       badge={
                         requiresEncounter && activeEncounterId ? (
-                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--ctp-green))]" />
+                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-success" />
                         ) : undefined
                       }
                     />
                   );
                 })}
 
-                {isDM && (
+                {(isDM || isAdmin) && (
                   <>
                     <div className="px-3 pt-4 pb-1">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-sapphire))]">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                         DM Tools
                       </p>
                     </div>
                     {dmNavItems.map(({ to, label, icon }) => (
                       <NavItem key={to} to={to} label={label} icon={icon} />
                     ))}
+                    {showDmEncounterTab && (
+                      <NavItem
+                        to="/encounter"
+                        label="Encounter"
+                        icon={Swords}
+                        badge={<span className="ml-auto h-1.5 w-1.5 rounded-full bg-success" />}
+                      />
+                    )}
                   </>
                 )}
 
                 {isAdmin && (
                   <>
                     <div className="px-3 pt-4 pb-1">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--ctp-maroon))]">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-destructive">
                         Admin
                       </p>
                     </div>
@@ -269,15 +256,13 @@ export default function AppShell() {
                     {user?.email}
                   </p>
                   {isDM && (
-                    <Badge
-                      variant="secondary"
-                      className="mt-1 text-[10px]"
-                      style={{
-                        color: "hsl(var(--ctp-mauve))",
-                        borderColor: "hsl(var(--ctp-mauve) / 0.3)",
-                      }}
-                    >
+                    <Badge variant="secondary" className="mt-1 text-[10px]">
                       Dungeon Master
+                    </Badge>
+                  )}
+                  {isPlayerRole && !isDM && !isAdmin && (
+                    <Badge variant="outline" className="mt-1 text-[10px]">
+                      Player
                     </Badge>
                   )}
                 </div>

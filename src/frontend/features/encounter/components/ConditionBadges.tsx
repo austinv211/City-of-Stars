@@ -12,25 +12,25 @@ import { useState } from "react";
 import { CONDITIONS } from "@/features/characters/data/dnd2024.constants";
 
 const CONDITION_STYLE: Record<string, string> = {
-  Blinded:       "bg-[hsl(var(--ctp-sapphire)/0.18)] text-ctp-sapphire border-[hsl(var(--ctp-sapphire)/0.35)]",
-  Charmed:       "bg-[hsl(var(--ctp-pink)/0.18)]     text-ctp-pink     border-[hsl(var(--ctp-pink)/0.35)]",
-  Deafened:      "bg-[hsl(var(--ctp-overlay0)/0.25)] text-muted-foreground border-[hsl(var(--ctp-overlay0)/0.35)]",
-  Exhaustion:    "bg-[hsl(var(--ctp-maroon)/0.18)]   text-ctp-maroon   border-[hsl(var(--ctp-maroon)/0.35)]",
-  Frightened:    "bg-[hsl(var(--ctp-red)/0.18)]      text-ctp-red      border-[hsl(var(--ctp-red)/0.35)]",
-  Grappled:      "bg-[hsl(var(--ctp-yellow)/0.18)]   text-ctp-yellow   border-[hsl(var(--ctp-yellow)/0.35)]",
-  Incapacitated: "bg-[hsl(var(--ctp-peach)/0.18)]    text-ctp-peach    border-[hsl(var(--ctp-peach)/0.35)]",
-  Invisible:     "bg-[hsl(var(--ctp-lavender)/0.18)] text-ctp-lavender border-[hsl(var(--ctp-lavender)/0.35)]",
-  Paralyzed:     "bg-[hsl(var(--ctp-red)/0.22)]      text-ctp-red      border-[hsl(var(--ctp-red)/0.4)]",
-  Petrified:     "bg-[hsl(var(--ctp-overlay0)/0.25)] text-muted-foreground border-[hsl(var(--ctp-overlay0)/0.35)]",
-  Poisoned:      "bg-[hsl(var(--ctp-green)/0.18)]    text-ctp-green    border-[hsl(var(--ctp-green)/0.35)]",
-  Prone:         "bg-[hsl(var(--ctp-yellow)/0.18)]   text-ctp-yellow   border-[hsl(var(--ctp-yellow)/0.35)]",
-  Restrained:    "bg-[hsl(var(--ctp-mauve)/0.18)]    text-ctp-mauve    border-[hsl(var(--ctp-mauve)/0.35)]",
-  Stunned:       "bg-[hsl(var(--ctp-mauve)/0.22)]    text-ctp-mauve    border-[hsl(var(--ctp-mauve)/0.4)]",
-  Unconscious:   "bg-[hsl(var(--ctp-red)/0.25)]      text-ctp-red      border-[hsl(var(--ctp-red)/0.45)]",
+  Blinded:       "bg-[#74c7ec2e] text-[#74c7ec] border-[#74c7ec59]",
+  Charmed:       "bg-[#f5c2e72e] text-[#f5c2e7] border-[#f5c2e759]",
+  Deafened:      "bg-muted/25 text-muted-foreground border-muted-foreground/35",
+  Exhaustion:    "bg-[#eba0ac2e] text-[#eba0ac] border-[#eba0ac59]",
+  Frightened:    "bg-[#f38ba82e] text-[#f38ba8] border-[#f38ba859]",
+  Grappled:      "bg-[#f9e2af2e] text-[#f9e2af] border-[#f9e2af59]",
+  Incapacitated: "bg-[#fab3872e] text-[#fab387] border-[#fab38759]",
+  Invisible:     "bg-[#b4befe2e] text-[#b4befe] border-[#b4befe59]",
+  Paralyzed:     "bg-[#f38ba838] text-[#f38ba8] border-[#f38ba866]",
+  Petrified:     "bg-muted/25 text-muted-foreground border-muted-foreground/35",
+  Poisoned:      "bg-[#a6e3a12e] text-[#a6e3a1] border-[#a6e3a159]",
+  Prone:         "bg-[#f9e2af2e] text-[#f9e2af] border-[#f9e2af59]",
+  Restrained:    "bg-[#cba6f72e] text-[#cba6f7] border-[#cba6f759]",
+  Stunned:       "bg-[#cba6f738] text-[#cba6f7] border-[#cba6f766]",
+  Unconscious:   "bg-[#f38ba840] text-[#f38ba8] border-[#f38ba873]",
 };
 
 function conditionStyle(condition: string) {
-  return CONDITION_STYLE[condition] ?? "bg-[hsl(var(--ctp-peach)/0.18)] text-ctp-peach border-[hsl(var(--ctp-peach)/0.35)]";
+  return CONDITION_STYLE[condition] ?? "bg-[#fab3872e] text-[#fab387] border-[#fab38759]";
 }
 
 interface Props {
@@ -70,12 +70,14 @@ export function ConditionBadges({ conditions, canEdit, onUpdate }: Props) {
           </Badge>
         ))}
         {canEdit && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={openDialog}
-            className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+            className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             {conditions.length === 0 ? "Add condition" : "Edit"}
-          </button>
+          </Button>
         )}
       </div>
 

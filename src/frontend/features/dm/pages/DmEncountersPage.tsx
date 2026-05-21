@@ -19,6 +19,7 @@ import { useEncounterManager } from "@/features/dm/hooks/useEncounterManager";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { supabase } from "@/lib/supabase";
+import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
 import { MonsterPicker } from "@/features/encounter/components/MonsterPicker";
 import type { CustomMonster } from "@/features/encounter/components/MonsterPicker";
 import type { NpcDraft, PartyEntry } from "@/features/dm/hooks/useEncounterManager";
@@ -191,13 +192,15 @@ export default function DmEncountersPage() {
 
   const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
 
+  if (!campaign) return <NoCampaignMessage />;
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* ── Left column — encounter list ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-8 space-y-6 min-w-0">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold">Encounters</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Encounters</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Build encounters and launch them when the party is ready.
             </p>

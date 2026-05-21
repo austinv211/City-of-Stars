@@ -35,10 +35,10 @@ export function HPAdjuster({ current, max, canEdit, onAdjust }: Props) {
   const pct = max > 0 ? (current / max) * 100 : 0;
   const barColor =
     pct > 50
-      ? "[&>div]:bg-[hsl(var(--ctp-green))]"
+      ? "[&>div]:bg-success"
       : pct > 25
-        ? "[&>div]:bg-[hsl(var(--ctp-peach))]"
-        : "[&>div]:bg-[hsl(var(--ctp-red))]";
+        ? "[&>div]:bg-secondary"
+        : "[&>div]:bg-destructive";
 
   return (
     <div className={`space-y-1.5 ${flashClass}`}>
@@ -49,10 +49,10 @@ export function HPAdjuster({ current, max, canEdit, onAdjust }: Props) {
         <span
           className={
             pct > 50
-              ? "text-xs text-ctp-green"
+              ? "text-xs text-success"
               : pct > 25
-                ? "text-xs text-ctp-peach"
-                : "text-xs text-ctp-red"
+                ? "text-xs text-secondary"
+                : "text-xs text-destructive"
           }
         >
           {Math.round(pct)}%
@@ -62,9 +62,9 @@ export function HPAdjuster({ current, max, canEdit, onAdjust }: Props) {
       {canEdit && (
         <div className="flex items-center gap-1 mt-1">
           <Button
-            variant="outline"
+            variant="default"
             size="icon"
-            className="h-7 w-7 text-ctp-red border-[hsl(var(--ctp-red)/0.4)] hover:bg-[hsl(var(--ctp-red)/0.12)] hover:border-[hsl(var(--ctp-red)/0.6)]"
+            className="h-7 w-7"
             onClick={() => apply(-1)}
           >
             −
@@ -81,9 +81,9 @@ export function HPAdjuster({ current, max, canEdit, onAdjust }: Props) {
             className="h-7 w-16 text-center text-sm"
           />
           <Button
-            variant="outline"
+            variant="default"
             size="icon"
-            className="h-7 w-7 text-ctp-green border-[hsl(var(--ctp-green)/0.4)] hover:bg-[hsl(var(--ctp-green)/0.12)] hover:border-[hsl(var(--ctp-green)/0.6)]"
+            className="h-7 w-7"
             onClick={() => apply(1)}
           >
             +
