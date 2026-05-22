@@ -88,6 +88,9 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
             ))}
           </SelectContent>
         </Select>
+        {bg && (
+          <p className="text-xs text-muted-foreground italic">{bg.description}</p>
+        )}
       </div>
 
       {/* SRD background detail card */}
@@ -197,10 +200,16 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
           </SelectTrigger>
           <SelectContent>
             {ALIGNMENTS.map((a) => (
-              <SelectItem key={a} value={a}>{a}</SelectItem>
+              <SelectItem key={a.name} value={a.name}>{a.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {state.alignment && (() => {
+          const found = ALIGNMENTS.find((a) => a.name === state.alignment);
+          return found ? (
+            <p className="text-xs text-muted-foreground italic">{found.description}</p>
+          ) : null;
+        })()}
       </div>
 
       <div className="space-y-2">

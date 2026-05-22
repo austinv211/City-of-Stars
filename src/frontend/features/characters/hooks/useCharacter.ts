@@ -21,7 +21,10 @@ export function useCharacter(characterId: string | undefined) {
   }, [characterId]);
 
   useEffect(() => {
-    if (!characterId) return;
+    if (!characterId) {
+      setLoading(false);
+      return;
+    }
 
     load();
 

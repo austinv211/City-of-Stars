@@ -3,6 +3,7 @@ import { Toaster } from "@/core/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/core/context/AuthContext";
 import { CampaignProvider, useCampaign } from "@/core/context/CampaignContext";
 import ProtectedRoute from "@/core/components/ProtectedRoute";
+import { ErrorBoundary } from "@/core/components/ErrorBoundary";
 import AppShell from "@/core/components/AppShell";
 import EncounterGuard from "@/core/components/EncounterGuard";
 import DmGuard from "@/core/components/DmGuard";
@@ -20,6 +21,7 @@ import DmMonstersPage from "@/features/dm/pages/DmMonstersPage";
 import DmCampaignsPage from "@/features/dm/pages/DmCampaignsPage";
 import DmMembersPage from "@/features/dm/pages/DmMembersPage";
 import DmCharactersPage from "@/features/dm/pages/DmCharactersPage";
+import DmCharacterViewPage from "@/features/dm/pages/DmCharacterViewPage";
 import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
 import AdminCampaignsPage from "@/features/admin/pages/AdminCampaignsPage";
 
@@ -48,7 +50,7 @@ export default function App() {
             >
               <Route path="/" element={<RootRedirect />} />
               {/* Campaigns page is accessible to all authenticated users as a fallback */}
-              <Route path="/campaigns" element={<CampaignsPage />} />
+              <Route path="/campaigns" element={<ErrorBoundary><CampaignsPage /></ErrorBoundary>} />
               <Route path="/campaign" element={<Navigate to="/campaigns" replace />} />
               {/* Player-only routes */}
               <Route element={<PlayerGuard />}>
@@ -58,7 +60,7 @@ export default function App() {
               </Route>
               {/* Encounter — accessible to players AND DMs running an encounter */}
               <Route element={<EncounterGuard />}>
-                <Route path="/encounter" element={<EncounterPage />} />
+                <Route path="/encounter" element={<ErrorBoundary><EncounterPage /></ErrorBoundary>} />
               </Route>
               {/* DM-only routes */}
               <Route path="/dm" element={<Navigate to="/dm/campaigns" replace />} />
@@ -66,7 +68,7 @@ export default function App() {
                 <Route path="/dm/campaigns" element={<DmCampaignsPage />} />
                 <Route path="/dm/members" element={<DmMembersPage />} />
                 <Route path="/dm/characters" element={<DmCharactersPage />} />
-                <Route path="/dm/characters/:characterId" element={<CharacterViewPage />} />
+                <Route path="/dm/characters/:characterId" element={<DmCharacterViewPage />} />
                 <Route path="/dm/sessions" element={<DmSessionsPage />} />
                 <Route path="/dm/encounters" element={<DmEncountersPage />} />
                 <Route path="/dm/monsters" element={<DmMonstersPage />} />

@@ -51,6 +51,13 @@ export function useEncounterManager() {
       return;
     }
     load();
+
+    const ch = supabase
+      .channel(`encounters_dm:${campaign.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "encounters", filter: `campaign_id=eq.${campaign.id}` }, load)
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
   }, [load]);
 
   async function createEncounter(name: string, npcs: NpcDraft[]): Promise<Encounter | null> {

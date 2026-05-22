@@ -49,7 +49,7 @@ export function Step4_Proficiencies({ state, dispatch, onNext }: Props) {
             return (
               <div
                 key={skill.name}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 ${
+                className={`flex items-start gap-3 rounded-md px-3 py-2 ${
                   available ? "hover:bg-muted/50" : "opacity-40"
                 }`}
               >
@@ -58,14 +58,18 @@ export function Step4_Proficiencies({ state, dispatch, onNext }: Props) {
                   checked={checked}
                   disabled={disabled}
                   onCheckedChange={() => toggle(skill.name)}
+                  className="mt-0.5"
                 />
-                <Label
-                  htmlFor={`skill-${skill.name}`}
-                  className={`flex-1 cursor-pointer ${disabled && !checked ? "cursor-default" : ""}`}
-                >
-                  {skill.name}
-                </Label>
-                <span className="text-xs text-muted-foreground font-mono uppercase">
+                <div className="flex-1 min-w-0">
+                  <Label
+                    htmlFor={`skill-${skill.name}`}
+                    className={`block cursor-pointer ${disabled && !checked ? "cursor-default" : ""}`}
+                  >
+                    {skill.name}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{skill.description}</p>
+                </div>
+                <span className="text-xs text-muted-foreground font-mono uppercase shrink-0 mt-0.5">
                   {skill.ability.slice(0, 3)}
                 </span>
               </div>

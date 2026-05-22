@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
@@ -25,10 +26,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/core/components/ui/dialog";
-import { UserPlus, Trash2, Users, AlertTriangle } from "lucide-react";
+import { UserPlus, Trash2, Users, AlertTriangle, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
+import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
 
 interface Member {
@@ -40,8 +42,10 @@ interface Member {
 }
 
 export default function DmMembersPage() {
+  const navigate = useNavigate();
   const { campaign } = useCampaign();
   const { user } = useAuth();
+  const { characters } = useCharacters();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,6 +58,10 @@ export default function DmMembersPage() {
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
   const [removing, setRemoving] = useState(false);
   const [dmGuardError, setDmGuardError] = useState<string | null>(null);
+
+  const activeCharacterByOwner = new Map(
+    characters.filter((c) => c.status === "active").map((c) => [c.owner_id, c.id])
+  );
 
   async function load() {
     if (!campaign) return;
@@ -230,42 +238,58 @@ export default function DmMembersPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Character</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.map((m) => (
-                <TableRow key={m.user_id}>
-                  <TableCell className="font-medium">{m.email}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {new Date(m.joined_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={m.role}
-                      onValueChange={(v) => handleRoleChange(m, v as "player" | "dm")}
-                    >
-                      <SelectTrigger className="h-7 w-24 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="player">Player</SelectItem>
-                        <SelectItem value="dm">DM</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => tryRemove(m)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {members.map((m) => {
+                const activeCharId = activeCharacterByOwner.get(m.user_id);
+                return (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">{m.email}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {new Date(m.joined_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={m.role}
+                        onValueChange={(v) => handleRoleChange(m, v as "player" | "dm")}
+                      >
+                        <SelectTrigger className="h-7 w-24 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="player">Player</SelectItem>
+                          <SelectItem value="dm">DM</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={!activeCharId}
+                        onClick={() => activeCharId && navigate(`/dm/characters/${activeCharId}`)}
+                      >
+                        <User className="h-3 w-3 mr-1" />
+                        {activeCharId ? "View" : "None"}
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => tryRemove(m)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

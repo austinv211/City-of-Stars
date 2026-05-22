@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -9,32 +8,16 @@ import {
   TabsTrigger,
 } from "@/core/components/ui/tabs";
 import { Button } from "@/core/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/core/components/ui/card";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/core/components/ui/dialog";
 import { CampaignHeader } from "../components/CampaignHeader";
 import { PartyStatsPanel } from "../components/PartyStatsPanel";
 import { CharacterStatMeter } from "../components/CharacterStatMeter";
 import { useSessionNotes } from "../hooks/useSessionNotes";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
-import { supabase } from "@/lib/supabase";
 import {
   ScrollText,
-  Lock,
-  TrendingUp,
   Swords,
   BookOpen,
   Radio,
@@ -46,15 +29,11 @@ function SessionBlock({
   sessionNumber,
   sessionLabel,
   partyNote,
-  dmNote,
-  isDM,
   isCurrent,
 }: {
   sessionNumber: number;
   sessionLabel: string;
   partyNote: SessionNote | undefined;
-  dmNote: SessionNote | undefined;
-  isDM: boolean;
   isCurrent: boolean;
 }) {
   return (
@@ -82,30 +61,6 @@ function SessionBlock({
           No party notes for this session.
         </p>
       )}
-
-      {isDM && (
-        <Card className="border border-primary/20 bg-primary/5">
-          <CardHeader className="pb-2 pt-3 px-4">
-            <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
-              <Lock className="h-3 w-3" />
-              DM Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 px-4">
-            {dmNote?.content ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {dmNote.content}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                No DM notes for this session.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -116,25 +71,13 @@ export default function CampaignsPage() {
     campaigns,
     memberships,
     campaignEncounters,
-    isDM,
     loading: campaignLoading,
     switchCampaign,
   } = useCampaign();
   const { notes } = useSessionNotes();
   const { characters } = useCharacters();
-  const [levelUpOpen, setLevelUpOpen] = useState(false);
-  const [levelingUp, setLevelingUp] = useState(false);
 
   const activeCharacters = characters.filter((c) => c.status === "active");
-  const currentLevel = activeCharacters[0]?.level ?? 1;
-
-  async function handleLevelUp() {
-    if (!campaign) return;
-    setLevelingUp(true);
-    await supabase.rpc("level_up_campaign", { campaign_id: campaign.id });
-    setLevelingUp(false);
-    setLevelUpOpen(false);
-  }
 
   if (campaignLoading) {
     return (
@@ -158,10 +101,8 @@ export default function CampaignsPage() {
   const sessionLabel = campaign?.session_label ?? "Session";
   const prevSession = currentSession - 1;
 
-  function getNote(session: number, visibility: "dm_only" | "party") {
-    return notes.find(
-      (n) => n.session_number === session && n.visibility === visibility,
-    );
+  function getPartyNote(session: number) {
+    return notes.find((n) => n.session_number === session && n.visibility === "party");
   }
 
   return (
@@ -254,18 +195,9 @@ export default function CampaignsPage() {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <CampaignHeader
                   campaign={campaign}
-                  isDM={isDM}
+                  isDM={false}
                   memberCount={characters.length}
                 />
-                {isDM && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setLevelUpOpen(true)}
-                  >
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Level Up Party
-                  </Button>
-                )}
               </div>
 
               <Tabs defaultValue="sessions">
@@ -278,9 +210,7 @@ export default function CampaignsPage() {
                   <SessionBlock
                     sessionNumber={currentSession}
                     sessionLabel={sessionLabel}
-                    partyNote={getNote(currentSession, "party")}
-                    dmNote={getNote(currentSession, "dm_only")}
-                    isDM={isDM}
+                    partyNote={getPartyNote(currentSession)}
                     isCurrent
                   />
                   {prevSession >= 1 && (
@@ -289,9 +219,7 @@ export default function CampaignsPage() {
                       <SessionBlock
                         sessionNumber={prevSession}
                         sessionLabel={sessionLabel}
-                        partyNote={getNote(prevSession, "party")}
-                        dmNote={getNote(prevSession, "dm_only")}
-                        isDM={isDM}
+                        partyNote={getPartyNote(prevSession)}
                         isCurrent={false}
                       />
                     </>
@@ -315,36 +243,6 @@ export default function CampaignsPage() {
                 </TabsContent>
               </Tabs>
 
-              <Dialog open={levelUpOpen} onOpenChange={setLevelUpOpen}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Level Up Party</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-sm text-muted-foreground">
-                    Level up all active characters from{" "}
-                    <strong>Level {currentLevel}</strong> to{" "}
-                    <strong>Level {currentLevel + 1}</strong>?
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    This will update all {activeCharacters.length} active
-                    character
-                    {activeCharacters.length !== 1 ? "s" : ""} simultaneously.
-                  </p>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setLevelUpOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button onClick={handleLevelUp} disabled={levelingUp}>
-                      {levelingUp
-                        ? "Leveling up…"
-                        : `Level Up to ${currentLevel + 1}`}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </>
           )}
         </>
