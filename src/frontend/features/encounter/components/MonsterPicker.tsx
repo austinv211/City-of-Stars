@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/core/components/ui/input";
+import { Textarea } from "@/core/components/ui/textarea";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Label } from "@/core/components/ui/label";
@@ -27,6 +28,7 @@ export interface CustomMonster {
   cha_score?: number;
   actions?: unknown;
   special_abilities?: unknown;
+  description?: string | null;
 }
 
 interface Props {
@@ -50,7 +52,7 @@ export function MonsterPicker({ customMonsters, onSelect, onLibraryChange }: Pro
 
   // Add custom monster form
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newMonster, setNewMonster] = useState({ name: "", hp: 10, ac: 12, default_initiative: 0 });
+  const [newMonster, setNewMonster] = useState({ name: "", hp: 10, ac: 12, default_initiative: 0, description: "" });
   const [addingSaving, setAddingSaving] = useState(false);
 
   useEffect(() => {
@@ -103,9 +105,10 @@ export function MonsterPicker({ customMonsters, onSelect, onLibraryChange }: Pro
       hp: newMonster.hp,
       ac: newMonster.ac,
       default_initiative: newMonster.default_initiative,
+      description: newMonster.description.trim() || null,
     });
     setAddingSaving(false);
-    setNewMonster({ name: "", hp: 10, ac: 12, default_initiative: 0 });
+    setNewMonster({ name: "", hp: 10, ac: 12, default_initiative: 0, description: "" });
     setShowAddForm(false);
     onLibraryChange();
   }
@@ -193,6 +196,16 @@ export function MonsterPicker({ customMonsters, onSelect, onLibraryChange }: Pro
                 />
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Description (optional)</Label>
+              <Textarea
+                value={newMonster.description}
+                onChange={(e) => setNewMonster((m) => ({ ...m, description: e.target.value }))}
+                placeholder="Flavor text shown to players…"
+                rows={3}
+                className="text-xs resize-none"
+              />
+            </div>
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -249,6 +262,7 @@ export function MonsterPicker({ customMonsters, onSelect, onLibraryChange }: Pro
                         cha_score: m.cha_score,
                         actions: m.actions as MonsterAction[] | undefined,
                         special_abilities: m.special_abilities as MonsterSpecialAbility[] | undefined,
+                        description: m.description ?? undefined,
                       })
                     }
                   >

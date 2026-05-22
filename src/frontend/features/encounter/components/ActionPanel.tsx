@@ -167,6 +167,7 @@ interface Props {
   encounterId: string;
   isMyTurn: boolean;
   isDM: boolean;
+  canControl: boolean;
 }
 
 export function ActionPanel({
@@ -177,6 +178,7 @@ export function ActionPanel({
   encounterId,
   isMyTurn,
   isDM,
+  canControl,
 }: Props) {
   const { roll, rollPool, announceAction } = useDice();
   const [damageSpells, setDamageSpells] = useState<CharacterSpell[]>([]);
@@ -194,28 +196,28 @@ export function ActionPanel({
       .then(({ data }) => setDamageSpells((data as CharacterSpell[]) ?? []));
   }, [participant.character_id]);
 
-  // Players see only name/portrait/size for NPCs — no stat block or roll controls
+  // Players see only portrait + description for NPCs — no stat block or roll controls
   if (!isDM && !participant.is_player) {
     return (
-      <div>
-        <div className="flex items-center gap-2 flex-wrap mb-3">
-          <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            {participant.name}
-          </span>
-          <Badge variant="secondary" className="text-xs">
-            NPC
-          </Badge>
-        </div>
-        {participant.portrait_url && (
+      <div className="flex flex-col gap-4">
+        {participant.portrait_url ? (
           <img
             src={participant.portrait_url}
             alt={participant.name}
-            className="w-24 h-24 object-cover mb-3"
+            className="w-full max-h-72 object-cover rounded-md"
           />
-        )}
-        <p className="text-xs text-muted-foreground italic">
-          Stat block hidden from players.
-        </p>
+        ) : null}
+        <div>
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <span className="text-base font-bold">{participant.name}</span>
+            <Badge variant="secondary" className="text-xs">NPC</Badge>
+          </div>
+          {participant.description ? (
+            <p className="text-sm text-muted-foreground leading-relaxed">{participant.description}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">No description available.</p>
+          )}
+        </div>
       </div>
     );
   }
@@ -257,8 +259,9 @@ export function ActionPanel({
   };
 
   const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
-  const locked = participant.is_player && !isMyTurn && !isDM;
-  const base = { campaignId, encounterId, characterName: participant.name };
+  // locked = can't interact with this panel (viewing another player's character as a non-DM)
+  const locked = !canControl;
+  const base = { campaignId, encounterId, characterName: participant.name, rolledByDm: isDM };
 
   function doRoll(diceType: string, sides: number, modifier: number, rollType: string) {
     roll({ ...base, diceType, sides, modifier, rollType });
@@ -407,6 +410,7 @@ export function ActionPanel({
                 campaignId,
                 encounterId,
                 characterName: participant.name,
+                rolledByDm: isDM,
                 pool,
                 modifier,
                 advantage,
@@ -475,10 +479,7 @@ export function ActionPanel({
         {(attacks.length > 0 || damageSpells.length > 0) && (
           <>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-2">
-                Attacks
-                {locked && <span className="ml-2 text-xs font-normal italic">(wait for your turn)</span>}
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Attacks</p>
               <div className="flex flex-wrap gap-2">
                 {attacks.map((atk) => (
                   <div key={atk.id} className="flex flex-col gap-1">

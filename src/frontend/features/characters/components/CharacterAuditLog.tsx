@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/core/components/ui/table";
 import { Badge } from "@/core/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 
@@ -33,40 +41,48 @@ export function CharacterAuditLog({ characterId }: Props) {
       });
   }, [characterId]);
 
-  if (loading) return null;
-  if (entries.length === 0) return null;
+  if (loading || entries.length === 0) return null;
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          DM — Change Log
-        </CardTitle>
+        <CardTitle className="text-sm font-semibold">Change Log</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1.5">
-        {entries.map((e) => (
-          <div key={e.id} className="text-xs border-b pb-1.5 last:border-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="text-[10px]">{e.field_name}</Badge>
-              <span className="text-muted-foreground">
-                {new Date(e.changed_at).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 mt-0.5 text-muted-foreground">
-              {e.old_value ? (
-                <span className="line-through opacity-60 truncate max-w-[120px]">{e.old_value}</span>
-              ) : (
-                <span className="italic opacity-40">empty</span>
-              )}
-              <span>→</span>
-              {e.new_value ? (
-                <span className="text-foreground truncate max-w-[120px]">{e.new_value}</span>
-              ) : (
-                <span className="italic opacity-40">cleared</span>
-              )}
-            </div>
-          </div>
-        ))}
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-36">Field</TableHead>
+              <TableHead>Previous</TableHead>
+              <TableHead>New</TableHead>
+              <TableHead className="w-44 text-right">Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {entries.map((e) => (
+              <TableRow key={e.id}>
+                <TableCell>
+                  <Badge variant="secondary" className="text-xs font-mono">
+                    {e.field_name}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  {e.old_value ? (
+                    <span className="line-through">{e.old_value}</span>
+                  ) : (
+                    <span className="italic opacity-50">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs">
+                  {e.new_value ?? <span className="italic text-muted-foreground opacity-50">cleared</span>}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground text-right whitespace-nowrap">
+                  {new Date(e.changed_at).toLocaleString()}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

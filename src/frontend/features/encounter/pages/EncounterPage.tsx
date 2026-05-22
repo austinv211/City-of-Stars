@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import {
@@ -17,6 +18,7 @@ import {
 import { InitiativeTracker } from "../components/InitiativeTracker";
 import { ActionPanel } from "../components/ActionPanel";
 import { CharacterQuickRef } from "../components/CharacterQuickRef";
+import { InitiativeRollScreen } from "../components/InitiativeRollScreen";
 import { useActiveEncounter } from "../hooks/useActiveEncounter";
 import { useEncounterParticipants } from "../hooks/useEncounterParticipants";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -25,7 +27,7 @@ import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useAuth } from "@/core/context/AuthContext";
 import { useDice } from "../context/DiceContext";
 import { supabase } from "@/lib/supabase";
-import { Swords, SkipForward, Dices, User, BookOpen, Zap } from "lucide-react";
+import { Swords, SkipForward, Dices, User, BookOpen, Zap, ChevronLeft } from "lucide-react";
 import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import type { CharacterAttack } from "@/features/characters/types/character.types";
 import type { RollEntry } from "../context/DiceContext";
@@ -84,7 +86,7 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
                 className={cn("h-3 w-3 mt-0.5 shrink-0", style.labelClass)}
               />
               <div className="min-w-0">
-                <span className="font-medium">{entry.characterName}</span>
+                <span className="font-medium">{entry.rolledByDm ? `DM — ${entry.characterName}` : entry.characterName}</span>
                 <span className="text-muted-foreground"> · </span>
                 <span
                   className={cn(
@@ -123,7 +125,7 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
           >
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-medium truncate">
-                {entry.characterName}
+                {entry.rolledByDm ? `DM — ${entry.characterName}` : entry.characterName}
               </span>
               <span
                 className={cn(
@@ -152,8 +154,7 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
               )}
               {entry.discardedRoll != null && (
                 <span className="ml-1 opacity-60">
-                  [{entry.advantage ? "kept" : "kept"} {entry.result}, dropped{" "}
-                  {entry.discardedRoll}]
+                  [kept {entry.result}, dropped {entry.discardedRoll}]
                 </span>
               )}
               {isCrit && (
@@ -178,9 +179,12 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
   );
 }
 
-export default function EncounterPage() {
+export default function EncounterPage({ playerMode = false }: { playerMode?: boolean }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { campaign, isDM, activeEncounterId } = useCampaign();
+  const { campaign, isDM: contextIsDM, activeEncounterId } = useCampaign();
+  // playerMode forces player behaviour regardless of campaign role (used at /encounter)
+  const isDM = playerMode ? false : contextIsDM;
   const { encounter, endEncounter, advanceTurn } = useActiveEncounter();
   const { participants, updateHP, updateConditions } = useEncounterParticipants(
     activeEncounterId,
@@ -211,6 +215,8 @@ export default function EncounterPage() {
   );
 
   const isPanelMyTurn = isMyTurn && panelParticipant?.id === ownParticipant?.id;
+  // DMs control any participant; players control only their own character's panel
+  const canControlPanel = isDM || panelParticipant?.id === ownParticipant?.id;
 
   const { character: panelCharacter } = useCharacter(
     panelParticipant?.character_id ?? undefined,
@@ -244,6 +250,18 @@ export default function EncounterPage() {
     );
   }
 
+  // Players who haven't rolled initiative yet see the waiting-room roll screen
+  if (!isDM && ownParticipant && !ownParticipant.has_rolled_initiative && campaign) {
+    return (
+      <InitiativeRollScreen
+        encounterId={activeEncounterId}
+        campaignId={campaign.id}
+        participants={participants}
+        ownParticipant={ownParticipant}
+      />
+    );
+  }
+
   const activeParticipant = participants.find(
     (p) => p.id === activeParticipantId,
   );
@@ -254,6 +272,17 @@ export default function EncounterPage() {
       <div className="bg-card h-12 flex items-center shrink-0 border-b border-border/40">
         {/* Zone 1 — w-64, aligns with Initiative column */}
         <div className="w-64 shrink-0 flex items-center gap-2 px-3">
+          {!playerMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={() => navigate("/dm/encounters")}
+              title="Back to Encounters"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
           <Swords className="h-4 w-4 text-primary shrink-0" />
           <h1 className="font-bold text-sm truncate">
             {encounter.name ?? "Encounter"}
@@ -333,6 +362,7 @@ export default function EncounterPage() {
                 encounterId={activeEncounterId}
                 isMyTurn={isPanelMyTurn}
                 isDM={isDM}
+                canControl={canControlPanel}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">

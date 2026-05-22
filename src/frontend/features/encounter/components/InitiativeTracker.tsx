@@ -33,8 +33,10 @@ export function InitiativeTracker({
   return (
     <div className="space-y-2">
       {participants.map((p) => {
+        // DMs see everything; players see HP+AC only for other player characters, not NPCs
         const canEdit = isDM || p.character_id === ownCharacterId;
-        const showHP = isDM || p.character_id === ownCharacterId;
+        const showHP = isDM || p.is_player;
+        const showAC = isDM || p.is_player;
 
         return (
           <ParticipantCard
@@ -43,6 +45,7 @@ export function InitiativeTracker({
             isActive={p.id === activeParticipantId}
             canEditHP={canEdit}
             showHP={showHP}
+            showAC={showAC}
             onAdjustHP={(delta) => onAdjustHP(p.id, delta)}
             onUpdateConditions={(conds) => onUpdateConditions(p.id, conds)}
             onClick={() => onSelect(p.id)}

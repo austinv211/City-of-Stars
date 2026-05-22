@@ -5,7 +5,7 @@ import {
 } from "@/core/components/ui/avatar";
 import { Badge } from "@/core/components/ui/badge";
 import { Card, CardContent } from "@/core/components/ui/card";
-import { Shield } from "lucide-react";
+import { Shield, Droplets } from "lucide-react";
 import { HPAdjuster } from "./HPAdjuster";
 import { ConditionBadges } from "./ConditionBadges";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ interface Props {
   isActive: boolean;
   canEditHP: boolean;
   showHP: boolean;
+  showAC: boolean;
   onAdjustHP: (delta: number) => void;
   onUpdateConditions: (conditions: string[]) => void;
   onClick?: () => void;
@@ -27,6 +28,7 @@ export function ParticipantCard({
   isActive,
   canEditHP,
   showHP,
+  showAC,
   onAdjustHP,
   onUpdateConditions,
   onClick,
@@ -83,9 +85,13 @@ export function ParticipantCard({
               )}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Shield className="h-3 w-3" />
-              <span>{participant.ac} AC</span>
-              <span>·</span>
+              {showAC && (
+                <>
+                  <Shield className="h-3 w-3" />
+                  <span>{participant.ac} AC</span>
+                  <span>·</span>
+                </>
+              )}
               <span>Init {participant.initiative_score}</span>
             </div>
           </div>
@@ -98,9 +104,15 @@ export function ParticipantCard({
             canEdit={canEditHP}
             onAdjust={onAdjustHP}
           />
-        ) : (
-          <div className="text-xs text-muted-foreground italic">HP hidden</div>
-        )}
+        ) : participant.hp_max > 0 && participant.hp_current * 2 <= participant.hp_max ? (
+          <Badge
+            variant="outline"
+            className="text-xs gap-1 border-destructive/50 text-destructive bg-destructive/10"
+          >
+            <Droplets className="h-3 w-3" />
+            Bloodied
+          </Badge>
+        ) : null}
 
         {participant.conditions.length > 0 || canEditHP ? (
           <ConditionBadges

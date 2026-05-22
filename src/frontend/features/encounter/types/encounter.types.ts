@@ -48,6 +48,8 @@ export interface EncounterParticipant {
   cha_score: number | null;
   actions: MonsterAction[] | null;
   special_abilities: MonsterSpecialAbility[] | null;
+  has_rolled_initiative: boolean;
+  description: string | null;
 }
 
 export interface DiceRoll {
@@ -68,6 +70,7 @@ export type ActionCategory = "action" | "bonus" | "reaction" | "free";
 
 export interface DiceRollBroadcast {
   characterName: string;
+  rolledByDm?: boolean;
   diceType: string;
   result: number;
   modifier: number;

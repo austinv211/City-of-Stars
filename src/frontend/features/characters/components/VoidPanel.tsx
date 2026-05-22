@@ -41,10 +41,11 @@ interface Props {
   character: Character;
   isOwn: boolean;
   isDM?: boolean;
+  canEdit?: boolean;
   onRefresh: () => void;
 }
 
-export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
+export function VoidPanel({ character, isOwn, isDM, canEdit: canEditProp, onRefresh }: Props) {
   const { user } = useAuth();
   const [level, setLevel] = useState(character.will_of_void);
   const [notes, setNotes] = useState(character.will_of_void_notes ?? "");
@@ -81,7 +82,7 @@ export function VoidPanel({ character, isOwn, isDM, onRefresh }: Props) {
     await saveLevel(newLevel);
   }
 
-  const canEdit = isOwn || isDM;
+  const canEdit = canEditProp !== undefined ? canEditProp : (isOwn || !!isDM);
 
   return (
     <>

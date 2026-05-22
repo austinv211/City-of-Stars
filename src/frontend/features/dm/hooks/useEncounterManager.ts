@@ -17,6 +17,7 @@ export interface NpcDraft {
   cha_score?: number;
   actions?: MonsterAction[];
   special_abilities?: MonsterSpecialAbility[];
+  description?: string;
 }
 
 export interface PartyEntry {
@@ -51,6 +52,13 @@ export function useEncounterManager() {
       return;
     }
     load();
+
+    const ch = supabase
+      .channel(`encounters_dm:${campaign.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "encounters", filter: `campaign_id=eq.${campaign.id}` }, load)
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
   }, [load]);
 
   async function createEncounter(name: string, npcs: NpcDraft[]): Promise<Encounter | null> {
@@ -85,6 +93,7 @@ export function useEncounterManager() {
           cha_score: npc.cha_score ?? null,
           actions: npc.actions ?? null,
           special_abilities: npc.special_abilities ?? null,
+          description: npc.description ?? null,
         }))
       );
     }
@@ -94,6 +103,16 @@ export function useEncounterManager() {
   }
 
   async function startEncounter(encounterId: string, party: PartyEntry[]) {
+    // End any other active or pending encounters for this campaign first
+    if (campaign) {
+      await supabase
+        .from("encounters")
+        .update({ status: "completed", ended_at: new Date().toISOString() })
+        .eq("campaign_id", campaign.id)
+        .neq("id", encounterId)
+        .in("status", ["active", "pending"]);
+    }
+
     if (party.length > 0) {
       await supabase.from("encounter_participants").insert(
         party.map((p, idx) => ({

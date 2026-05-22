@@ -95,6 +95,29 @@ export function useSpellSlots(characterId: string, characterClass: string, level
 
   useEffect(() => {
     load();
+
+    const ch = supabase
+      .channel(`spell_slots:${characterId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "character_spell_slots", filter: `character_id=eq.${characterId}` },
+        (payload) => {
+          if (payload.eventType === "UPDATE") {
+            setSlots((prev) =>
+              prev.map((s) =>
+                s.spell_level === (payload.new as { spell_level: number }).spell_level
+                  ? { ...s, ...(payload.new as typeof s) }
+                  : s
+              )
+            );
+          } else {
+            load();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
   }, [load]);
 
   async function expend(spellLevel: number) {

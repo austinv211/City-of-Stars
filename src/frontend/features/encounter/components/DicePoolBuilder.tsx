@@ -27,8 +27,6 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
   const [adv, setAdv] = useState<"none" | "advantage" | "disadvantage">("none");
 
   const totalDice = Object.values(pool).reduce((s, c) => s + (c ?? 0), 0);
-  // Adv/Dis only makes sense for exactly 1d20 — rolling 2d20 is two separate rolls
-  const showAdvToggle = (pool[20] ?? 0) === 1;
   const isEmpty = totalDice === 0;
 
   function increment(sides: DieSide) {
@@ -129,7 +127,7 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
           />
         </div>
 
-        {showAdvToggle && (
+        {!isEmpty && (
           <div className="flex gap-1">
             <Button
               size="sm"

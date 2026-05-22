@@ -24,6 +24,7 @@ export interface RollOptions {
   campaignId: string;
   encounterId: string | null;
   characterName: string;
+  rolledByDm?: boolean;
   diceType: string;
   sides: number;
   modifier: number;
@@ -48,6 +49,7 @@ export interface PoolRollOptions {
   campaignId: string;
   encounterId: string | null;
   characterName: string;
+  rolledByDm?: boolean;
   pool: { sides: number; count: number }[];
   modifier: number;
   advantage: boolean;
@@ -56,8 +58,8 @@ export interface PoolRollOptions {
 }
 
 interface DiceContextValue {
-  roll: (opts: RollOptions) => Promise<void>;
-  rollPool: (opts: PoolRollOptions) => Promise<void>;
+  roll: (opts: RollOptions) => Promise<number>;
+  rollPool: (opts: PoolRollOptions) => Promise<number>;
   announceAction: (opts: ActionAnnounceOptions) => void;
   history: RollEntry[];
   animQueue: DiceRollBroadcast[];
@@ -118,6 +120,40 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!campaign) return;
+
+    async function seedFromDb() {
+      const { data: rows } = await supabase
+        .from("dice_rolls")
+        .select("*")
+        .eq("campaign_id", campaign!.id)
+        .order("rolled_at", { ascending: false })
+        .limit(50);
+
+      if (!rows?.length) return;
+
+      const seed: RollEntry[] = rows.map((r) => ({
+        id: r.id as string,
+        ts: new Date(r.rolled_at as string).getTime(),
+        characterName: (r.character_name as string | null) ?? "Unknown",
+        rolledByDm: (r.rolled_by_dm as boolean) ?? false,
+        diceType: r.dice_type as string,
+        result: r.result as number,
+        modifier: (r.modifier as number) ?? 0,
+        total: r.total as number,
+        rollType: r.roll_type as string,
+        encounterId: (r.encounter_id as string) ?? null,
+        rolls: [],
+      }));
+
+      setHistory((prev) => {
+        const prevIds = new Set(prev.map((e) => e.id));
+        const fresh = seed.filter((s) => !prevIds.has(s.id));
+        return [...prev, ...fresh].slice(0, 100);
+      });
+    }
+
+    seedFromDb();
+
     const channel = supabase
       .channel(`dice:${campaign.id}`)
       .on("broadcast", { event: "roll" }, ({ payload }) => {
@@ -163,6 +199,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     const total = result + opts.modifier;
     const broadcast: DiceRollBroadcast = {
       characterName: opts.characterName,
+      rolledByDm: opts.rolledByDm ?? false,
       diceType: opts.diceType,
       result,
       modifier: opts.modifier,
@@ -179,16 +216,19 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     channelRef.current?.send({ type: "broadcast", event: "roll", payload: broadcast });
 
     if (user) {
-      supabase.from("dice_rolls").insert({
+      const { error: insertErr } = await supabase.from("dice_rolls").insert({
         campaign_id: opts.campaignId,
         encounter_id: opts.encounterId,
         user_id: user.id,
+        character_name: opts.characterName,
+        rolled_by_dm: opts.rolledByDm ?? false,
         dice_type: opts.diceType,
         result,
         modifier: opts.modifier,
         total,
         roll_type: opts.rollType,
       });
+      if (insertErr) console.error("[dice_rolls insert]", insertErr);
     }
 
     if (opts.sides === 20) {
@@ -198,10 +238,13 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     if (opts.rollType.toLowerCase().includes("dmg") || opts.rollType.toLowerCase().includes("damage")) {
       incrementPartyStat(opts.campaignId, "total_damage_dealt", total);
     }
+
+    return total;
   }, [user, getOrInitBox]);
 
   const rollPool = useCallback(async (opts: PoolRollOptions) => {
     const diceLabel = opts.pool.map(({ count, sides }) => `${count}d${sides}`).join("+");
+    const useAdvDis = opts.advantage || opts.disadvantage;
 
     setDiceAnimating(true);
 
@@ -210,35 +253,41 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     let d20Result: number | undefined;
     const allRolls: number[] = [];
 
-    // Each die type is a separate array element so DiceBox renders them as independent
-    // roll groups. Joining with "+" causes the parser to treat extra types as modifiers.
-    const notationParts = opts.pool.map(({ sides, count }) => {
-      const n = (sides === 20 && (opts.advantage || opts.disadvantage) && count === 1) ? 2 : count;
-      return `${n}d${sides}`;
-    });
+    const notationParts = opts.pool.map(({ sides, count }) => `${count}d${sides}`);
+
+    function sumResults(results: { sides: number; value: number }[]): number {
+      return results.reduce((s, r) => s + safeValue(r.value, r.sides), 0);
+    }
+
+    function cryptoSumPool(): number {
+      return opts.pool.reduce((s, { sides, count }) =>
+        s + Array.from({ length: count }, () => cryptoRoll(sides)).reduce((a, b) => a + b, 0), 0);
+    }
 
     try {
       const box = await getOrInitBox();
-      const results = await box.roll(notationParts);
 
-      const bySides = new Map<number, number[]>();
-      for (const r of results) {
-        bySides.set(r.sides, [...(bySides.get(r.sides) ?? []), r.value]);
-      }
-
-      for (const { sides, count } of opts.pool) {
-        const rawValues = bySides.get(sides) ?? [];
-        const values = rawValues.map((v) => safeValue(v, sides));
-        if (sides === 20 && (opts.advantage || opts.disadvantage) && count === 1) {
-          const v1 = values[0] ?? cryptoRoll(20);
-          const v2 = values[1] ?? cryptoRoll(20);
-          const keep = opts.advantage ? Math.max(v1, v2) : Math.min(v1, v2);
-          discardedRoll = opts.advantage ? Math.min(v1, v2) : Math.max(v1, v2);
+      if (useAdvDis) {
+        const results1 = await box.roll(notationParts);
+        const sum1 = sumResults(results1);
+        const results2 = await box.roll(notationParts);
+        const sum2 = sumResults(results2);
+        const keep = opts.advantage ? Math.max(sum1, sum2) : Math.min(sum1, sum2);
+        const drop = opts.advantage ? Math.min(sum1, sum2) : Math.max(sum1, sum2);
+        diceSum = keep;
+        discardedRoll = drop;
+        allRolls.push(keep);
+        if (opts.pool.length === 1 && opts.pool[0].sides === 20 && opts.pool[0].count === 1) {
           d20Result = keep;
-          diceSum += keep;
-          allRolls.push(keep);
-        } else {
-          const slice = values.slice(0, count);
+        }
+      } else {
+        const results = await box.roll(notationParts);
+        const bySides = new Map<number, number[]>();
+        for (const r of results) {
+          bySides.set(r.sides, [...(bySides.get(r.sides) ?? []), safeValue(r.value, r.sides)]);
+        }
+        for (const { sides, count } of opts.pool) {
+          const slice = (bySides.get(sides) ?? []).slice(0, count);
           while (slice.length < count) slice.push(cryptoRoll(sides));
           if (sides === 20) d20Result = slice[0];
           diceSum += slice.reduce((s, v) => s + v, 0);
@@ -246,16 +295,20 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch {
-      for (const { sides, count } of opts.pool) {
-        const rolls = Array.from({ length: count }, () => cryptoRoll(sides));
-        if (sides === 20 && (opts.advantage || opts.disadvantage) && count === 1) {
-          const second = cryptoRoll(20);
-          const keep = opts.advantage ? Math.max(rolls[0], second) : Math.min(rolls[0], second);
-          discardedRoll = opts.advantage ? Math.min(rolls[0], second) : Math.max(rolls[0], second);
+      if (useAdvDis) {
+        const sum1 = cryptoSumPool();
+        const sum2 = cryptoSumPool();
+        const keep = opts.advantage ? Math.max(sum1, sum2) : Math.min(sum1, sum2);
+        const drop = opts.advantage ? Math.min(sum1, sum2) : Math.max(sum1, sum2);
+        diceSum = keep;
+        discardedRoll = drop;
+        allRolls.push(keep);
+        if (opts.pool.length === 1 && opts.pool[0].sides === 20 && opts.pool[0].count === 1) {
           d20Result = keep;
-          diceSum += keep;
-          allRolls.push(keep);
-        } else {
+        }
+      } else {
+        for (const { sides, count } of opts.pool) {
+          const rolls = Array.from({ length: count }, () => cryptoRoll(sides));
           if (sides === 20) d20Result = rolls[0];
           diceSum += rolls.reduce((a, b) => a + b, 0);
           allRolls.push(...rolls);
@@ -268,6 +321,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
 
     const broadcast: DiceRollBroadcast = {
       characterName: opts.characterName,
+      rolledByDm: opts.rolledByDm ?? false,
       diceType: diceLabel,
       result: diceSum,
       modifier: opts.modifier,
@@ -287,16 +341,19 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     channelRef.current?.send({ type: "broadcast", event: "roll", payload: broadcast });
 
     if (user) {
-      supabase.from("dice_rolls").insert({
+      const { error: insertErr } = await supabase.from("dice_rolls").insert({
         campaign_id: opts.campaignId,
         encounter_id: opts.encounterId,
         user_id: user.id,
+        character_name: opts.characterName,
+        rolled_by_dm: opts.rolledByDm ?? false,
         dice_type: diceLabel,
         result: diceSum,
         modifier: opts.modifier,
         total,
         roll_type: rollType,
       });
+      if (insertErr) console.error("[dice_rolls insert]", insertErr);
     }
 
     if (d20Result !== undefined) {
@@ -306,6 +363,8 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     if (rollType.toLowerCase().includes("dmg") || rollType.toLowerCase().includes("damage")) {
       incrementPartyStat(opts.campaignId, "total_damage_dealt", total);
     }
+
+    return total;
   }, [user, getOrInitBox]);
 
   const announceAction = useCallback((opts: ActionAnnounceOptions) => {

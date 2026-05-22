@@ -25,7 +25,43 @@ export function useSessionNotes() {
       setLoading(false);
       return;
     }
+
     load();
+
+    const channel = supabase
+      .channel(`session_notes:${campaign.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "session_notes",
+          filter: `campaign_id=eq.${campaign.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            setNotes((prev) =>
+              prev.filter((n) => n.id !== (payload.old as SessionNote).id)
+            );
+          } else {
+            const note = payload.new as SessionNote;
+            setNotes((prev) => {
+              const idx = prev.findIndex(
+                (n) => n.session_number === note.session_number && n.visibility === note.visibility
+              );
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = note;
+                return next;
+              }
+              return [...prev, note].sort((a, b) => b.session_number - a.session_number);
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [load]);
 
   async function upsertNote(
