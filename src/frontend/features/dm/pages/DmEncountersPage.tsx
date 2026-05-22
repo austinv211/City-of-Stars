@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from "@/core/components/ui/dialog";
 import { Plus, Trash2, Swords, Play, Clock, BookOpen, ScrollText, X } from "lucide-react";
+import { Textarea } from "@/core/components/ui/textarea";
 import { useEncounterManager } from "@/features/dm/hooks/useEncounterManager";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -27,13 +28,15 @@ import type { Encounter, EncounterParticipant } from "@/features/encounter/types
 
 interface HistoryRoll {
   id: string;
-  character_name: string;
+  user_id: string;
+  character_name: string | null;
+  rolled_by_dm: boolean;
   dice_type: string;
   result: number;
   modifier: number;
   total: number;
   roll_type: string;
-  created_at: string;
+  rolled_at: string;
 }
 
 const BLANK_NPC: NpcDraft = { name: "", hp: 10, ac: 12, initiative: 0 };
@@ -99,7 +102,7 @@ export default function DmEncountersPage() {
     setCreateOpen(true);
   }
 
-  function updateNpc(idx: number, field: keyof NpcDraft, value: string | number) {
+  function updateNpc(idx: number, field: keyof NpcDraft, value: string | number | undefined) {
     setNpcs((prev) => prev.map((n, i) => (i === idx ? { ...n, [field]: value } : n)));
   }
 
@@ -159,7 +162,7 @@ export default function DmEncountersPage() {
     await supabase.rpc("advance_encounter_turn", { p_encounter_id: startTarget.id });
     setStarting(false);
     setStartTarget(null);
-    navigate("/encounter");
+    navigate("/dm/encounters/active");
   }
 
   async function openHistory(enc: Encounter) {
@@ -170,7 +173,7 @@ export default function DmEncountersPage() {
         .from("dice_rolls")
         .select("*")
         .eq("encounter_id", enc.id)
-        .order("created_at", { ascending: false }),
+        .order("rolled_at", { ascending: false }),
       supabase
         .from("encounter_participants")
         .select("*")
@@ -258,7 +261,7 @@ export default function DmEncountersPage() {
                       </>
                     )}
                     {enc.status === "active" && (
-                      <Button size="sm" variant="outline" onClick={() => navigate("/encounter")}>
+                      <Button size="sm" variant="outline" onClick={() => navigate("/dm/encounters/active")}>
                         <Clock className="h-3 w-3 mr-1.5" />
                         View
                       </Button>
@@ -329,11 +332,17 @@ export default function DmEncountersPage() {
                 </p>
                 {historyRolls.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic py-4 text-center">No rolls recorded.</p>
-                ) : (
-                  historyRolls.map((r) => (
+                ) : (() => {
+                  return historyRolls.map((r) => {
+                    const displayName = r.rolled_by_dm
+                      ? `DM — ${r.character_name ?? "Unknown"}`
+                      : (r.character_name ?? "Unknown");
+                    return (
                     <div key={r.id} className="rounded-md px-2 py-1.5 text-xs bg-muted/40 border border-transparent">
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="font-medium truncate">{r.character_name}</span>
+                        <span className="font-medium truncate">
+                          {displayName}
+                        </span>
                         <span className="font-black shrink-0">{r.total}</span>
                       </div>
                       <div className="text-muted-foreground mt-0.5">
@@ -343,8 +352,9 @@ export default function DmEncountersPage() {
                         )}
                       </div>
                     </div>
-                  ))
-                )}
+                    );
+                  });
+                })()}
               </div>
             </>
           )}
@@ -395,7 +405,7 @@ export default function DmEncountersPage() {
               </div>
 
               {/* Column headers */}
-              <div className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 px-1">
+              <div className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 px-3">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</span>
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">HP</span>
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">AC</span>
@@ -404,40 +414,49 @@ export default function DmEncountersPage() {
               </div>
 
               {npcs.map((npc, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 items-center">
-                  <Input
-                    value={npc.name}
-                    onChange={(e) => updateNpc(idx, "name", e.target.value)}
-                    placeholder="Monster name"
+                <div key={idx} className="space-y-1.5 border rounded-md p-2 bg-muted/10">
+                  <div className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 items-center">
+                    <Input
+                      value={npc.name}
+                      onChange={(e) => updateNpc(idx, "name", e.target.value)}
+                      placeholder="Monster name"
+                    />
+                    <Input
+                      type="number"
+                      min={1}
+                      value={npc.hp}
+                      onChange={(e) => updateNpc(idx, "hp", parseInt(e.target.value) || 1)}
+                      className="text-center"
+                    />
+                    <Input
+                      type="number"
+                      min={1}
+                      value={npc.ac}
+                      onChange={(e) => updateNpc(idx, "ac", parseInt(e.target.value) || 1)}
+                      className="text-center"
+                    />
+                    <Input
+                      type="number"
+                      value={npc.initiative}
+                      onChange={(e) => updateNpc(idx, "initiative", parseInt(e.target.value) || 0)}
+                      className="text-center"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeNpc(idx)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={npc.description ?? ""}
+                    onChange={(e) => updateNpc(idx, "description", e.target.value || undefined)}
+                    placeholder="Description shown to players (optional)…"
+                    rows={2}
+                    className="text-xs resize-none"
                   />
-                  <Input
-                    type="number"
-                    min={1}
-                    value={npc.hp}
-                    onChange={(e) => updateNpc(idx, "hp", parseInt(e.target.value) || 1)}
-                    className="text-center"
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    value={npc.ac}
-                    onChange={(e) => updateNpc(idx, "ac", parseInt(e.target.value) || 1)}
-                    className="text-center"
-                  />
-                  <Input
-                    type="number"
-                    value={npc.initiative}
-                    onChange={(e) => updateNpc(idx, "initiative", parseInt(e.target.value) || 0)}
-                    className="text-center"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeNpc(idx)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
                 </div>
               ))}
             </div>

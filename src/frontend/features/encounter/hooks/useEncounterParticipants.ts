@@ -63,11 +63,13 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
             );
           } else if (payload.eventType === "UPDATE") {
             setParticipants((prev) =>
-              prev.map((p) =>
-                p.id === (payload.new as EncounterParticipant).id
-                  ? normalizeParticipant(payload.new)
-                  : p
-              )
+              prev
+                .map((p) =>
+                  p.id === (payload.new as EncounterParticipant).id
+                    ? normalizeParticipant(payload.new)
+                    : p
+                )
+                .sort((a, b) => a.initiative_order - b.initiative_order)
             );
           } else if (payload.eventType === "DELETE") {
             setParticipants((prev) =>

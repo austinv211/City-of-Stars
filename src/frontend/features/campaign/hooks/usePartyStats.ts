@@ -24,6 +24,21 @@ export function usePartyStats() {
   useEffect(() => {
     if (!campaign) return;
     load();
+
+    const id = campaign.id;
+    const ch1 = supabase
+      .channel(`party_stats:${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "party_stats", filter: `campaign_id=eq.${id}` }, load)
+      .subscribe();
+    const ch2 = supabase
+      .channel(`char_campaign_stats:${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "character_campaign_stats", filter: `campaign_id=eq.${id}` }, load)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
+    };
   }, [campaign?.id]);
 
   const updateVoidAlignment = useCallback(async (value: number) => {

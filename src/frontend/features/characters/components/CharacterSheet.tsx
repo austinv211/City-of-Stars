@@ -100,14 +100,14 @@ interface Props {
   onRefreshCharacter: () => void;
   isOwn: boolean;
   isDM?: boolean;
+  canEdit: boolean;
 }
 
 export function CharacterSheet({
   character, inventory, attacks, spells,
   onRefreshInventory, onRefreshAttacks, onRefreshSpells, onRefreshCharacter,
-  isOwn, isDM,
+  isOwn, isDM, canEdit,
 }: Props) {
-  const canEdit = isOwn || !!isDM;
 
   async function saveAbilityScore(ability: AbilityName, finalValue: number) {
     const scores = character.ability_scores;
@@ -264,6 +264,7 @@ export function CharacterSheet({
         constitutionScore={final.constitution}
         isOwn={isOwn}
         isDM={isDM}
+        canEdit={canEdit}
         onSlotsLongRest={slotsLongRest}
         onSlotsShortRest={character.class.toLowerCase() === "warlock" ? slotsLongRest : undefined}
         onRefresh={onRefreshCharacter}
@@ -408,6 +409,7 @@ export function CharacterSheet({
         character={character}
         isOwn={isOwn}
         isDM={isDM}
+        canEdit={canEdit}
         onRefresh={onRefreshCharacter}
       />
 

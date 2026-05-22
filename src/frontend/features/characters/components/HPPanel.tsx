@@ -18,6 +18,7 @@ interface Props {
   constitutionScore: number;
   isOwn: boolean;
   isDM?: boolean;
+  canEdit?: boolean;
   onSlotsLongRest: () => Promise<void>;
   onSlotsShortRest?: () => Promise<void>;
   onRefresh: () => void;
@@ -39,10 +40,11 @@ function Pip({ filled, onClick }: { filled: boolean; onClick: () => void }) {
 
 export function HPPanel({
   character, constitutionScore, isOwn, isDM,
+  canEdit: canEditProp,
   onSlotsLongRest, onSlotsShortRest, onRefresh,
 }: Props) {
   const { user } = useAuth();
-  const canEdit = isOwn || !!isDM;
+  const canEdit = canEditProp !== undefined ? canEditProp : (isOwn || !!isDM);
 
   const [hpCurrent, setHpCurrent] = useState(character.hp_current ?? character.hp_max ?? 0);
   const [hpMax, setHpMax] = useState(character.hp_max ?? 0);
@@ -158,7 +160,7 @@ export function HPPanel({
             <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Hit Points
             </CardTitle>
-            {canEdit && (
+            {isOwn && (
               <div className="flex gap-1.5">
                 <Button
                   size="sm"

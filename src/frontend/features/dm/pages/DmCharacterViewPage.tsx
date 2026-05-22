@@ -3,18 +3,21 @@ import { useParams, useNavigate } from "react-router";
 import { Button } from "@/core/components/ui/button";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { ChevronLeft, Pencil, Lock, Check } from "lucide-react";
-import { CharacterSheet } from "../components/CharacterSheet";
-import { useCharacter } from "../hooks/useCharacter";
+import { CharacterSheet } from "@/features/characters/components/CharacterSheet";
+import { CharacterAuditLog } from "@/features/characters/components/CharacterAuditLog";
+import { useCharacter } from "@/features/characters/hooks/useCharacter";
 import { useAuth } from "@/core/context/AuthContext";
+import { useCampaign } from "@/core/context/CampaignContext";
 import { supabase } from "@/lib/supabase";
-import type { CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
+import type { CharacterInventoryItem, CharacterAttack, CharacterSpell } from "@/features/characters/types/character.types";
 
 const LOCK_STALE_MS = 30 * 60 * 1000;
 
-export default function CharacterViewPage() {
+export default function DmCharacterViewPage() {
   const { characterId } = useParams<{ characterId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isDM } = useCampaign();
   const { character, loading, error, reload: reloadCharacter } = useCharacter(characterId);
   const [inventory, setInventory] = useState<CharacterInventoryItem[]>([]);
   const [attacks, setAttacks] = useState<CharacterAttack[]>([]);
@@ -58,7 +61,7 @@ export default function CharacterViewPage() {
     loadSpells();
   }, [characterId]);
 
-  // Release lock if the user navigates away while editing
+  // Release lock if the DM navigates away while editing
   useEffect(() => {
     return () => {
       if (holdingLockRef.current && characterId) {
@@ -93,14 +96,12 @@ export default function CharacterViewPage() {
     return (
       <div className="p-8 text-center">
         <p className="text-destructive">{error ?? "Character not found"}</p>
-        <Button variant="link" onClick={() => navigate("/characters")}>
+        <Button variant="link" onClick={() => navigate("/dm/characters")}>
           Back to characters
         </Button>
       </div>
     );
   }
-
-  const isOwn = user?.id === character.owner_id;
 
   const lockStale = character.editing_since
     ? Date.now() - new Date(character.editing_since).getTime() > LOCK_STALE_MS
@@ -134,12 +135,12 @@ export default function CharacterViewPage() {
   return (
     <div className="px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/dm/characters")}>
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back
         </Button>
 
-        {isOwn && !isLockedByOther && (
+        {isDM && !isLockedByOther && (
           isEditing ? (
             <Button size="sm" onClick={exitEditMode} className="gap-1.5">
               <Check className="h-4 w-4" />
@@ -153,10 +154,15 @@ export default function CharacterViewPage() {
           )
         )}
 
-        {isLockedByOther && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/60 rounded-md px-3 py-1.5">
-            <Lock className="h-3.5 w-3.5 shrink-0" />
-            <span>Currently being edited by {editorLabel}</span>
+        {isLockedByOther && isDM && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/60 rounded-md px-3 py-1.5">
+              <Lock className="h-3.5 w-3.5 shrink-0" />
+              <span>Currently being edited by {editorLabel}</span>
+            </div>
+            <Button size="sm" variant="outline" onClick={exitEditMode}>
+              Force Unlock
+            </Button>
           </div>
         )}
       </div>
@@ -170,10 +176,13 @@ export default function CharacterViewPage() {
         onRefreshAttacks={loadAttacks}
         onRefreshSpells={loadSpells}
         onRefreshCharacter={reloadCharacter}
-        isOwn={isOwn}
-        isDM={false}
+        isOwn={false}
+        isDM={isDM}
         canEdit={isEditing}
       />
+      <div className="mt-6">
+        <CharacterAuditLog characterId={character.id} />
+      </div>
     </div>
   );
 }

@@ -22,9 +22,10 @@ export default function CharactersPage() {
   const [deleteTarget, setDeleteTarget] = useState<Character | null>(null);
   const [acting, setActing] = useState(false);
 
-  const active = characters.filter((c) => c.status === "active");
-  const drafts = characters.filter((c) => c.status === "draft");
-  const backups = characters.filter((c) => c.status === "backup");
+  const myCharacters = characters.filter((c) => c.owner_id === user?.id);
+  const active = myCharacters.filter((c) => c.status === "active");
+  const drafts = myCharacters.filter((c) => c.status === "draft");
+  const backups = myCharacters.filter((c) => c.status === "backup");
 
   async function handleSetActive(character: Character) {
     setActing(true);
@@ -55,7 +56,7 @@ export default function CharactersPage() {
         <div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Characters</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            All adventurers in this campaign
+            Your characters in this campaign
           </p>
         </div>
         {campaign && isPlayerRole && (
@@ -77,7 +78,7 @@ export default function CharactersPage() {
           <p className="text-muted-foreground">You are not a member of any campaign yet.</p>
           <p className="text-xs text-muted-foreground">Ask your Dungeon Master to add you to the campaign.</p>
         </div>
-      ) : characters.length === 0 ? (
+      ) : myCharacters.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-20 text-center">
           <p className="text-muted-foreground">No characters yet.</p>
           {isPlayerRole && (

@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/core/components/ui/select";
-import { SPECIES, CLASSES } from "../../data/dnd2024.constants";
+import { SPECIES_DATA, CLASSES } from "../../data/dnd2024.constants";
 import type { WizardState, WizardAction } from "../../types/character.types";
 
 interface Props {
@@ -19,6 +19,8 @@ interface Props {
 
 export function Step1_Identity({ state, dispatch, onNext }: Props) {
   const selectedClass = CLASSES.find((c) => c.name === state.characterClass);
+  const selectedSpecies = SPECIES_DATA.find((s) => s.name === state.species);
+  const selectedSubclass = selectedClass?.subclasses.find((sc) => sc.name === state.subclass);
 
   const isValid =
     state.name.trim().length > 0 &&
@@ -53,16 +55,20 @@ export function Step1_Identity({ state, dispatch, onNext }: Props) {
             <SelectValue placeholder="Choose a species" />
           </SelectTrigger>
           <SelectContent>
-            {SPECIES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
+            {SPECIES_DATA.map((s) => (
+              <SelectItem key={s.name} value={s.name}>
+                {s.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">
-          2024 rules: species grant no ability score increases
-        </p>
+        {selectedSpecies ? (
+          <p className="text-xs text-muted-foreground italic">{selectedSpecies.description}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            2024 rules: species grant no ability score increases
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -80,9 +86,12 @@ export function Step1_Identity({ state, dispatch, onNext }: Props) {
           </SelectContent>
         </Select>
         {selectedClass && (
-          <p className="text-xs text-muted-foreground">
-            Hit die: d{selectedClass.hitDie} · {selectedClass.skillCount} skill proficiencies
-          </p>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              Hit die: d{selectedClass.hitDie} · {selectedClass.skillCount} skill proficiencies
+            </p>
+            <p className="text-xs text-muted-foreground italic">{selectedClass.description}</p>
+          </div>
         )}
       </div>
 
@@ -95,12 +104,15 @@ export function Step1_Identity({ state, dispatch, onNext }: Props) {
             </SelectTrigger>
             <SelectContent>
               {selectedClass.subclasses.map((sc) => (
-                <SelectItem key={sc} value={sc}>
-                  {sc}
+                <SelectItem key={sc.name} value={sc.name}>
+                  {sc.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {selectedSubclass && (
+            <p className="text-xs text-muted-foreground italic">{selectedSubclass.description}</p>
+          )}
         </div>
       )}
 

@@ -117,12 +117,26 @@ jobs:
           cp "$MSI" "cityofstars_windows_${VERSION}_x64.msi"
           cp "$EXE" "cityofstars_windows_${VERSION}_x64-setup.exe"
 
+      - name: Build Tauri app (Windows debug)
+        run: npm run tauri:build -- --debug
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Collect and rename Windows debug artifacts
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          EXE=$(find target/debug/bundle/nsis -name "*.exe" | head -1)
+          cp "$EXE" "cityofstars_windows_${VERSION}_x64-setup-debug.exe"
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
           path: |
             cityofstars_windows_*.msi
             cityofstars_windows_*-setup.exe
+            cityofstars_windows_*-setup-debug.exe
           if-no-files-found: error
           retention-days: 1
 
@@ -244,6 +258,7 @@ jobs:
             | Linux (.deb) | `cityofstars_linux_${{ github.ref_name }}.deb` | Ubuntu/Debian |
             | Windows (.msi) | `cityofstars_windows_${{ github.ref_name }}_x64.msi` | MSI installer |
             | Windows (.exe) | `cityofstars_windows_${{ github.ref_name }}_x64-setup.exe` | NSIS installer |
+            | Windows debug (.exe) | `cityofstars_windows_${{ github.ref_name }}_x64-setup-debug.exe` | NSIS installer — console window + DevTools enabled |
             | Android | `cityofstars_${{ github.ref_name }}_android.apk` | Sideload APK |
 
             ### Linux AppImage quick start (Arch and others)

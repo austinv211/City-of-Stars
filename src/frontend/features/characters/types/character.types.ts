@@ -57,6 +57,9 @@ export interface Character {
   saving_throw_proficiencies: string[];
   // Level-up gate
   level_up_pending: boolean;
+  // Edit-session lock
+  editing_by: string | null;
+  editing_since: string | null;
 }
 
 export interface CharacterSpellSlot {

@@ -171,8 +171,7 @@ function CampaignSelector() {
 export default function AppShell() {
   const { activeEncounterId, isDM } = useCampaign();
   const { user, isAdmin, isPlayerRole, signOut } = useAuth();
-  // DMs who don't have the player app-role still need the Encounter tab when running one
-  const showDmEncounterTab = (isDM || isAdmin) && !isPlayerRole && !!activeEncounterId;
+
 
   return (
     <DiceProvider>
@@ -222,14 +221,6 @@ export default function AppShell() {
                     {dmNavItems.map(({ to, label, icon }) => (
                       <NavItem key={to} to={to} label={label} icon={icon} />
                     ))}
-                    {showDmEncounterTab && (
-                      <NavItem
-                        to="/encounter"
-                        label="Encounter"
-                        icon={Swords}
-                        badge={<span className="ml-auto h-1.5 w-1.5 rounded-full bg-success" />}
-                      />
-                    )}
                   </>
                 )}
 
