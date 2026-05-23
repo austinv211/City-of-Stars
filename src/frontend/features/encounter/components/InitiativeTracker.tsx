@@ -1,13 +1,18 @@
 import { ParticipantCard } from "./ParticipantCard";
 import type { EncounterParticipant } from "../types/encounter.types";
+import type { DamageResult } from "../hooks/useEncounterParticipants";
 
 interface Props {
   participants: EncounterParticipant[];
   activeParticipantId: string | null;
   isDM: boolean;
   ownCharacterId: string | null;
-  onAdjustHP: (id: string, delta: number) => void;
   onUpdateConditions: (id: string, conditions: string[]) => void;
+  onApplyDamage: (id: string, amount: number, type: string | null, opts?: { crit?: boolean }) => Promise<DamageResult>;
+  onHeal: (id: string, amount: number) => void;
+  onRollDeathSave: (id: string) => void;
+  onSetConcentration: (id: string, spell: string | null) => void;
+  onSetCover: (id: string, cover: string) => void;
   onSelect: (id: string) => void;
   selectedId: string | null;
 }
@@ -17,8 +22,12 @@ export function InitiativeTracker({
   activeParticipantId,
   isDM,
   ownCharacterId,
-  onAdjustHP,
   onUpdateConditions,
+  onApplyDamage,
+  onHeal,
+  onRollDeathSave,
+  onSetConcentration,
+  onSetCover,
   onSelect,
   selectedId,
 }: Props) {
@@ -46,8 +55,12 @@ export function InitiativeTracker({
             canEditHP={canEdit}
             showHP={showHP}
             showAC={showAC}
-            onAdjustHP={(delta) => onAdjustHP(p.id, delta)}
             onUpdateConditions={(conds) => onUpdateConditions(p.id, conds)}
+            onApplyDamage={(amount, type, opts) => onApplyDamage(p.id, amount, type, opts)}
+            onHeal={(amount) => onHeal(p.id, amount)}
+            onRollDeathSave={() => onRollDeathSave(p.id)}
+            onSetConcentration={(spell) => onSetConcentration(p.id, spell)}
+            onSetCover={(cover) => onSetCover(p.id, cover)}
             onClick={() => onSelect(p.id)}
             selected={p.id === selectedId}
           />

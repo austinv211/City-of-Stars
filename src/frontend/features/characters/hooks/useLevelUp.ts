@@ -1,27 +1,16 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { slotsForClass } from "./useSpellSlots";
+import { isEpicBoonLevel } from "../data/leveling";
+import { addMissingClassFeatures } from "../lib/classFeatures";
 import type { CharacterWithScores, AbilityName } from "../types/character.types";
+
+export { getAsiLevels, isAsiLevel, isEpicBoonLevel } from "../data/leveling";
 
 export interface LevelUpOptions {
   hpGain: number;
   asiBonus?: Partial<Record<AbilityName, number>>;
   featName?: string | null;
-}
-
-// ASI levels per class (2014 SRD)
-const ASI_LEVELS: Record<string, number[]> = {
-  Fighter: [4, 6, 8, 12, 14, 16, 19],
-  Rogue:   [4, 8, 10, 12, 16, 18],
-};
-const DEFAULT_ASI_LEVELS = [4, 8, 12, 16, 19];
-
-export function getAsiLevels(className: string): number[] {
-  return ASI_LEVELS[className] ?? DEFAULT_ASI_LEVELS;
-}
-
-export function isAsiLevel(className: string, level: number): boolean {
-  return getAsiLevels(className).includes(level);
 }
 
 export function useLevelUp(character: CharacterWithScores) {
@@ -42,13 +31,13 @@ export function useLevelUp(character: CharacterWithScores) {
         newLevel
       );
 
-      // Build features_notes update if feat chosen
+      // Build features_notes update if feat chosen (Epic Boon at level 19)
       let featNotesUpdate: string | null | undefined;
       if (opts.featName) {
         const existing = character.features_notes ?? "";
-        featNotesUpdate = existing
-          ? `${existing}\n[Feat – Level ${newLevel}] ${opts.featName}`
-          : `[Feat – Level ${newLevel}] ${opts.featName}`;
+        const label = isEpicBoonLevel(newLevel) ? "Epic Boon" : "Feat";
+        const entry = `[${label} – Level ${newLevel}] ${opts.featName}`;
+        featNotesUpdate = existing ? `${existing}\n${entry}` : entry;
       }
 
       const charUpdate: Record<string, unknown> = {
@@ -60,15 +49,27 @@ export function useLevelUp(character: CharacterWithScores) {
       };
       if (featNotesUpdate !== undefined) charUpdate.features_notes = featNotesUpdate;
 
+      // New HP propagates to active encounter participants via the
+      // sync_character_to_participants DB trigger on characters.
       await supabase.from("characters").update(charUpdate).eq("id", character.id);
 
-      // Apply ASI to ability scores
+      // Record the structured class features granted at the new level.
+      await addMissingClassFeatures(character.id, character.class, newLevel);
+
+      // Apply ASI to ability scores. The 20 cap applies to the FINAL score
+      // (base + background bonus), so cap there and store back the base value.
       if (opts.asiBonus && character.ability_scores) {
+        const sc = character.ability_scores;
         const scoreUpdates: Record<string, number> = {};
         for (const [ability, bonus] of Object.entries(opts.asiBonus)) {
           if (bonus) {
-            const cur = character.ability_scores[ability as AbilityName] ?? 10;
-            scoreUpdates[ability] = Math.min(20, cur + bonus);
+            const a = ability as AbilityName;
+            const bgBonus =
+              (sc.background_bonus_primary === a ? 2 : 0) +
+              (sc.background_bonus_secondary === a ? 1 : 0);
+            const curBase = sc[a] ?? 10;
+            const newFinal = Math.min(20, curBase + bgBonus + bonus);
+            scoreUpdates[ability] = newFinal - bgBonus;
           }
         }
         if (Object.keys(scoreUpdates).length > 0) {
@@ -79,20 +80,22 @@ export function useLevelUp(character: CharacterWithScores) {
         }
       }
 
-      // Update spell slot totals for the new level (don't reset expended)
-      const newTotals = slotsForClass(character.class, newLevel);
-      for (let i = 0; i < newTotals.length; i++) {
+      // Sync spell slot totals for the new level (preserving expended counts).
+      // Iterate ALL nine levels so totals that drop to 0 are cleared — Warlock
+      // Pact Magic shifts its slots up to a higher level each tier, which would
+      // otherwise leave a stale lower-level row behind.
+      const newTotals = slotsForClass(character.class, newLevel, character.subclass);
+      for (let i = 0; i < 9; i++) {
         const total = newTotals[i];
         const spellLevel = i + 1;
-        if (total > 0) {
-          // Update total only on conflict; insert with expended=0 if new row
-          const { data: existing } = await supabase
-            .from("character_spell_slots")
-            .select("id")
-            .eq("character_id", character.id)
-            .eq("spell_level", spellLevel)
-            .maybeSingle();
+        const { data: existing } = await supabase
+          .from("character_spell_slots")
+          .select("id")
+          .eq("character_id", character.id)
+          .eq("spell_level", spellLevel)
+          .maybeSingle();
 
+        if (total > 0) {
           if (existing) {
             await supabase
               .from("character_spell_slots")
@@ -107,6 +110,13 @@ export function useLevelUp(character: CharacterWithScores) {
               slots_expended: 0,
             });
           }
+        } else if (existing) {
+          // Character no longer has slots at this level — remove the stale row
+          await supabase
+            .from("character_spell_slots")
+            .delete()
+            .eq("character_id", character.id)
+            .eq("spell_level", spellLevel);
         }
       }
     } catch (err) {

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/t
 import {
   searchRulesGlossary,
   getRulesGlossaryByCategory,
-  searchLocalSpells,
+  getAllLocalSpells,
   getLocalFeats,
   getClassFeatureDetails,
   type SrdRule,
@@ -183,24 +183,34 @@ function GlossaryPanel() {
 
 function SpellsPanel() {
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query);
-  const [results, setResults] = useState<SrdSpell[]>([]);
+  const [allSpells, setAllSpells] = useState<SrdSpell[]>([]);
   const [selected, setSelected] = useState<SrdSpell | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Load the whole list once and filter client-side — it's small (~339) and
+  // browsing the full list is more useful than a blank "type to search".
   useEffect(() => {
-    if (!debouncedQuery.trim()) { setResults([]); return; }
-    setLoading(true);
-    searchLocalSpells(debouncedQuery).then(setResults).finally(() => setLoading(false));
-  }, [debouncedQuery]);
+    getAllLocalSpells().then(setAllSpells).finally(() => setLoading(false));
+  }, []);
 
   const levelLabel = (l: number) => l === 0 ? "Cantrip" : `Level ${l}`;
+
+  const q = query.trim().toLowerCase();
+  const results = q
+    ? allSpells.filter((s) => s.name.toLowerCase().includes(q) || (s.school ?? "").toLowerCase().includes(q))
+    : allSpells;
+  // Group by level for an at-a-glance browse with section headers.
+  const byLevel = results.reduce<Record<number, SrdSpell[]>>((acc, s) => {
+    (acc[s.level] ??= []).push(s);
+    return acc;
+  }, {});
+  const levels = Object.keys(byLevel).map(Number).sort((a, b) => a - b);
 
   return (
     <div className="flex gap-4 h-[520px]">
       <div className="w-64 shrink-0 flex flex-col gap-2">
         <Input
-          placeholder="Search spells…"
+          placeholder={`Search ${allSpells.length || ""} spells…`}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
@@ -209,27 +219,30 @@ function SpellsPanel() {
         <div className={listPanelCls}>
           {loading ? (
             <p className="text-xs text-muted-foreground p-2 italic">Loading…</p>
-          ) : !debouncedQuery ? (
-            <p className="text-xs text-muted-foreground p-2 italic">Type to search</p>
           ) : results.length === 0 ? (
             <p className="text-xs text-muted-foreground p-2 italic">No spells found</p>
-          ) : results.map((s) => (
-            <button
-              key={s.index}
-              type="button"
-              onClick={() => setSelected(s)}
-              className={cn(
-                "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
-                selected?.index === s.index
-                  ? "font-semibold text-primary bg-primary/15"
-                  : "hover:bg-muted/60 text-foreground/80"
-              )}
-            >
-              <span className="block truncate">{s.name}</span>
-              <span className="text-[10px] text-muted-foreground">
-                {levelLabel(s.level)}{s.school ? ` · ${s.school}` : ""}
-              </span>
-            </button>
+          ) : levels.map((lvl) => (
+            <div key={lvl}>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 pt-2 pb-1">
+                {levelLabel(lvl)}
+              </p>
+              {byLevel[lvl].map((s) => (
+                <button
+                  key={s.index}
+                  type="button"
+                  onClick={() => setSelected(s)}
+                  className={cn(
+                    "w-full text-left rounded-md px-2.5 py-1.5 text-xs transition-colors",
+                    selected?.index === s.index
+                      ? "font-semibold text-primary bg-primary/15"
+                      : "hover:bg-muted/60 text-foreground/80"
+                  )}
+                >
+                  <span className="block truncate">{s.name}</span>
+                  {s.school && <span className="text-[10px] text-muted-foreground">{s.school}</span>}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       </div>

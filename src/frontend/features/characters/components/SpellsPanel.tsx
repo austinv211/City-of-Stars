@@ -10,11 +10,14 @@ import { Separator } from "@/core/components/ui/separator";
 import { Plus, Trash2, Wand2, Search, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { searchSpells, getSpell, searchLocalSpells } from "@/lib/dnd5eApi";
+import { maxPreparedSpells } from "../data/dnd2024.constants";
 import type { DndSpellSummary, SrdSpell } from "@/lib/dnd5eApi";
 import type { CharacterSpell, CharacterSpellSlot } from "../types/character.types";
 
 interface Props {
   characterId: string;
+  characterClass: string;
+  level: number;
   spellcastingAbility: string | null;
   spellAttackMod: number;
   spellSaveDc: number;
@@ -152,6 +155,8 @@ function SpellRow({
 
 export function SpellsPanel({
   characterId,
+  characterClass,
+  level,
   spellcastingAbility,
   spellAttackMod,
   spellSaveDc,
@@ -304,6 +309,10 @@ export function SpellsPanel({
 
   const cantrips = spells.filter((s) => s.level === 0);
   const leveled = spells.filter((s) => s.level > 0);
+  // Prepared-spell limit (2024): count prepared level-1+ spells against the class table.
+  const preparedLimit = maxPreparedSpells(characterClass, level);
+  const preparedCount = leveled.filter((s) => s.is_prepared).length;
+  const overPrepared = preparedLimit != null && preparedCount > preparedLimit;
   const preparedByLevel = SPELL_LEVELS.slice(1).reduce<Record<number, CharacterSpell[]>>(
     (acc, lvl) => {
       acc[lvl] = leveled.filter((s) => s.level === lvl);
@@ -320,7 +329,16 @@ export function SpellsPanel({
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Cantrips &amp; Prepared Spells
         </h4>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {preparedLimit != null && (
+            <span
+              className={`text-xs ${overPrepared ? "text-destructive font-semibold" : "text-muted-foreground"}`}
+              title="Prepared level 1+ spells vs your class limit for this level"
+            >
+              Prepared {preparedCount}/{preparedLimit}
+              {overPrepared && " · over limit"}
+            </span>
+          )}
           {isOwn && (
             <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
               <Plus className="h-3 w-3 mr-1" />

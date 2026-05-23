@@ -35,6 +35,7 @@ export interface ClassData {
   savingThrows: AbilityName[];
   subclasses: SubclassData[];
   hitDie: number;
+  spellcastingAbility: AbilityName | null;
 }
 
 export const CLASSES: ClassData[] = [
@@ -45,6 +46,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"],
     savingThrows: ["strength", "constitution"],
     hitDie: 12,
+    spellcastingAbility: null,
     subclasses: [
       { name: "Path of the Berserker", description: "Channel rage into frenzied attacks, striking with extra bonus action attacks while risking exhaustion." },
       { name: "Path of the Wild Heart", description: "Channel the spirit of beasts, gaining animal senses and the ability to speak with animals." },
@@ -59,6 +61,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"],
     savingThrows: ["dexterity", "charisma"],
     hitDie: 8,
+    spellcastingAbility: "charisma",
     subclasses: [
       { name: "College of Dance", description: "Express magic through movement, weaving dazzling footwork into spells and inspiring allies through performance." },
       { name: "College of Glamour", description: "Master the magic of the Feywild to charm and captivate, becoming an irresistible presence who can command a crowd." },
@@ -73,6 +76,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["History", "Insight", "Medicine", "Persuasion", "Religion"],
     savingThrows: ["wisdom", "charisma"],
     hitDie: 8,
+    spellcastingAbility: "wisdom",
     subclasses: [
       { name: "Life Domain", description: "Focused on healing and preservation, maximizing the power of healing spells and protecting the living." },
       { name: "Light Domain", description: "Wield the power of radiance and fire, illuminating darkness and searing enemies with holy light." },
@@ -87,6 +91,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Arcana", "Animal Handling", "Insight", "Medicine", "Nature", "Perception", "Religion", "Survival"],
     savingThrows: ["intelligence", "wisdom"],
     hitDie: 8,
+    spellcastingAbility: "wisdom",
     subclasses: [
       { name: "Circle of the Land", description: "Tap into the magic of natural terrain, recovering spell slots and gaining bonus spells based on your homeland." },
       { name: "Circle of the Moon", description: "Specialize in Wild Shape, transforming into more powerful beasts and eventually elemental or plant forms." },
@@ -98,9 +103,10 @@ export const CLASSES: ClassData[] = [
     name: "Fighter",
     description: "A master of weapons and armor, excelling through superior tactics, physical training, and combat maneuvers. Fighters attack more often than any other class.",
     skillCount: 2,
-    skillChoices: ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Perception", "Survival"],
+    skillChoices: ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Perception", "Persuasion", "Survival"],
     savingThrows: ["strength", "constitution"],
     hitDie: 10,
+    spellcastingAbility: null,
     subclasses: [
       { name: "Battle Master", description: "Study military maneuvers to perform special combat techniques using Superiority Dice — trip, disarm, rally, and more." },
       { name: "Champion", description: "Push physical excellence to its limits, expanding your critical hit range and gaining additional athletic prowess." },
@@ -115,6 +121,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Acrobatics", "Athletics", "History", "Insight", "Religion", "Stealth"],
     savingThrows: ["strength", "dexterity"],
     hitDie: 8,
+    spellcastingAbility: null,
     subclasses: [
       { name: "Warrior of the Elements", description: "Command the four elements, riding flows of water, surfing stone, and hurling elemental blasts." },
       { name: "Warrior of the Hand", description: "Enhance unarmed combat with grapples and shoves, becoming an expert at controlling the battlefield up close." },
@@ -129,6 +136,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Athletics", "Insight", "Intimidation", "Medicine", "Persuasion", "Religion"],
     savingThrows: ["wisdom", "charisma"],
     hitDie: 10,
+    spellcastingAbility: "charisma",
     subclasses: [
       { name: "Oath of Devotion", description: "Swear to uphold justice and virtue, gaining holy spells and auras that protect the innocent." },
       { name: "Oath of Glory", description: "Inspire greatness in yourself and others, gaining inspirational spells and the ability to share your aura." },
@@ -143,6 +151,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Animal Handling", "Athletics", "Insight", "Investigation", "Nature", "Perception", "Stealth", "Survival"],
     savingThrows: ["strength", "dexterity"],
     hitDie: 10,
+    spellcastingAbility: "wisdom",
     subclasses: [
       { name: "Beast Master", description: "Bond with an animal companion that fights alongside you, sharing your adventures and growing in power." },
       { name: "Fey Wanderer", description: "Draw power from the Feywild, charming foes and adding psychic damage to attacks with an otherworldly grace." },
@@ -154,9 +163,10 @@ export const CLASSES: ClassData[] = [
     name: "Rogue",
     description: "A cunning and stealthy expert who deals devastating Sneak Attack damage when conditions favor it. Rogues excel at skills, traps, and getting out of trouble fast.",
     skillCount: 4,
-    skillChoices: ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"],
+    skillChoices: ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Persuasion", "Sleight of Hand", "Stealth"],
     savingThrows: ["dexterity", "intelligence"],
     hitDie: 8,
+    spellcastingAbility: null,
     subclasses: [
       { name: "Arcane Trickster", description: "Supplement thievery with illusion and enchantment magic, picking locks with mage hand and stealing magic from enemies." },
       { name: "Assassin", description: "Master infiltration and disguise, dealing devastating damage when striking first or surprising an enemy." },
@@ -171,6 +181,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"],
     savingThrows: ["constitution", "charisma"],
     hitDie: 6,
+    spellcastingAbility: "charisma",
     subclasses: [
       { name: "Aberrant Sorcery", description: "Draw power from a Far Realm influence, creating psychic mutations and warping the minds of those nearby." },
       { name: "Clockwork Sorcery", description: "Channel order and mechanical precision from Mechanus, imposing neutrality and protecting allies from extremes." },
@@ -185,6 +196,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"],
     savingThrows: ["wisdom", "charisma"],
     hitDie: 8,
+    spellcastingAbility: "charisma",
     subclasses: [
       { name: "Archfey Patron", description: "Bargained with a powerful fey lord, gaining glamour magic, fear spells, and evasion through dimensional steps." },
       { name: "Celestial Patron", description: "Serves a powerful being of the Upper Planes, gaining healing magic and radiant power to protect the innocent." },
@@ -199,6 +211,7 @@ export const CLASSES: ClassData[] = [
     skillChoices: ["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"],
     savingThrows: ["intelligence", "wisdom"],
     hitDie: 6,
+    spellcastingAbility: "intelligence",
     subclasses: [
       { name: "Abjurer", description: "Specialize in protective magic, creating powerful magical wards and an Arcane Ward that absorbs damage for you." },
       { name: "Diviner", description: "Peer through time and fate, using Portent dice to replace rolls and gaining glimpses of what is yet to come." },
@@ -288,6 +301,18 @@ export const CONDITIONS = [
   "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious",
 ];
 
+// ── Spellcasting ──────────────────────────────────────────────────────────────
+
+// The 2024 spellcasting ability fixed by class. Falls back to a stored override
+// (e.g. for half/third casters whose subclass uses a different ability).
+export function resolveSpellcastingAbility(
+  className: string,
+  stored: string | null | undefined,
+): AbilityName | null {
+  if (stored) return stored as AbilityName;
+  return CLASSES.find((c) => c.name === className)?.spellcastingAbility ?? null;
+}
+
 // ── Point Buy ─────────────────────────────────────────────────────────────────
 export const POINT_BUY_COSTS: Record<number, number> = {
   8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
@@ -295,3 +320,24 @@ export const POINT_BUY_COSTS: Record<number, number> = {
 export const POINT_BUY_BUDGET = 27;
 export const POINT_BUY_MIN = 8;
 export const POINT_BUY_MAX = 15;
+
+// ── Prepared spell counts by class/level ────────────────────────────────────────
+// Transcribed from the 2024 SRD source (docs/rules/classes.md, "Prepared Spells"
+// column) via scripts/extract-prepared.mjs. Index = character level − 1 (1–20).
+export const PREPARED_SPELLS_BY_LEVEL: Record<string, number[]> = {
+  Bard:     [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
+  Cleric:   [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
+  Druid:    [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
+  Paladin:  [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
+  Ranger:   [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
+  Sorcerer: [2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
+  Warlock:  [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+  Wizard:   [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
+};
+
+// Max prepared level-1+ spells for a class at a level, or null if not a prepared caster.
+export function maxPreparedSpells(className: string, level: number): number | null {
+  const table = PREPARED_SPELLS_BY_LEVEL[className];
+  if (!table) return null;
+  return table[Math.max(0, Math.min(19, level - 1))] ?? null;
+}

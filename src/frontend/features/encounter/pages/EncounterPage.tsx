@@ -186,13 +186,34 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
   // playerMode forces player behaviour regardless of campaign role (used at /encounter)
   const isDM = playerMode ? false : contextIsDM;
   const { encounter, endEncounter, advanceTurn } = useActiveEncounter();
-  const { participants, updateHP, updateConditions } = useEncounterParticipants(
+  const {
+    participants, updateConditions,
+    applyDamage, applyHealing, applyDeathSaveRoll, setConcentration, setCover, setHeroicInspiration,
+  } = useEncounterParticipants(
     activeEncounterId,
     campaign?.id,
   );
   const { characters } = useCharacters();
-  const { history: allHistory } = useDice();
+  const { history: allHistory, roll } = useDice();
   const history = allHistory.filter((e) => e.encounterId === activeEncounterId);
+
+  // Death saves roll through the dice system so the 3D die + result card show
+  // (and broadcast/record), then the d20 face resolves the save.
+  async function rollDeathSave(participantId: string) {
+    if (!campaign) return;
+    const p = participants.find((x) => x.id === participantId);
+    const total = await roll({
+      campaignId: campaign.id,
+      encounterId: activeEncounterId,
+      characterName: p?.name ?? "Unknown",
+      rolledByDm: isDM,
+      diceType: "1d20",
+      sides: 20,
+      modifier: 0,
+      rollType: "Death Save",
+    });
+    await applyDeathSaveRoll(participantId, total);
+  }
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -340,8 +361,12 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
               activeParticipantId={activeParticipantId}
               isDM={isDM}
               ownCharacterId={ownCharacter?.id ?? null}
-              onAdjustHP={updateHP}
               onUpdateConditions={updateConditions}
+              onApplyDamage={applyDamage}
+              onHeal={applyHealing}
+              onRollDeathSave={rollDeathSave}
+              onSetConcentration={setConcentration}
+              onSetCover={setCover}
               onSelect={setSelectedId}
               selectedId={selectedId}
             />
@@ -363,6 +388,9 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
                 isMyTurn={isPanelMyTurn}
                 isDM={isDM}
                 canControl={canControlPanel}
+                onSetConcentration={(spell) => setConcentration(panelParticipant.id, spell)}
+                onSetHeroicInspiration={(v) => setHeroicInspiration(panelParticipant.id, v)}
+                onSetCover={(cover) => setCover(panelParticipant.id, cover)}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
@@ -418,7 +446,9 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
                     <CharacterQuickRef
                       character={charTabCharacter}
                       participant={charTabParticipant}
-                      onUpdateHP={updateHP}
+                      onApplyDamage={(amount, type, opts) => applyDamage(charTabParticipant.id, amount, type, opts)}
+                      onHeal={(amount) => applyHealing(charTabParticipant.id, amount)}
+                      onSetConcentration={(spell) => setConcentration(charTabParticipant.id, spell)}
                     />
                   </TabsContent>
                 </Tabs>

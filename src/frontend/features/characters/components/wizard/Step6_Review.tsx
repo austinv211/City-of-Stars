@@ -3,7 +3,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { Badge } from "@/core/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar";
 import { CLASSES } from "../../data/dnd2024.constants";
-import { finalAbilityScores, deriveStats } from "../../types/character.types";
+import { finalAbilityScores, deriveStats, passiveScore } from "../../types/character.types";
 import type { WizardState } from "../../types/character.types";
 
 const ABILITY_LABELS = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
@@ -30,6 +30,12 @@ export function Step6_Review({ state, onCommit, loading, error }: Props) {
     state.backgroundBonusSecondary
   );
   const derived = deriveStats(final, 1);
+  const passivePerception = passiveScore(
+    final,
+    derived.proficiencyBonus,
+    "Perception",
+    state.skillProficiencies.map((skill) => ({ skill, is_expertise: false }))
+  );
   const classData = CLASSES.find((c) => c.name === state.characterClass);
 
   const initials = state.name
@@ -104,7 +110,7 @@ export function Step6_Review({ state, onCommit, loading, error }: Props) {
           </div>
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Passive Perc.</div>
-            <div className="text-lg font-bold">{derived.passivePerception}</div>
+            <div className="text-lg font-bold">{passivePerception}</div>
           </div>
         </div>
       </div>

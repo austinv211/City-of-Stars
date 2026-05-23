@@ -14,6 +14,7 @@
       dev-multi     Vite dev server + two isolated browser windows for realtime testing
       tauri-dev     Vite + native Tauri desktop window
       build         Type-check and build frontend to dist/
+      check-srd     Diff rules constants against the parsed SRD tables
       tauri-build   Build distributable Windows desktop app
       android-init  Generate Android project scaffold (run once)
       android-dev   Start Tauri Android dev session
@@ -51,6 +52,7 @@ function Show-Help {
     Write-Host ("  {0,-22} {1}" -f "dev-multi", "Vite + two isolated browser windows for realtime/multi-user testing")
     Write-Host ("  {0,-22} {1}" -f "tauri-dev", "Start full Tauri app  --  Vite dev server + native desktop window")
     Write-Host ("  {0,-22} {1}" -f "build", "Type-check and build frontend to dist/")
+    Write-Host ("  {0,-22} {1}" -f "check-srd", "Diff rules constants against the parsed SRD tables (needs .env credentials)")
     Write-Host ("  {0,-22} {1}" -f "tauri-build", "Build distributable Windows desktop installer")
     Write-Host ""
 
@@ -130,6 +132,8 @@ function Invoke-TauriDev { npm run "tauri:dev" }
 
 function Invoke-Build { npm run build }
 
+function Invoke-CheckSrd { npm run "check:srd" }
+
 function Invoke-TauriBuild { npm run "tauri:build" }
 
 function Invoke-AndroidInit { npm run "tauri:android:init" }
@@ -182,6 +186,7 @@ switch ($Target.ToLower()) {
     "dev-multi"     { Invoke-DevMulti }
     "tauri-dev"     { Invoke-TauriDev }
     "build"         { Invoke-Build }
+    "check-srd"     { Invoke-CheckSrd }
     "tauri-build"   { Invoke-TauriBuild }
     "android-init"  { Invoke-AndroidInit }
     "android-dev"   { Invoke-AndroidDev }

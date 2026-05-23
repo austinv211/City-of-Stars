@@ -1,74 +1,27 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { CharacterSpellSlot } from "../types/character.types";
+import { slotsForClass } from "../data/spellSlots";
 
-// 2014 SRD spell slot table by class and level.
-// Key: class name (lowercase), value: array of 9 slot counts per spell level for each character level 1-20.
-// Each row: index = character_level - 1, value = [L1, L2, L3, L4, L5, L6, L7, L8, L9]
-const FULL_CASTER_SLOTS: number[][] = [
-  [2, 0, 0, 0, 0, 0, 0, 0, 0], // level 1
-  [3, 0, 0, 0, 0, 0, 0, 0, 0], // level 2
-  [4, 2, 0, 0, 0, 0, 0, 0, 0], // level 3
-  [4, 3, 0, 0, 0, 0, 0, 0, 0], // level 4
-  [4, 3, 2, 0, 0, 0, 0, 0, 0], // level 5
-  [4, 3, 3, 0, 0, 0, 0, 0, 0], // level 6
-  [4, 3, 3, 1, 0, 0, 0, 0, 0], // level 7
-  [4, 3, 3, 2, 0, 0, 0, 0, 0], // level 8
-  [4, 3, 3, 3, 1, 0, 0, 0, 0], // level 9
-  [4, 3, 3, 3, 2, 0, 0, 0, 0], // level 10
-  [4, 3, 3, 3, 2, 1, 0, 0, 0], // level 11
-  [4, 3, 3, 3, 2, 1, 0, 0, 0], // level 12
-  [4, 3, 3, 3, 2, 1, 1, 0, 0], // level 13
-  [4, 3, 3, 3, 2, 1, 1, 0, 0], // level 14
-  [4, 3, 3, 3, 2, 1, 1, 1, 0], // level 15
-  [4, 3, 3, 3, 2, 1, 1, 1, 0], // level 16
-  [4, 3, 3, 3, 2, 1, 1, 1, 1], // level 17
-  [4, 3, 3, 3, 3, 1, 1, 1, 1], // level 18
-  [4, 3, 3, 3, 3, 2, 1, 1, 1], // level 19
-  [4, 3, 3, 3, 3, 2, 2, 1, 1], // level 20
-];
+export { slotsForClass } from "../data/spellSlots";
 
-const HALF_CASTER_SLOTS: number[][] = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [2, 0, 0, 0, 0, 0, 0, 0, 0],
-  [3, 0, 0, 0, 0, 0, 0, 0, 0],
-  [3, 0, 0, 0, 0, 0, 0, 0, 0],
-  [4, 2, 0, 0, 0, 0, 0, 0, 0],
-  [4, 2, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 2, 0, 0, 0, 0, 0, 0],
-  [4, 3, 2, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 1, 0, 0, 0, 0, 0],
-  [4, 3, 3, 1, 0, 0, 0, 0, 0],
-  [4, 3, 3, 2, 0, 0, 0, 0, 0],
-  [4, 3, 3, 2, 0, 0, 0, 0, 0],
-  [4, 3, 3, 3, 1, 0, 0, 0, 0],
-  [4, 3, 3, 3, 1, 0, 0, 0, 0],
-  [4, 3, 3, 3, 2, 0, 0, 0, 0],
-  [4, 3, 3, 3, 2, 0, 0, 0, 0],
-];
-
-const FULL_CASTER_CLASSES = ["bard", "cleric", "druid", "sorcerer", "wizard"];
-const HALF_CASTER_CLASSES = ["paladin", "ranger"];
-
-export function slotsForClass(className: string, level: number): number[] {
-  const idx = Math.max(0, Math.min(19, level - 1));
-  const key = className.toLowerCase();
-  if (FULL_CASTER_CLASSES.includes(key)) return FULL_CASTER_SLOTS[idx];
-  if (HALF_CASTER_CLASSES.includes(key)) return HALF_CASTER_SLOTS[idx];
-  return Array(9).fill(0);
-}
-
-export function useSpellSlots(characterId: string, characterClass: string, level: number) {
+export function useSpellSlots(characterId: string, characterClass: string, level: number, subclass?: string | null) {
   const [slots, setSlots] = useState<CharacterSpellSlot[]>([]);
   const [loading, setLoading] = useState(true);
+  // Unique per hook instance so two panels subscribing for the same character
+  // (e.g. the encounter action panel + the character quick-ref) don't collide
+  // on a shared Realtime channel topic.
+  const instanceId = useId();
 
-  const computedTotals = slotsForClass(characterClass, level);
+  const computedTotals = slotsForClass(characterClass, level, subclass);
 
   const load = useCallback(async () => {
+    // No character (e.g. an NPC encounter participant): nothing to load.
+    if (!characterId) {
+      setSlots([]);
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("character_spell_slots")
       .select("*")
@@ -96,8 +49,10 @@ export function useSpellSlots(characterId: string, characterClass: string, level
   useEffect(() => {
     load();
 
+    if (!characterId) return;
+
     const ch = supabase
-      .channel(`spell_slots:${characterId}`)
+      .channel(`spell_slots:${characterId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "character_spell_slots", filter: `character_id=eq.${characterId}` },

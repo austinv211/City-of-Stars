@@ -50,6 +50,16 @@ export interface EncounterParticipant {
   special_abilities: MonsterSpecialAbility[] | null;
   has_rolled_initiative: boolean;
   description: string | null;
+  // Combat snapshot synced from the linked character (see sync_character_to_participants)
+  damage_resistances: string[];
+  damage_immunities: string[];
+  damage_vulnerabilities: string[];
+  concentrating_on: string | null;
+  death_save_successes: number;
+  death_save_failures: number;
+  exhaustion: number;
+  heroic_inspiration: boolean;
+  cover: "none" | "half" | "three_quarters" | "total";
 }
 
 export interface DiceRoll {

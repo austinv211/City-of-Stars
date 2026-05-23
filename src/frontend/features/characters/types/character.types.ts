@@ -1,3 +1,5 @@
+import { resolveSpellcastingAbility } from "../data/dnd2024.constants";
+
 export type CharacterStatus = "draft" | "active" | "backup";
 export type AbilityScoreMethod = "point_buy" | "standard_array" | "rolled";
 export type AbilityName = "strength" | "dexterity" | "constitution" | "intelligence" | "wisdom" | "charisma";
@@ -32,6 +34,27 @@ export interface Character {
   // Vital stats
   ac: number | null;
   speed: number;
+  size: string;
+  // Senses
+  darkvision: number | null;
+  blindsight: number | null;
+  tremorsense: number | null;
+  truesight: number | null;
+  // Extra movement
+  fly_speed: number | null;
+  swim_speed: number | null;
+  climb_speed: number | null;
+  burrow_speed: number | null;
+  // Status trackers
+  exhaustion: number;
+  heroic_inspiration: boolean;
+  conditions: string[];
+  concentrating_on: string | null;
+  // Defenses
+  damage_resistances: string[];
+  damage_immunities: string[];
+  damage_vulnerabilities: string[];
+  condition_immunities: string[];
   // HP tracking
   hp_max: number | null;
   hp_current: number | null;
@@ -92,6 +115,29 @@ export interface CharacterInventoryItem {
   description: string | null;
   weight: number | null;
   is_equipped: boolean;
+  is_attuned: boolean;
+  requires_attunement: boolean;
+}
+
+export interface CharacterResource {
+  id: string;
+  character_id: string;
+  name: string;
+  current: number;
+  max: number;
+  recharge: "short_rest" | "long_rest" | "other";
+  sort_order: number;
+}
+
+export interface CharacterFeature {
+  id: string;
+  character_id: string;
+  name: string;
+  level_gained: number;
+  source: "class" | "subclass" | "feat" | "species" | "background" | "custom";
+  description: string | null;
+  choice: string | null;
+  sort_order: number;
 }
 
 export interface CharacterAttack {
@@ -105,6 +151,11 @@ export interface CharacterAttack {
   damage_type: string;
   is_ranged: boolean;
   is_spell: boolean;
+  is_finesse: boolean;
+  is_thrown: boolean;
+  is_light: boolean;
+  mastery: string | null;
+  versatile_sides: number | null;
   notes: string | null;
 }
 
@@ -134,12 +185,72 @@ export interface CharacterWithScores extends Character {
 export interface DerivedStats {
   proficiencyBonus: number;
   initiative: number;
-  passivePerception: number;
   modifiers: AbilityScores;
 }
 
 export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);
+}
+
+// Skill → governing ability (2024 SRD). Single source of truth for skill and
+// passive-score math across the sheet, encounter quick-ref, and creation wizard.
+export const SKILL_ABILITIES: Record<string, AbilityName> = {
+  Acrobatics: "dexterity",
+  "Animal Handling": "wisdom",
+  Arcana: "intelligence",
+  Athletics: "strength",
+  Deception: "charisma",
+  History: "intelligence",
+  Insight: "wisdom",
+  Intimidation: "charisma",
+  Investigation: "intelligence",
+  Medicine: "wisdom",
+  Nature: "intelligence",
+  Perception: "wisdom",
+  Performance: "charisma",
+  Persuasion: "charisma",
+  Religion: "intelligence",
+  "Sleight of Hand": "dexterity",
+  Stealth: "dexterity",
+  Survival: "wisdom",
+};
+
+// Total skill check bonus: ability modifier + proficiency (doubled for expertise).
+// When halfProficiency is set (Bard Jack of All Trades), a non-proficient skill
+// instead gains half the proficiency bonus (rounded down).
+export function skillBonus(
+  finalScores: AbilityScores,
+  proficiencyBonus: number,
+  skill: string,
+  proficiencies: readonly Pick<CharacterProficiency, "skill" | "is_expertise">[],
+  halfProficiency = false
+): number {
+  const ability = SKILL_ABILITIES[skill];
+  const abilityMod = ability ? abilityModifier(finalScores[ability]) : 0;
+  const prof = proficiencies.find((p) => p.skill === skill);
+  let profBonus = prof ? (prof.is_expertise ? proficiencyBonus * 2 : proficiencyBonus) : 0;
+  if (!prof && halfProficiency) profBonus = Math.floor(proficiencyBonus / 2);
+  return abilityMod + profBonus;
+}
+
+// Passive score = 10 + the full skill bonus (includes proficiency/expertise).
+export function passiveScore(
+  finalScores: AbilityScores,
+  proficiencyBonus: number,
+  skill: string,
+  proficiencies: readonly Pick<CharacterProficiency, "skill" | "is_expertise">[],
+  halfProficiency = false
+): number {
+  return 10 + skillBonus(finalScores, proficiencyBonus, skill, proficiencies, halfProficiency);
+}
+
+// Cantrip damage dice scale with character (not class) level at 5/11/17 (2024 SRD).
+// Returns the number of times the base damage dice are rolled.
+export function cantripDiceMultiplier(characterLevel: number): number {
+  if (characterLevel >= 17) return 4;
+  if (characterLevel >= 11) return 3;
+  if (characterLevel >= 5) return 2;
+  return 1;
 }
 
 export function deriveStats(scores: AbilityScores, level: number): DerivedStats {
@@ -154,7 +265,6 @@ export function deriveStats(scores: AbilityScores, level: number): DerivedStats 
   return {
     proficiencyBonus: Math.floor((level - 1) / 4) + 2,
     initiative: modifiers.dexterity,
-    passivePerception: 10 + modifiers.wisdom,
     modifiers,
   };
 }
@@ -168,6 +278,56 @@ export function finalAbilityScores(
   if (primary) result[primary] = result[primary] + 2;
   if (secondary) result[secondary] = result[secondary] + 1;
   return result;
+}
+
+export interface AttackRoll {
+  attackMod: number;
+  damageMod: number;
+  diceCount: number;
+}
+
+// Live attack/damage modifiers and (cantrip-scaled) dice count from current
+// character stats — the single source of truth shared by the encounter action
+// panel (which rolls) and the quick-reference panel (which displays).
+// Melee → STR, ranged → DEX, spell → spellcasting ability. Falls back to the
+// values stored on the attack when the character has no ability scores.
+export function computeAttackRoll(
+  character: CharacterWithScores,
+  attack: Pick<CharacterAttack, "attack_modifier" | "damage_modifier" | "dice_count" | "is_ranged" | "is_spell" | "is_finesse" | "is_thrown">
+): AttackRoll {
+  const scores = character.ability_scores;
+  if (!scores) {
+    return {
+      attackMod: attack.attack_modifier,
+      damageMod: attack.damage_modifier,
+      diceCount: attack.dice_count,
+    };
+  }
+  const final = finalAbilityScores(scores, scores.background_bonus_primary, scores.background_bonus_secondary);
+  const { proficiencyBonus } = deriveStats(final, character.level);
+
+  if (attack.is_spell) {
+    const ability = resolveSpellcastingAbility(character.class, character.spellcasting_ability);
+    const abilityMod = ability ? abilityModifier(final[ability]) : 0;
+    return {
+      attackMod: abilityMod + proficiencyBonus,
+      damageMod: attack.damage_modifier,
+      diceCount: attack.dice_count * cantripDiceMultiplier(character.level),
+    };
+  }
+
+  // Finesse weapons use the higher of STR/DEX. Thrown weapons use the melee
+  // ability (STR) even at range, so only a non-thrown ranged weapon uses DEX.
+  const strMod = abilityModifier(final.strength);
+  const dexMod = abilityModifier(final.dexterity);
+  const abilityMod = attack.is_finesse
+    ? Math.max(strMod, dexMod)
+    : attack.is_ranged && !attack.is_thrown ? dexMod : strMod;
+  return {
+    attackMod: abilityMod + proficiencyBonus,
+    damageMod: abilityMod,
+    diceCount: attack.dice_count,
+  };
 }
 
 // ── Wizard state ──────────────────────────────────────────────────────────────

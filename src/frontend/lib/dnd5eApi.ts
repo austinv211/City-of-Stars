@@ -390,6 +390,20 @@ export async function getLocalSpell(index: string): Promise<SrdSpell | null> {
   }
 }
 
+/** All local SRD spells, ordered by level then name (for browse/reference). */
+export async function getAllLocalSpells(): Promise<SrdSpell[]> {
+  try {
+    const { data } = await supabase
+      .from("srd_spells")
+      .select("*")
+      .order("level", { ascending: true })
+      .order("name", { ascending: true });
+    return (data as SrdSpell[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /** Search local SRD spells by name. Falls back to empty array if not populated. */
 export async function searchLocalSpells(query: string): Promise<SrdSpell[]> {
   if (!query.trim()) return [];

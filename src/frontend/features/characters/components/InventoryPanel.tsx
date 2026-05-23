@@ -6,17 +6,22 @@ import { Textarea } from "@/core/components/ui/textarea";
 import { Badge } from "@/core/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/core/components/ui/dialog";
-import { Plus, Trash2, Package, Search, Loader2 } from "lucide-react";
+import { Plus, Trash2, Package, Search, Loader2, Gem } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { searchEquipment, getEquipment } from "@/lib/dnd5eApi";
 import type { DndEquipmentSummary } from "@/lib/dnd5eApi";
 import type { CharacterInventoryItem } from "../types/character.types";
+import { carryingCapacity } from "../data/rules2024";
+
+const ATTUNEMENT_LIMIT = 3;
 
 interface Props {
   characterId: string;
   items: CharacterInventoryItem[];
   onRefresh: () => void;
+  strengthScore?: number;
+  size?: string;
 }
 
 interface NewItem {
@@ -35,7 +40,7 @@ interface CampaignItem {
 
 const BLANK: NewItem = { item_name: "", quantity: 1, description: "", weight: "" };
 
-export function InventoryPanel({ characterId, items, onRefresh }: Props) {
+export function InventoryPanel({ characterId, items, onRefresh, strengthScore = 10, size = "Medium" }: Props) {
   const { campaign } = useCampaign();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<NewItem>(BLANK);
@@ -161,7 +166,20 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
     onRefresh();
   }
 
+  async function toggleAttuned(item: CharacterInventoryItem) {
+    if (!item.is_attuned && attunedCount >= ATTUNEMENT_LIMIT) return;
+    await supabase
+      .from("character_inventory")
+      .update({ is_attuned: !item.is_attuned })
+      .eq("id", item.id);
+    onRefresh();
+  }
+
   const hasResults = dndResults.length > 0 || campaignResults.length > 0;
+  const attunedCount = items.filter((i) => i.is_attuned).length;
+  const totalWeight = items.reduce((sum, i) => sum + (i.weight ?? 0) * i.quantity, 0);
+  const capacity = carryingCapacity(strengthScore, size);
+  const overEncumbered = totalWeight > capacity;
 
   return (
     <div className="space-y-3">
@@ -173,6 +191,21 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
           <Plus className="h-3 w-3 mr-1" />
           Add
         </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <Gem className="h-3 w-3 text-secondary" />
+          Attunement <span className={`font-semibold ${attunedCount >= ATTUNEMENT_LIMIT ? "text-secondary" : "text-foreground"}`}>{attunedCount}/{ATTUNEMENT_LIMIT}</span>
+        </span>
+        <span className="text-muted-foreground">
+          Carry{" "}
+          <span className={`font-semibold ${overEncumbered ? "text-destructive" : "text-foreground"}`}>
+            {totalWeight % 1 === 0 ? totalWeight : totalWeight.toFixed(1)}
+          </span>
+          /{capacity} lb
+          {overEncumbered && <span className="text-destructive"> · over capacity (Speed ≤ 5 ft)</span>}
+        </span>
       </div>
 
       {items.length === 0 ? (
@@ -206,6 +239,23 @@ export function InventoryPanel({ characterId, items, onRefresh }: Props) {
               {item.weight != null && (
                 <span className="text-xs text-muted-foreground shrink-0">{item.weight} lb</span>
               )}
+              <button
+                type="button"
+                onClick={() => toggleAttuned(item)}
+                disabled={!item.is_attuned && attunedCount >= ATTUNEMENT_LIMIT}
+                title={
+                  item.is_attuned
+                    ? "Attuned — click to unattune"
+                    : attunedCount >= ATTUNEMENT_LIMIT
+                      ? "Attunement slots full (3)"
+                      : "Attune this item"
+                }
+                className={`shrink-0 p-1 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                  item.is_attuned ? "text-secondary hover:text-secondary/70" : "text-muted-foreground/40 hover:text-secondary"
+                }`}
+              >
+                <Gem className="h-3.5 w-3.5" />
+              </button>
               <Button
                 variant="ghost"
                 size="icon"

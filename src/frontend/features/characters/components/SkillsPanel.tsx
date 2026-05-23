@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/c
 import { Badge } from "@/core/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import type { AbilityScores, CharacterProficiency } from "../types/character.types";
-import { abilityModifier } from "../types/character.types";
+import { skillBonus } from "../types/character.types";
 
 const SKILLS: { name: string; ability: keyof AbilityScores }[] = [
   { name: "Acrobatics",      ability: "dexterity" },
@@ -39,12 +39,13 @@ interface Props {
   finalScores: AbilityScores;
   proficiencies: CharacterProficiency[];
   proficiencyBonus: number;
+  halfProficiency?: boolean;
   canEdit?: boolean;
   characterId?: string;
   onRefresh?: () => void;
 }
 
-export function SkillsPanel({ finalScores, proficiencies, proficiencyBonus, canEdit = false, characterId, onRefresh }: Props) {
+export function SkillsPanel({ finalScores, proficiencies, proficiencyBonus, halfProficiency = false, canEdit = false, characterId, onRefresh }: Props) {
   const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -74,14 +75,8 @@ export function SkillsPanel({ finalScores, proficiencies, proficiencyBonus, canE
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
           {SKILLS.map(({ name, ability }) => {
-            const abilityMod = abilityModifier(finalScores[ability]);
             const prof = proficiencies.find((p) => p.skill === name);
-            const bonus = prof
-              ? prof.is_expertise
-                ? proficiencyBonus * 2
-                : proficiencyBonus
-              : 0;
-            const total = abilityMod + bonus;
+            const total = skillBonus(finalScores, proficiencyBonus, name, proficiencies, halfProficiency);
             const isBusy = busy === name;
 
             return (

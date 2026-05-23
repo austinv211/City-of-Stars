@@ -35,12 +35,15 @@ try {
 const SUPABASE_URL = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+// Modes that never touch the DB don't need credentials.
+const NO_DB = process.argv.includes("--dry-run") || process.argv.includes("--emit-levels");
+
+if ((!SUPABASE_URL || !SERVICE_ROLE_KEY) && !NO_DB) {
   console.error("ERROR: Set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your .env file");
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+const supabase = SUPABASE_URL && SERVICE_ROLE_KEY ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY) : null;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -165,8 +168,11 @@ const CLASS_SLOT_TABLE = {
 
 // ── Parse Spells ───────────────────────────────────────────────────────────
 
-function parseSpells(content) {
+function parseSpells(rawContent) {
   const spells = [];
+  // Normalize CRLF → LF: the source is checked out with Windows line endings,
+  // and a trailing \r breaks the `$`-anchored header/field regexes below.
+  const content = rawContent.replace(/\r\n?/g, "\n");
   const entries = content.split(/\n(?=#### )/);
 
   for (const entry of entries) {
@@ -180,9 +186,14 @@ function parseSpells(content) {
     let level = 0, school = null, classes = [];
     let concentration = false, ritual = false;
 
-    const secondLine = lines[1]?.replace(/[_]/g, "").trim() ?? "";
-    const levelMatch = secondLine.match(/Level (\d+) ([A-Za-z]+) \(([^)]+)\)/);
-    const cantrip = secondLine.match(/([A-Za-z]+) Cantrip \(([^)]+)\)/);
+    // The level/school line (e.g. "_Level 2 Evocation (Wizard)_") is the first
+    // non-empty line after the header — there's a blank line in between, so we
+    // can't rely on lines[1].
+    const metaLine = (lines.slice(1).find((l) => l.trim() !== "") ?? "")
+      .replace(/[_]/g, "")
+      .trim();
+    const levelMatch = metaLine.match(/Level (\d+) ([A-Za-z]+) \(([^)]+)\)/);
+    const cantrip = metaLine.match(/([A-Za-z]+) Cantrip \(([^)]+)\)/);
 
     if (levelMatch) {
       level = parseInt(levelMatch[1]);
@@ -192,6 +203,11 @@ function parseSpells(content) {
       level = 0;
       school = cantrip[1];
       classes = cantrip[2].split(",").map((c) => c.trim());
+    } else {
+      // No "Level N School (classes)" / "School Cantrip (...)" line → this #### is
+      // a stat-block subsection inside a summon spell (Actions/Traits/etc.), not a
+      // real spell. Skip it.
+      continue;
     }
 
     const fields = {};
@@ -224,7 +240,7 @@ function parseSpells(content) {
 
     const description = descLines.join("\n").trim();
     const dmgTypeMatch = description.match(/\b(Acid|Bludgeoning|Cold|Fire|Force|Lightning|Necrotic|Piercing|Poison|Psychic|Radiant|Slashing|Thunder)\b/);
-    const damageDiceMatch = description.match(/takes (\d+d\d+)/);
+    const damageDiceMatch = description.match(/(?:takes|taking|deal|deals) (\d+d\d+)/i);
     let attackType = null;
     if (description.toLowerCase().includes("ranged spell attack")) attackType = "ranged";
     else if (description.toLowerCase().includes("melee spell attack")) attackType = "melee";
@@ -590,7 +606,23 @@ function parseRulesGlossary(content) {
 // ── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log("=== City of Stars — SRD Parser ===\n");
+  const dryRun = process.argv.includes("--dry-run");
+  const spellsOnly = process.argv.includes("--spells-only");
+  const emitLevels = process.argv.includes("--emit-levels");
+
+  // Emit just the columns that were wrong (level + damage fields), keyed by
+  // index, so they can be applied without the service-role key (e.g. via MCP).
+  if (emitLevels) {
+    const docsDir = join(root, "docs", "rules");
+    const spells = parseSpells(readFileSync(join(docsDir, "spells.md"), "utf-8"));
+    const slim = spells.map((s) => ({
+      index: s.index, name: s.name, level: s.level,
+      damage_dice: s.damage_dice, damage_type: s.damage_type, attack_type: s.attack_type,
+    }));
+    process.stdout.write(JSON.stringify(slim));
+    return;
+  }
+  console.log(`=== City of Stars — SRD Parser ===${dryRun ? " (DRY RUN — no DB writes)" : ""}\n`);
 
   const docsDir = join(root, "docs", "rules");
 
@@ -599,8 +631,20 @@ async function main() {
   const spellsContent = readFileSync(join(docsDir, "spells.md"), "utf-8");
   const spells = parseSpells(spellsContent);
   console.log(`  Found ${spells.length} spells`);
+  // Level histogram + damage-dice coverage, for sanity-checking the parse.
+  const byLevel = spells.reduce((acc, s) => { acc[s.level] = (acc[s.level] ?? 0) + 1; return acc; }, {});
+  console.log(`  Level distribution: ${JSON.stringify(byLevel)}`);
+  console.log(`  With damage_dice: ${spells.filter((s) => s.damage_dice).length}`);
+  if (dryRun) {
+    console.log("  (dry run — skipping all DB writes)");
+    return;
+  }
   const spellCount = await upsertBatch("srd_spells", spells, "index");
   console.log(`  Upserted ${spellCount} ✓`);
+  if (spellsOnly) {
+    console.log("\n✓ Spells-only import complete!");
+    return;
+  }
 
   // 2. Class features (level → name rows)
   console.log("\nParsing class features (level table)…");
