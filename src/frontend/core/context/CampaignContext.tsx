@@ -22,6 +22,10 @@ interface CampaignContextValue {
   loading: boolean;
   refreshCampaign: () => Promise<void>;
   switchCampaign: (id: string) => Promise<void>;
+  // Directly update the active encounter for a campaign without a full reload.
+  // Call this immediately after starting/ending an encounter to avoid waiting
+  // for the realtime event to propagate before navigating to the encounter page.
+  setCampaignEncounter: (campaignId: string, encounterId: string | null) => void;
 }
 
 const CampaignContext = createContext<CampaignContextValue | null>(null);
@@ -139,10 +143,13 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
   // ── Subscribe to encounters for ALL campaigns ──────────────────────────────
   // One channel per campaign — updates the shared map so the selector can show
   // live encounter indicators for every campaign, not just the active one.
+  // Keyed on a stable sorted ID string so the effect does not re-run every time
+  // allMemberships gets a new array reference from loadMemberships().
+  const campaignIdsKey = [...new Set(allMemberships.map((m) => m.campaign_id))].sort().join(",");
   useEffect(() => {
-    if (allMemberships.length === 0) return;
+    if (!campaignIdsKey) return;
 
-    const uniqueIds = [...new Set(allMemberships.map((m) => m.campaign_id))];
+    const uniqueIds = campaignIdsKey.split(",");
     const channels = uniqueIds.map((campaignId) =>
       supabase
         .channel(`enc:${campaignId}`)
@@ -150,11 +157,20 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
           "postgres_changes",
           { event: "*", schema: "public", table: "encounters", filter: `campaign_id=eq.${campaignId}` },
           (payload) => {
-            const row = payload.new as { id: string; status: string } | undefined;
+            if (payload.eventType === "DELETE") {
+              const deletedId = (payload.old as { id?: string })?.id;
+              if (deletedId) {
+                setCampaignEncounters((prev) => ({
+                  ...prev,
+                  [campaignId]: prev[campaignId] === deletedId ? null : prev[campaignId],
+                }));
+              }
+              return;
+            }
+            const row = payload.new as { id: string; status: string };
             setCampaignEncounters((prev) => {
-              if (!row) return { ...prev, [campaignId]: null };
               if (row.status === "active") return { ...prev, [campaignId]: row.id };
-              // Clear only if this encounter was the tracked one
+              // UPDATE to non-active (e.g. completed) — clear if this was the tracked one
               return {
                 ...prev,
                 [campaignId]: prev[campaignId] === row.id ? null : prev[campaignId],
@@ -166,7 +182,8 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => { channels.forEach((ch) => supabase.removeChannel(ch)); };
-  }, [allMemberships]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignIdsKey]);
 
   // ── Subscribe to active campaign UPDATE (field changes only) ─────────────
   useEffect(() => {
@@ -219,6 +236,10 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     return () => { supabase.removeChannel(ch); };
   }, [user?.id]);
 
+  function setCampaignEncounter(campaignId: string, encounterId: string | null) {
+    setCampaignEncounters((prev) => ({ ...prev, [campaignId]: encounterId }));
+  }
+
   return (
     <CampaignContext.Provider
       value={{
@@ -233,6 +254,7 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
         loading,
         refreshCampaign,
         switchCampaign,
+        setCampaignEncounter,
       }}
     >
       {children}

@@ -19,25 +19,24 @@ function VoidGauge({
   onSet: (v: number) => void;
 }) {
   return (
-    <div className="flex gap-1 flex-wrap">
-      {Array.from({ length: max + 1 }, (_, i) => (
-        <button
-          key={i}
-          type="button"
-          onClick={() => canEdit && onSet(i)}
-          title={canEdit ? `Set to ${i}` : `${i}`}
-          className={cn(
-            "w-7 h-7 rounded text-xs font-bold transition-colors border",
-            i <= value
-              ? "bg-primary border-primary text-primary-foreground"
-              : "bg-transparent border-muted-foreground/30 text-muted-foreground",
-            canEdit && "hover:border-primary cursor-pointer",
-            !canEdit && "cursor-default",
-          )}
-        >
-          {i}
-        </button>
-      ))}
+    <div className="flex gap-1.5 flex-wrap">
+      {Array.from({ length: max }, (_, i) => {
+        const pip = i + 1;
+        const filled = value >= pip;
+        return (
+          <button
+            key={pip}
+            type="button"
+            onClick={() => canEdit && onSet(filled ? pip - 1 : pip)}
+            title={canEdit ? `Set to ${filled ? pip - 1 : pip}` : undefined}
+            className={cn(
+              "w-5 h-5 rounded-full border-2 transition-colors",
+              filled ? "bg-primary border-primary" : "bg-transparent border-muted-foreground/30 hover:border-primary",
+              canEdit ? "cursor-pointer" : "cursor-default",
+            )}
+          />
+        );
+      })}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/core/components/ui/button";
@@ -26,15 +26,23 @@ const FIELDS: { key: PersonalityField; label: string; placeholder: string }[] = 
   { key: "features_notes",     label: "Features, Traits & Abilities", placeholder: "Class features, racial traits, feats, special abilities…" },
 ];
 
-export function PersonalityPanel({ character, isOwn, onRefresh }: Props) {
-  const { user } = useAuth();
-  const initial = Object.fromEntries(
+function fromCharacter(character: Character): Record<PersonalityField, string> {
+  return Object.fromEntries(
     FIELDS.map(({ key }) => [key, (character[key as keyof Character] as string | null) ?? ""])
   ) as Record<PersonalityField, string>;
+}
 
-  const [values, setValues] = useState(initial);
+export function PersonalityPanel({ character, isOwn, onRefresh }: Props) {
+  const { user } = useAuth();
+
+  const [values, setValues] = useState(() => fromCharacter(character));
   const [editing, setEditing] = useState<PersonalityField | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setValues(fromCharacter(character));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, character.personality_traits, character.ideals, character.bonds, character.flaws, character.backstory, character.features_notes]);
 
   async function save(key: PersonalityField) {
     setSaving(true);
@@ -48,7 +56,7 @@ export function PersonalityPanel({ character, isOwn, onRefresh }: Props) {
   }
 
   function cancel(key: PersonalityField) {
-    setValues((prev) => ({ ...prev, [key]: initial[key] }));
+    setValues((prev) => ({ ...prev, [key]: (character[key as keyof Character] as string | null) ?? "" }));
     setEditing(null);
   }
 

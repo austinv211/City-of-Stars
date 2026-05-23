@@ -31,17 +31,20 @@ export function useCharacter(characterId: string | undefined) {
 
     load();
 
-    // React to level-ups from the DM
+    // Full reload on any change to the character row or its ability scores.
+    // Partial-merge of payload.new would miss nested join data (ability_scores,
+    // proficiencies), so always re-fetch the complete shape.
     const channel = supabase
       .channel(`character:${characterId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "characters", filter: `id=eq.${characterId}` },
-        (payload) => {
-          setCharacter((prev) =>
-            prev ? { ...prev, ...(payload.new as CharacterWithScores) } : null
-          );
-        }
+        () => load()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ability_scores", filter: `character_id=eq.${characterId}` },
+        () => load()
       )
       .subscribe();
 

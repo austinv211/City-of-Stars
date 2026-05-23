@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { emitDebugEvent } from "./realtimeDebug";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -52,3 +53,37 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     fetch: fetchWithAuthRetry,
   },
 });
+
+// Intercept every channel event in dev mode so RealtimeDebugOverlay can display them.
+// Vite eliminates this entire block at build time when import.meta.env.DEV is false.
+if (import.meta.env.DEV) {
+  const _origChannel = supabase.channel.bind(supabase);
+  (supabase as any).channel = (
+    name: string,
+    opts?: Parameters<typeof supabase.channel>[1],
+  ) => {
+    const ch = _origChannel(name, opts);
+    const _origOn = ch.on.bind(ch);
+    (ch as any).on = (
+      type: string,
+      filter: Record<string, unknown>,
+      callback?: (payload: unknown) => void,
+    ) => {
+      if (typeof callback !== "function") {
+        return _origOn(type as any, filter as any, callback as any);
+      }
+      return _origOn(type as any, filter as any, (payload: unknown) => {
+        emitDebugEvent({
+          id: crypto.randomUUID(),
+          channelName: name,
+          eventType: (filter?.event as string) ?? type,
+          table: filter?.table as string | undefined,
+          payload,
+          receivedAt: new Date(),
+        });
+        callback(payload);
+      });
+    };
+    return ch;
+  };
+}

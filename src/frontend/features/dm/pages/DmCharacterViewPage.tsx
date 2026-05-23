@@ -61,6 +61,19 @@ export default function DmCharacterViewPage() {
     loadSpells();
   }, [characterId]);
 
+  // Sync inventory / attacks / spells when the other editor saves changes.
+  useEffect(() => {
+    if (!characterId) return;
+    const channel = supabase
+      .channel(`character-details:${characterId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "character_inventory", filter: `character_id=eq.${characterId}` }, () => loadInventory())
+      .on("postgres_changes", { event: "*", schema: "public", table: "character_attacks",  filter: `character_id=eq.${characterId}` }, () => loadAttacks())
+      .on("postgres_changes", { event: "*", schema: "public", table: "character_spells",   filter: `character_id=eq.${characterId}` }, () => loadSpells())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterId]);
+
   // Release lock if the DM navigates away while editing
   useEffect(() => {
     return () => {

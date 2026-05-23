@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/core/components/ui/button";
@@ -52,6 +52,14 @@ export function VoidPanel({ character, isOwn, isDM, canEdit: canEditProp, onRefr
   const [editingNotes, setEditingNotes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmAbility, setConfirmAbility] = useState<VoidAbility | null>(null);
+
+  useEffect(() => {
+    setLevel(character.will_of_void);
+  }, [character.will_of_void]);
+
+  useEffect(() => {
+    if (!editingNotes) setNotes(character.will_of_void_notes ?? "");
+  }, [character.will_of_void_notes, editingNotes]);
 
   async function saveLevel(newLevel: number) {
     const clamped = Math.max(0, Math.min(5, newLevel));
@@ -110,22 +118,24 @@ export function VoidPanel({ character, isOwn, isDM, canEdit: canEditProp, onRefr
                 </Button>
               )}
             </div>
-            <div className="flex gap-1 flex-wrap">
-              {Array.from({ length: 6 }, (_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => canEdit && saveLevel(i)}
-                  title={`Set to ${i}`}
-                  className={`w-7 h-7 rounded text-xs font-bold transition-colors border ${
-                    i <= level
-                      ? "bg-primary border-primary text-primary-foreground"
-                      : "bg-transparent border-muted-foreground/30 text-muted-foreground hover:border-primary"
-                  } ${!canEdit ? "cursor-default" : "cursor-pointer"}`}
-                >
-                  {i}
-                </button>
-              ))}
+            <div className="flex gap-1.5 flex-wrap">
+              {Array.from({ length: 5 }, (_, i) => {
+                const pip = i + 1;
+                const filled = level >= pip;
+                return (
+                  <button
+                    key={pip}
+                    type="button"
+                    onClick={() => canEdit && saveLevel(filled ? pip - 1 : pip)}
+                    title={canEdit ? `Set to ${filled ? pip - 1 : pip}` : undefined}
+                    className={`w-5 h-5 rounded-full border-2 transition-colors ${
+                      filled
+                        ? "bg-primary border-primary"
+                        : "bg-transparent border-muted-foreground/40 hover:border-primary"
+                    } ${!canEdit ? "cursor-default" : "cursor-pointer"}`}
+                  />
+                );
+              })}
             </div>
           </div>
 

@@ -18,7 +18,8 @@ export function useSessionNotes() {
       .order("session_number", { ascending: false });
     setNotes((data as SessionNote[]) ?? []);
     setLoading(false);
-  }, [campaign]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?.id]);
 
   useEffect(() => {
     if (!campaign) {

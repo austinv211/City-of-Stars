@@ -30,7 +30,7 @@ export interface PartyEntry {
 }
 
 export function useEncounterManager() {
-  const { campaign } = useCampaign();
+  const { campaign, setCampaignEncounter } = useCampaign();
   const { user } = useAuth();
   const [encounters, setEncounters] = useState<Encounter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +137,10 @@ export function useEncounterManager() {
       .from("encounters")
       .update({ status: "active", started_at: new Date().toISOString() })
       .eq("id", encounterId);
+
+    // Immediately push the active encounter into CampaignContext so the
+    // encounter page sees it right away, without waiting for the realtime event.
+    if (campaign) setCampaignEncounter(campaign.id, encounterId);
 
     await load();
   }

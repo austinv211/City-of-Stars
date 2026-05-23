@@ -11,6 +11,7 @@
       setup         Copy .env.example -> .env (if absent) and npm install
       install       npm install
       dev           Vite dev server only (http://localhost:1420)
+      dev-multi     Vite dev server + two isolated browser windows for realtime testing
       tauri-dev     Vite + native Tauri desktop window
       build         Type-check and build frontend to dist/
       tauri-build   Build distributable Windows desktop app
@@ -47,6 +48,7 @@ function Show-Help {
 
     Write-Host "Local development  (requires Node, Rust, and WebView2 on the host)" -ForegroundColor $bold
     Write-Host ("  {0,-22} {1}" -f "dev", "Start Vite dev server only  --  frontend HMR at http://localhost:1420")
+    Write-Host ("  {0,-22} {1}" -f "dev-multi", "Vite + two isolated browser windows for realtime/multi-user testing")
     Write-Host ("  {0,-22} {1}" -f "tauri-dev", "Start full Tauri app  --  Vite dev server + native desktop window")
     Write-Host ("  {0,-22} {1}" -f "build", "Type-check and build frontend to dist/")
     Write-Host ("  {0,-22} {1}" -f "tauri-build", "Build distributable Windows desktop installer")
@@ -80,6 +82,49 @@ function Invoke-Setup {
 function Invoke-Install { npm install }
 
 function Invoke-Dev { npm run dev }
+
+function Invoke-DevMulti {
+    $url  = "http://localhost:1420"
+    $cwd  = (Get-Location).Path
+    $tmp  = [System.IO.Path]::GetTempPath()
+    $p1   = Join-Path $tmp "cos-dev-profile-1"
+    $p2   = Join-Path $tmp "cos-dev-profile-2"
+
+    # Start Vite in a separate terminal window so its output is visible
+    Write-Host "Starting Vite dev server in a new window..." -ForegroundColor Cyan
+    $psCmd = "cd '$cwd'; npm run dev"
+    Start-Process powershell -ArgumentList @("-NoExit", "-Command", $psCmd)
+
+    Write-Host "Waiting for Vite to be ready..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 5
+
+    # Find Chrome or Edge
+    $chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+    $edge   = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+    $browser = if (Test-Path $chrome) { $chrome } elseif (Test-Path $edge) { $edge } else { $null }
+
+    $flag1 = '--user-data-dir="' + $p1 + '"'
+    $flag2 = '--user-data-dir="' + $p2 + '"'
+
+    if ($null -eq $browser) {
+        Write-Host ""
+        Write-Host "Chrome / Edge not found on expected paths." -ForegroundColor Yellow
+        Write-Host "Open two browser windows manually with isolated profiles:" -ForegroundColor Yellow
+        Write-Host "  chrome.exe $flag1 --new-window $url" -ForegroundColor Gray
+        Write-Host "  chrome.exe $flag2 --new-window $url" -ForegroundColor Gray
+        return
+    }
+
+    Write-Host "Opening two isolated browser windows..." -ForegroundColor Cyan
+    Start-Process $browser -ArgumentList @($flag1, "--new-window", $url)
+    Start-Sleep -Seconds 1
+    Start-Process $browser -ArgumentList @($flag2, "--new-window", $url)
+
+    Write-Host ""
+    Write-Host "Two browser windows opened - log in as different accounts to test realtime sync." -ForegroundColor Green
+    Write-Host "Vite is running in the other terminal." -ForegroundColor Green
+    Write-Host "Realtime Debug overlay (top-right corner) shows live channel states and events." -ForegroundColor Cyan
+}
 
 function Invoke-TauriDev { npm run "tauri:dev" }
 
@@ -134,6 +179,7 @@ switch ($Target.ToLower()) {
     "setup"         { Invoke-Setup }
     "install"       { Invoke-Install }
     "dev"           { Invoke-Dev }
+    "dev-multi"     { Invoke-DevMulti }
     "tauri-dev"     { Invoke-TauriDev }
     "build"         { Invoke-Build }
     "tauri-build"   { Invoke-TauriBuild }
