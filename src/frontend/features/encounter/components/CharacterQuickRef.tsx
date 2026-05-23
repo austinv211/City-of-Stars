@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Button } from "@/core/components/ui/button";
-import { Input } from "@/core/components/ui/input";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
 import {
@@ -13,6 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/core/components/ui/popover";
+import { HPAdjuster } from "./HPAdjuster";
 import { useSpellSlots } from "@/features/characters/hooks/useSpellSlots";
 import {
   abilityModifier,
@@ -250,8 +249,6 @@ interface Props {
 }
 
 export function CharacterQuickRef({ character, participant, onUpdateHP }: Props) {
-  const [deltaInput, setDeltaInput] = useState("");
-  const [applying, setApplying] = useState(false);
   const [spells, setSpells] = useState<CharacterSpell[]>([]);
   const [attacks, setAttacks] = useState<CharacterAttack[]>([]);
 
@@ -289,22 +286,12 @@ export function CharacterQuickRef({ character, participant, onUpdateHP }: Props)
 
   const hpCurrent = participant.hp_current;
   const hpMax = participant.hp_max;
-  const hpPct = hpMax > 0 ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100)) : 0;
   const isDying = hpCurrent <= 0;
 
   const { slots, expend, recover } = useSpellSlots(character.id, character.class, character.level);
   const hasSpellSlots = slots.some((s) => s.slots_total > 0);
 
   const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
-
-  async function applyDelta() {
-    const parsed = parseInt(deltaInput, 10);
-    if (isNaN(parsed) || parsed === 0) return;
-    setApplying(true);
-    await onUpdateHP(participant.id, parsed);
-    setDeltaInput("");
-    setApplying(false);
-  }
 
   const cantrips = spells.filter((s) => s.level === 0);
   const preparedSpells = spells.filter((s) => s.level > 0 && s.is_prepared);
@@ -326,56 +313,18 @@ export function CharacterQuickRef({ character, participant, onUpdateHP }: Props)
 
       {/* ── HP ─────────────────────────────────────────────────────────────── */}
       <div>
-        <div className="flex items-baseline justify-between mb-1">
-          <span className="font-semibold text-muted-foreground uppercase tracking-wide text-[10px]">Hit Points</span>
-          <span className={cn(
-            "text-xl font-black",
-            isDying ? "text-destructive" : hpPct < 40 ? "text-yellow-500" : "text-foreground"
-          )}>
-            {hpCurrent}
-            <span className="text-sm font-normal text-muted-foreground"> / {hpMax}</span>
-          </span>
-        </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
-          <div
-            className={cn(
-              "h-full rounded-full transition-all",
-              hpPct > 60 ? "bg-green-500" : hpPct > 30 ? "bg-yellow-500" : "bg-red-500"
-            )}
-            style={{ width: `${hpPct}%` }}
-          />
-        </div>
+        <span className="font-semibold text-muted-foreground uppercase tracking-wide text-[10px] block mb-1">Hit Points</span>
+        <HPAdjuster
+          current={hpCurrent}
+          max={hpMax}
+          canEdit={true}
+          onAdjust={(delta) => onUpdateHP(participant.id, delta)}
+        />
         {character.hp_temp > 0 && (
-          <Badge variant="secondary" className="text-blue-400 mb-2 text-[10px]">
+          <Badge variant="secondary" className="text-blue-400 mt-1 text-[10px]">
             +{character.hp_temp} temp
           </Badge>
         )}
-        <div className="flex items-center gap-1">
-          <Button type="button" size="sm" variant="default"
-            className="h-6 w-6 p-0 font-bold"
-            onClick={() => setDeltaInput((d) => String((parseInt(d) || 0) - 1))}>
-            −
-          </Button>
-          <Input
-            className="h-6 text-xs text-center w-14 px-1"
-            placeholder="±HP"
-            value={deltaInput}
-            onChange={(e) => setDeltaInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyDelta();
-              if (e.key === "Escape") setDeltaInput("");
-            }}
-          />
-          <Button type="button" size="sm" variant="default"
-            className="h-6 w-6 p-0 font-bold"
-            onClick={() => setDeltaInput((d) => String((parseInt(d) || 0) + 1))}>
-            +
-          </Button>
-          <Button size="sm" variant="default" className="h-6 text-xs px-2 ml-auto"
-            disabled={!deltaInput || applying} onClick={applyDelta}>
-            Apply
-          </Button>
-        </div>
       </div>
 
       {/* ── Death Saves ────────────────────────────────────────────────────── */}

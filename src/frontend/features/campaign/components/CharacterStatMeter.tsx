@@ -36,12 +36,12 @@ export function CharacterStatMeter({ character }: Props) {
             <span className="font-medium text-foreground">{voidLevel} / 5</span>
           </div>
           <div className="flex gap-1">
-            {Array.from({ length: 6 }, (_, i) => (
+            {Array.from({ length: 5 }, (_, i) => (
               <div
-                key={i}
+                key={i + 1}
                 className={cn(
                   "flex-1 h-2 rounded-sm",
-                  i <= voidLevel ? "bg-primary" : "bg-muted-foreground/20"
+                  i + 1 <= voidLevel ? "bg-primary" : "bg-muted-foreground/20"
                 )}
               />
             ))}

@@ -53,7 +53,7 @@ export function useCharacters() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [campaign, campaignLoading]);
+  }, [campaign?.id, campaignLoading]);
 
   return { characters, loading, error };
 }

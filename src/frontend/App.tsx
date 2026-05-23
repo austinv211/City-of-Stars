@@ -24,6 +24,7 @@ import DmCharactersPage from "@/features/dm/pages/DmCharactersPage";
 import DmCharacterViewPage from "@/features/dm/pages/DmCharacterViewPage";
 import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
 import AdminCampaignsPage from "@/features/admin/pages/AdminCampaignsPage";
+import RealtimeDebugOverlay from "@/core/components/RealtimeDebugOverlay";
 
 function RootRedirect() {
   const { isPlayer, isDM, loading } = useCampaign();
@@ -83,6 +84,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
       <Toaster position="bottom-right" />
+      {import.meta.env.DEV && <RealtimeDebugOverlay />}
     </AuthProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
@@ -58,6 +58,27 @@ export function HPPanel({
   const [editingMax, setEditingMax] = useState(false);
   const [editingTemp, setEditingTemp] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editingHp) setHpCurrent(character.hp_current ?? character.hp_max ?? 0);
+  }, [character.hp_current, character.hp_max, editingHp]);
+
+  useEffect(() => {
+    if (!editingMax) setHpMax(character.hp_max ?? 0);
+  }, [character.hp_max, editingMax]);
+
+  useEffect(() => {
+    if (!editingTemp) setHpTemp(character.hp_temp ?? 0);
+  }, [character.hp_temp, editingTemp]);
+
+  useEffect(() => {
+    setHitDiceCurrent(character.hit_dice_current ?? character.level);
+  }, [character.hit_dice_current, character.level]);
+
+  useEffect(() => {
+    setSuccesses(character.death_save_successes);
+    setFailures(character.death_save_failures);
+  }, [character.death_save_successes, character.death_save_failures]);
 
   // Short rest dialog
   const [showShortRest, setShowShortRest] = useState(false);

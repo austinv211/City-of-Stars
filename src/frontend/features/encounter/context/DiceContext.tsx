@@ -161,7 +161,8 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         setHistory((prev) =>
           [{ ...entry, id: crypto.randomUUID(), ts: Date.now(), encounterId: entry.encounterId ?? null }, ...prev].slice(0, 100)
         );
-        setAnimQueue((prev) => [...prev, entry]);
+        // Do NOT push to animQueue here — the overlay only shows for the client
+        // that made the roll. animQueue is populated by roll() / rollPool() locally.
       })
       .subscribe();
     channelRef.current = channel;
