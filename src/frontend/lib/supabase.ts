@@ -1,8 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { emitDebugEvent } from "./realtimeDebug";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// Trim both values: a trailing newline in .env (common on Windows) gets
+// URL-encoded as %0A in the WebSocket apikey parameter, which WebView2 rejects.
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string).trim();
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string).trim();
 
 // supabase-js treats a 429 on the token-refresh endpoint as immediately fatal
 // and fires SIGNED_OUT without retrying. On Windows/WebView2 the previous
