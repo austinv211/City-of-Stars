@@ -5,7 +5,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/core/components/ui/tooltip";
-import { Sparkles, Brain, Shield, Crosshair, Swords, Flame } from "lucide-react";
+import { Sparkles, Brain, Shield, Crosshair, Swords, Flame, Hand, Axe } from "lucide-react";
 import { useDice } from "../context/DiceContext";
 import { DicePoolBuilder } from "./DicePoolBuilder";
 import {
@@ -255,19 +255,21 @@ function AttackCard({
         {attackMod !== null && (
           <Button
             size="sm"
-            className="flex-1 h-8 text-xs font-semibold gap-1.5 border-0 bg-primary/10 text-primary hover:bg-primary/20"
+            variant="default"
+            className="flex-1 h-8 text-xs gap-1.5"
             disabled={disabled}
             onClick={onAttack}
           >
             <Crosshair className="h-3.5 w-3.5 shrink-0" />
             To Hit {sign(attackMod)}
-            {adjust === "advantage" && <span className="text-success font-bold">▲</span>}
-            {adjust === "disadvantage" && <span className="text-destructive font-bold">▼</span>}
+            {adjust === "advantage" && <span className="font-bold">▲</span>}
+            {adjust === "disadvantage" && <span className="font-bold">▼</span>}
           </Button>
         )}
         <Button
           size="sm"
-          className="flex-1 h-8 text-xs font-semibold gap-1.5 border-0 bg-destructive/10 text-destructive hover:bg-destructive/20"
+          variant="destructive"
+          className="flex-1 h-8 text-xs gap-1.5"
           disabled={disabled}
           onClick={onDamage}
         >
@@ -275,55 +277,57 @@ function AttackCard({
           {damageLabel}
         </Button>
       </div>
-      {/* Secondary damage variants — small, de-emphasised so they don't compete. */}
+      {/* Damage variants & extra attacks — tinted by family: red for damage
+          variations of this swing (Crit/2H), neutral for separate attacks
+          (Off-hand/Cleave). All clearly readable as buttons. */}
       {(onVersatileDamage || onCritDamage || onOffhandDamage || onCleaveDamage) && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {onCritDamage && (
             <Button
               size="sm"
-              variant="ghost"
-              className="h-6 text-[11px] px-2 gap-1 text-destructive hover:bg-destructive/10"
+              variant="secondary"
+              className="h-8 text-xs px-2 gap-1.5"
               disabled={disabled}
               onClick={onCritDamage}
               title="Critical hit: double the damage dice"
             >
-              <Flame className="h-3 w-3" /> Crit
+              <Flame className="h-3.5 w-3.5" /> Crit
             </Button>
           )}
           {onVersatileDamage && (
             <Button
               size="sm"
-              variant="ghost"
-              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              variant="secondary"
+              className="h-8 text-xs px-2 gap-1.5"
               disabled={disabled}
               onClick={onVersatileDamage}
               title="Two-handed (versatile) damage"
             >
-              2H {versatileLabel}
+              <Swords className="h-3.5 w-3.5" /> 2H {versatileLabel}
             </Button>
           )}
           {onOffhandDamage && (
             <Button
               size="sm"
-              variant="ghost"
-              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              variant="secondary"
+              className="h-8 text-xs px-2 gap-1.5"
               disabled={disabled}
               onClick={onOffhandDamage}
               title="Two-Weapon Fighting off-hand attack: weapon dice with no ability modifier (unless you have the Two-Weapon Fighting style)"
             >
-              Off-hand
+              <Hand className="h-3.5 w-3.5" /> Off-hand
             </Button>
           )}
           {onCleaveDamage && (
             <Button
               size="sm"
-              variant="ghost"
-              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              variant="secondary"
+              className="h-8 text-xs px-2 gap-1.5"
               disabled={disabled}
               onClick={onCleaveDamage}
               title="Cleave: damage a second creature within 5 ft (weapon dice, no ability modifier)"
             >
-              Cleave
+              <Axe className="h-3.5 w-3.5" /> Cleave
             </Button>
           )}
         </div>
@@ -358,9 +362,9 @@ function SpellSlotCast({
     return <p className="text-[10px] text-muted-foreground">No spell slots available (level {minLevel}+)</p>;
   }
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex gap-1.5">
       <Select value={level != null ? String(level) : undefined} onValueChange={(v) => setPicked(Number(v))} disabled={disabled}>
-        <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Slot level" /></SelectTrigger>
+        <SelectTrigger className="h-8 flex-1 text-xs"><SelectValue placeholder="Slot level" /></SelectTrigger>
         <SelectContent>
           {options.map((o) => (
             <SelectItem key={o.spell_level} value={String(o.spell_level)} className="text-xs">
@@ -371,12 +375,13 @@ function SpellSlotCast({
       </Select>
       <Button
         size="sm"
-        variant="secondary"
-        className="h-7 text-xs px-2"
+        variant="default"
+        className="flex-1 h-8 text-xs gap-1.5"
         disabled={disabled || level == null}
         onClick={() => level != null && onExpend(level)}
         title={level != null && level > minLevel ? `Cast upcast at level ${level} (expends an L${level} slot)` : "Cast (expends a slot)"}
       >
+        <Sparkles className="h-3.5 w-3.5 shrink-0" />
         Cast{level != null && level > minLevel ? ` @L${level}` : ""}
       </Button>
     </div>
@@ -395,6 +400,7 @@ interface Props {
   onSetConcentration: (spell: string | null) => void;
   onSetHeroicInspiration: (value: boolean) => void;
   onSetCover: (cover: string) => void;
+  onSetTurnFlag: (flag: "action_used" | "bonus_used" | "reaction_used" | "dodging", value: boolean) => void;
 }
 
 export function ActionPanel({
@@ -409,6 +415,7 @@ export function ActionPanel({
   onSetConcentration,
   onSetHeroicInspiration,
   onSetCover,
+  onSetTurnFlag,
 }: Props) {
   const { roll, rollPool, announceAction } = useDice();
   const [damageSpells, setDamageSpells] = useState<CharacterSpell[]>([]);
@@ -601,7 +608,7 @@ export function ActionPanel({
     });
   }
 
-  function useAction(label: string, category: ActionCategory) {
+  function useAction(label: string, category: ActionCategory, actionId?: string) {
     announceAction({
       campaignId,
       encounterId,
@@ -609,6 +616,13 @@ export function ActionPanel({
       actionText: label,
       actionCategory: category,
     });
+    // Claim the slot for the round so the buttons gate further use.
+    if (category === "action") onSetTurnFlag("action_used", true);
+    else if (category === "bonus") onSetTurnFlag("bonus_used", true);
+    else if (category === "reaction") onSetTurnFlag("reaction_used", true);
+    // Dodge also sets the dodging flag (cleared on this participant's next
+    // turn by the advance-turn RPC).
+    if (actionId === "dodge") onSetTurnFlag("dodging", true);
   }
 
   const charClass = character?.class ?? "";
@@ -769,6 +783,20 @@ export function ActionPanel({
                   <span className={cn("text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5", SLOT_BADGE.action)}>
                     Action
                   </span>
+                  {participant.action_used && (
+                    <span className="text-[10px] text-muted-foreground italic">used this turn</span>
+                  )}
+                  {participant.action_used && (
+                    <button
+                      type="button"
+                      disabled={locked}
+                      onClick={() => onSetTurnFlag("action_used", false)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 ml-auto"
+                      title="DM override: refresh this slot"
+                    >
+                      reset
+                    </button>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {STANDARD_ACTIONS.map((a) => (
@@ -776,12 +804,12 @@ export function ActionPanel({
                       key={a.id}
                       size="sm"
                       variant="ghost"
-                      disabled={locked}
-                      onClick={() => useAction(a.label, "action")}
+                      disabled={locked || participant.action_used}
+                      onClick={() => useAction(a.label, "action", a.id)}
                       className={cn(
                         "h-7 text-xs px-2",
                         ACTION_BTN_OVERRIDES[a.id] ?? SLOT_BTN.action,
-                        locked && "opacity-50",
+                        (locked || participant.action_used) && "opacity-50",
                       )}
                     >
                       {a.label}
@@ -797,6 +825,20 @@ export function ActionPanel({
                     <span className={cn("text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5", SLOT_BADGE.bonus)}>
                       Bonus
                     </span>
+                    {participant.bonus_used && (
+                      <span className="text-[10px] text-muted-foreground italic">used this turn</span>
+                    )}
+                    {participant.bonus_used && (
+                      <button
+                        type="button"
+                        disabled={locked}
+                        onClick={() => onSetTurnFlag("bonus_used", false)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 ml-auto"
+                        title="DM override: refresh this slot"
+                      >
+                        reset
+                      </button>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {classBonusActions.map((a) => (
@@ -804,9 +846,9 @@ export function ActionPanel({
                         key={a.id}
                         size="sm"
                         variant="ghost"
-                        disabled={locked}
-                        onClick={() => useAction(a.label, "bonus")}
-                        className={cn("h-7 text-xs px-2", SLOT_BTN.bonus, locked && "opacity-50")}
+                        disabled={locked || participant.bonus_used}
+                        onClick={() => useAction(a.label, "bonus", a.id)}
+                        className={cn("h-7 text-xs px-2", SLOT_BTN.bonus, (locked || participant.bonus_used) && "opacity-50")}
                       >
                         {a.label}
                       </Button>
@@ -821,6 +863,20 @@ export function ActionPanel({
                   <span className={cn("text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5", SLOT_BADGE.reaction)}>
                     Reaction
                   </span>
+                  {participant.reaction_used && (
+                    <span className="text-[10px] text-muted-foreground italic">used this round</span>
+                  )}
+                  {participant.reaction_used && (
+                    <button
+                      type="button"
+                      disabled={locked}
+                      onClick={() => onSetTurnFlag("reaction_used", false)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 ml-auto"
+                      title="DM override: refresh this slot"
+                    >
+                      reset
+                    </button>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {reactions.map((a) => (
@@ -828,9 +884,9 @@ export function ActionPanel({
                       key={a.id}
                       size="sm"
                       variant="ghost"
-                      disabled={locked}
-                      onClick={() => useAction(a.label, "reaction")}
-                      className={cn("h-7 text-xs px-2", SLOT_BTN.reaction, locked && "opacity-50")}
+                      disabled={locked || participant.reaction_used}
+                      onClick={() => useAction(a.label, "reaction", a.id)}
+                      className={cn("h-7 text-xs px-2", SLOT_BTN.reaction, (locked || participant.reaction_used) && "opacity-50")}
                     >
                       {a.label}
                     </Button>
@@ -921,20 +977,22 @@ export function ActionPanel({
                           {action.attack_bonus != null && (
                             <Button
                               size="sm"
-                              className="h-8 text-xs font-semibold gap-1.5 border-0 bg-primary/10 text-primary hover:bg-primary/20"
+                              variant="default"
+                              className="h-8 text-xs gap-1.5"
                               disabled={locked}
                               onClick={() => rollD20(action.attack_bonus! + exhaustPenalty, `${action.name} Attack`, attackOpts)}
                             >
                               <Crosshair className="h-3.5 w-3.5 shrink-0" />
                               To Hit {sign(action.attack_bonus)}
-                              {attackOpts.advantage && <span className="text-success font-bold">▲</span>}
-                              {attackOpts.disadvantage && <span className="text-destructive font-bold">▼</span>}
+                              {attackOpts.advantage && <span className="font-bold">▲</span>}
+                              {attackOpts.disadvantage && <span className="font-bold">▼</span>}
                             </Button>
                           )}
                           {hasDmg && (
                             <Button
                               size="sm"
-                              className="h-8 text-xs font-semibold gap-1.5 border-0 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                              variant="destructive"
+                              className="h-8 text-xs gap-1.5"
                               disabled={locked}
                               onClick={() => doRoll(`${count}d${sides}`, sides, mod, `${action.name} Dmg`)}
                             >
@@ -945,13 +1003,13 @@ export function ActionPanel({
                           {hasDmg && (
                             <Button
                               size="sm"
-                              variant="ghost"
-                              className="h-8 text-[11px] px-2 gap-1 text-destructive hover:bg-destructive/10"
+                              variant="secondary"
+                              className="h-8 text-xs px-2 gap-1.5"
                               disabled={locked}
                               onClick={() => doRoll(`${count * 2}d${sides}`, sides, mod, `${action.name} Crit`)}
                               title="Critical hit: double the damage dice"
                             >
-                              <Flame className="h-3 w-3" /> Crit
+                              <Flame className="h-3.5 w-3.5" /> Crit
                             </Button>
                           )}
                         </div>
@@ -1077,7 +1135,7 @@ export function ActionPanel({
                       size="sm"
                       variant="ghost"
                       className="h-7 text-xs px-2"
-                      disabled={locked}
+                      disabled={locked || participant.action_used}
                       onClick={() => useAction("Grapple (Unarmed Strike)", "action")}
                       title="Grapple: the target makes a Strength or Dexterity save (DC 8 + STR mod + proficiency) or is Grappled."
                     >
@@ -1087,7 +1145,7 @@ export function ActionPanel({
                       size="sm"
                       variant="ghost"
                       className="h-7 text-xs px-2"
-                      disabled={locked}
+                      disabled={locked || participant.action_used}
                       onClick={() => useAction("Shove (Unarmed Strike)", "action")}
                       title="Shove: the target makes a Strength or Dexterity save (DC 8 + STR mod + proficiency) or is pushed 5 ft or knocked Prone."
                     >

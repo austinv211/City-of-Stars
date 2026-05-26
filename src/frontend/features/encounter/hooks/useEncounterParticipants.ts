@@ -201,6 +201,19 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
     await supabase.from("encounter_participants").update({ cover }).eq("id", participantId);
   }
 
+  // Per-turn action economy flags — all participant-only, reset by the turn-
+  // advance RPC. Dodge piggybacks on the same lifetime (cleared on turn start).
+  async function setTurnFlag(
+    participantId: string,
+    flag: "action_used" | "bonus_used" | "reaction_used" | "dodging",
+    value: boolean,
+  ) {
+    await supabase
+      .from("encounter_participants")
+      .update({ [flag]: value })
+      .eq("id", participantId);
+  }
+
   async function setHeroicInspiration(participantId: string, value: boolean) {
     const p = participants.find((x) => x.id === participantId);
     await supabase.from("encounter_participants").update({ heroic_inspiration: value }).eq("id", participantId);
@@ -228,6 +241,6 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
   return {
     participants, loading, updateHP, updateConditions,
     applyDamage, applyHealing, setDeathSaves, applyDeathSaveRoll, setConcentration, setCover,
-    setHeroicInspiration,
+    setHeroicInspiration, setTurnFlag,
   };
 }

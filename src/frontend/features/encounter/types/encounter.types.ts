@@ -60,6 +60,13 @@ export interface EncounterParticipant {
   exhaustion: number;
   heroic_inspiration: boolean;
   cover: "none" | "half" | "three_quarters" | "total";
+  // Per-turn action economy (reset on turn start by advance_encounter_turn).
+  action_used: boolean;
+  bonus_used: boolean;
+  reaction_used: boolean;
+  // Dodge: until the start of your next turn, attacks against you have
+  // disadvantage if you can see the attacker. Cleared on turn start too.
+  dodging: boolean;
 }
 
 export interface DiceRoll {

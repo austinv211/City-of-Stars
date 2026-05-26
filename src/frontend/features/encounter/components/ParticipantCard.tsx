@@ -122,6 +122,16 @@ export function ParticipantCard({
           </Badge>
         ) : null}
 
+        {participant.dodging && (
+          <Badge
+            variant="outline"
+            className="text-xs gap-1 border-primary/60 text-primary bg-primary/10"
+            title="Dodging: attack rolls against this creature have disadvantage (if they can see the attacker) until the start of their next turn. They also have advantage on DEX saves."
+          >
+            Dodging
+          </Badge>
+        )}
+
         {participant.conditions.length > 0 || canEditHP ? (
           <ConditionBadges
             conditions={participant.conditions}

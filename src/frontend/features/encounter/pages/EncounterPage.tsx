@@ -189,6 +189,7 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
   const {
     participants, updateConditions,
     applyDamage, applyHealing, applyDeathSaveRoll, setConcentration, setCover, setHeroicInspiration,
+    setTurnFlag,
   } = useEncounterParticipants(
     activeEncounterId,
     campaign?.id,
@@ -391,6 +392,7 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
                 onSetConcentration={(spell) => setConcentration(panelParticipant.id, spell)}
                 onSetHeroicInspiration={(v) => setHeroicInspiration(panelParticipant.id, v)}
                 onSetCover={(cover) => setCover(panelParticipant.id, cover)}
+                onSetTurnFlag={(flag, v) => setTurnFlag(panelParticipant.id, flag, v)}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
