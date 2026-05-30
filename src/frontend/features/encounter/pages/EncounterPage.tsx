@@ -185,16 +185,16 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
   const { campaign, isDM: contextIsDM, activeEncounterId } = useCampaign();
   // playerMode forces player behaviour regardless of campaign role (used at /encounter)
   const isDM = playerMode ? false : contextIsDM;
-  const { encounter, endEncounter, advanceTurn } = useActiveEncounter();
+  const { encounter, loading: encounterLoading, endEncounter, advanceTurn } = useActiveEncounter();
   const {
-    participants, updateConditions,
+    participants, loading: participantsLoading, updateConditions,
     applyDamage, applyHealing, applyDeathSaveRoll, setConcentration, setCover, setHeroicInspiration,
     setTurnFlag,
   } = useEncounterParticipants(
     activeEncounterId,
     campaign?.id,
   );
-  const { characters } = useCharacters();
+  const { characters, loading: charsLoading } = useCharacters();
   const { history: allHistory, roll } = useDice();
   const history = allHistory.filter((e) => e.encounterId === activeEncounterId);
 
@@ -263,6 +263,15 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
     load();
   }, [panelParticipant?.character_id]);
 
+  // Show spinner while the encounter row itself is loading.
+  if (encounterLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+      </div>
+    );
+  }
+
   if (!encounter || !activeEncounterId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -272,7 +281,46 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
     );
   }
 
-  // Players who haven't rolled initiative yet see the waiting-room roll screen
+  // For players: wait for participant and character data before deciding which screen to show.
+  if (!isDM && (participantsLoading || charsLoading)) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+      </div>
+    );
+  }
+
+  // Player has no active character in this campaign yet.
+  if (!isDM && !ownCharacter) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
+        <Swords className="h-16 w-16 text-muted-foreground opacity-40" />
+        <div>
+          <h2 className="text-xl font-semibold">No Active Character</h2>
+          <p className="mt-1 text-sm text-muted-foreground max-w-xs">
+            Create a character in the Characters tab before joining an encounter.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Player's character hasn't been added to this encounter by the DM yet.
+  if (!isDM && ownCharacter && !ownParticipant) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
+        <Swords className="h-16 w-16 text-muted-foreground opacity-40" />
+        <div>
+          <h2 className="text-xl font-semibold">Waiting to Join</h2>
+          <p className="mt-1 text-sm text-muted-foreground max-w-xs">
+            The Dungeon Master hasn't added your character to this encounter yet. Stand by.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Players who haven't rolled initiative yet see the waiting-room roll screen.
   if (!isDM && ownParticipant && !ownParticipant.has_rolled_initiative && campaign) {
     return (
       <InitiativeRollScreen
