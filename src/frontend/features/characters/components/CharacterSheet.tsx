@@ -14,11 +14,19 @@ import { AttacksPanel } from "./AttacksPanel";
 import { SpellsPanel } from "./SpellsPanel";
 import { PersonalityPanel } from "./PersonalityPanel";
 import { ProficienciesPanel } from "./ProficienciesPanel";
+import { StatusPanel } from "./StatusPanel";
+import { DefensesPanel } from "./DefensesPanel";
+import { ResourcesPanel } from "./ResourcesPanel";
+import { FeaturesPanel } from "./FeaturesPanel";
 import { VoidPanel } from "./VoidPanel";
 import { LevelUpWizard } from "./LevelUpWizard";
 import { PortraitUpload } from "./PortraitUpload";
+import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar";
 import { LevelBadge } from "./LevelBadge";
-import { finalAbilityScores, deriveStats, abilityModifier } from "../types/character.types";
+import { finalAbilityScores, deriveStats, abilityModifier, passiveScore } from "../types/character.types";
+import { suggestedAC, carryingCapacity, exhaustionSpeedPenalty, hasJackOfAllTrades, halfProficiencyBonus, computeArmorAC } from "../data/rules2024";
+import type { ArmorItem } from "../data/rules2024";
+import { resolveSpellcastingAbility } from "../data/dnd2024.constants";
 import { useSpellSlots } from "../hooks/useSpellSlots";
 import { supabase } from "@/lib/supabase";
 import type { AbilityScores, AbilityName, CharacterWithScores, CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
@@ -132,6 +140,14 @@ export function CharacterSheet({
   const [currencyDraft, setCurrencyDraft] = useState(String(character.currency_dollars));
   const [levelUpOpen, setLevelUpOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [armorRows, setArmorRows] = useState<ArmorItem[]>([]);
+
+  // Load the SRD armor table once so AC can be derived from equipped armor.
+  useEffect(() => {
+    supabase.from("srd_armor").select("*").then(({ data }) => {
+      if (data) setArmorRows(data as ArmorItem[]);
+    });
+  }, []);
 
   // Auto-open the wizard when level_up_pending becomes true for the owner.
   // Runs on mount (catches initial DB state) and on realtime updates.
@@ -143,7 +159,7 @@ export function CharacterSheet({
   }, [character.level_up_pending, isOwn]);
 
   const { slots, expend, recover, longRest: slotsLongRest } = useSpellSlots(
-    character.id, character.class, character.level
+    character.id, character.class, character.level, character.subclass
   );
 
   const scores = character.ability_scores;
@@ -159,20 +175,62 @@ export function CharacterSheet({
   const derived = deriveStats(final, character.level);
 
   // Spell stats
-  const spellAbility = character.spellcasting_ability;
+  const spellAbility = resolveSpellcastingAbility(character.class, character.spellcasting_ability);
   const spellAbilityMod = spellAbility
     ? abilityModifier(final[spellAbility as keyof AbilityScores] ?? 10)
     : 0;
   const spellAttackMod = spellAbility ? derived.proficiencyBonus + spellAbilityMod : 0;
   const spellSaveDc = spellAbility ? 8 + derived.proficiencyBonus + spellAbilityMod : 0;
 
-  // Passive Investigation & Insight (with proficiency)
-  const hasInvestigationProf = character.proficiencies.some((p) => p.skill === "Investigation");
-  const hasInsightProf = character.proficiencies.some((p) => p.skill === "Insight");
-  const passiveInvestigation =
-    10 + abilityModifier(final.intelligence) + (hasInvestigationProf ? derived.proficiencyBonus : 0);
-  const passiveInsight =
-    10 + abilityModifier(final.wisdom) + (hasInsightProf ? derived.proficiencyBonus : 0);
+  // Jack of All Trades (Bard 2+): half prof on non-proficient ability checks + initiative.
+  const joat = hasJackOfAllTrades(character.class, character.level);
+  const joatBonus = joat ? halfProficiencyBonus(derived.proficiencyBonus) : 0;
+  const derivedDisplay = joat ? { ...derived, initiative: derived.initiative + joatBonus } : derived;
+
+  // Passive scores — include proficiency and expertise (SRD: 10 + every modifier
+  // that applies to the check).
+  const passivePerception = passiveScore(final, derived.proficiencyBonus, "Perception", character.proficiencies, joat);
+  const passiveInvestigation = passiveScore(final, derived.proficiencyBonus, "Investigation", character.proficiencies, joat);
+  const passiveInsight = passiveScore(final, derived.proficiencyBonus, "Insight", character.proficiencies, joat);
+
+  // AC suggestion (base 10+DEX, plus Unarmored Defense for Barbarian/Monk).
+  const acSug = suggestedAC(final, character.class);
+
+  // AC from equipped armor: match equipped inventory items against srd_armor.
+  const normArmor = (s: string) => s.toLowerCase().replace(/\barmou?r\b/g, "").replace(/\s+/g, " ").trim();
+  const armorByName = new Map(armorRows.map((a) => [normArmor(a.name), a]));
+  const equippedArmor = inventory
+    .filter((i) => i.is_equipped)
+    .map((i) => armorByName.get(normArmor(i.item_name)))
+    .filter((a): a is ArmorItem => !!a);
+  const armorAC = equippedArmor.length ? computeArmorAC(equippedArmor, final, character.class) : null;
+
+  // Armor Training: disadvantage on STR/DEX rolls (and can't cast) if wearing armor
+  // whose category isn't in the character's armor proficiencies.
+  const armorProfs = (character.armor_proficiencies ?? []).map((p) => p.toLowerCase());
+  const bodyArmor = equippedArmor.find((a) => a.category !== "shield");
+  const equippedShield = equippedArmor.find((a) => a.category === "shield");
+  const armorNotProficient =
+    (!!bodyArmor && !armorProfs.some((p) => p.includes(bodyArmor.category))) ||
+    (!!equippedShield && !armorProfs.some((p) => p.includes("shield")));
+
+  // Effective speed = base − exhaustion penalty, −10 ft for heavy armor whose
+  // STR requirement isn't met, capped at 5 ft when over carrying capacity.
+  const totalCarried = inventory.reduce((sum, i) => sum + (i.weight ?? 0) * i.quantity, 0);
+  const carryCap = carryingCapacity(final.strength, character.size);
+  const overEncumbered = totalCarried > carryCap;
+  const exhaustSpeedPenalty = exhaustionSpeedPenalty(character.exhaustion);
+  const armorStrPenalty = armorAC && armorAC.strengthShortfall > 0 ? -10 : 0;
+  let effectiveSpeed = character.speed + exhaustSpeedPenalty + armorStrPenalty;
+  if (overEncumbered) effectiveSpeed = Math.min(effectiveSpeed, 5);
+  effectiveSpeed = Math.max(0, effectiveSpeed);
+  const speedReasons = [
+    overEncumbered ? "over capacity" : null,
+    exhaustSpeedPenalty < 0 ? `exhaustion ${exhaustSpeedPenalty} ft` : null,
+    armorStrPenalty < 0 ? "heavy armor STR −10 ft" : null,
+  ].filter(Boolean).join(" · ");
+
+  const concentrationSpells = spells.filter((s) => s.concentration).map((s) => s.name);
 
   async function saveCurrency() {
     const val = Math.max(0, parseInt(currencyDraft, 10) || 0);
@@ -194,9 +252,14 @@ export function CharacterSheet({
               onUpdated={setPortraitUrl}
             />
           ) : (
-            <div className="h-32 w-32 rounded-full border-4 border-border overflow-hidden bg-muted flex items-center justify-center text-3xl font-semibold">
-              {character.name.slice(0, 2).toUpperCase()}
-            </div>
+            <Avatar className="h-32 w-32 border-4 border-border">
+              {portraitUrl && (
+                <AvatarImage src={portraitUrl} alt={character.name} className="object-cover" />
+              )}
+              <AvatarFallback className="text-3xl">
+                {character.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
           )}
         </div>
         <div className="flex-1 min-w-0 pt-1">
@@ -246,10 +309,11 @@ export function CharacterSheet({
 
       {/* ── Derived Stats ── */}
       <DerivedStatsBar
-        derived={derived}
+        derived={derivedDisplay}
         ac={character.ac}
         speed={character.speed}
         level={character.level}
+        passivePerception={passivePerception}
         passiveInvestigation={passiveInvestigation}
         passiveInsight={passiveInsight}
         canEdit={canEdit}
@@ -257,6 +321,52 @@ export function CharacterSheet({
         onSaveSpeed={(v) => saveCharacterField({ speed: v })}
         onSaveLevel={(v) => saveCharacterField({ level: Math.max(1, Math.min(20, v)) })}
       />
+
+      {/* AC suggestion + effective speed */}
+      {(canEdit || effectiveSpeed !== character.speed) && (
+        <div className="-mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted-foreground">
+          {canEdit && (armorAC ? (
+            <span className="flex items-center gap-1.5">
+              AC from armor <span className="font-semibold text-foreground">{armorAC.ac}</span>
+              <span className="text-muted-foreground/70">({armorAC.label})</span>
+              {character.ac !== armorAC.ac && (
+                <Button variant="ghost" size="sm" className="h-5 px-1.5 text-xs" onClick={() => saveCharacterField({ ac: armorAC.ac })}>
+                  Use
+                </Button>
+              )}
+              {armorAC.stealthDisadvantage && <span className="text-secondary">· Stealth disadv.</span>}
+              {armorAC.strengthShortfall > 0 && <span className="text-destructive">· STR too low (−10 ft speed)</span>}
+              {armorNotProficient && <span className="text-destructive">· Not proficient (disadvantage)</span>}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              Suggested AC <span className="font-semibold text-foreground">{acSug.base}</span>
+              <span className="text-muted-foreground/70">(10 + DEX)</span>
+              {character.ac !== acSug.base && (
+                <Button variant="ghost" size="sm" className="h-5 px-1.5 text-xs" onClick={() => saveCharacterField({ ac: acSug.base })}>
+                  Use
+                </Button>
+              )}
+              {acSug.unarmoredValue != null && (
+                <>
+                  <span className="text-muted-foreground/50">·</span>
+                  {acSug.unarmoredLabel} <span className="font-semibold text-foreground">{acSug.unarmoredValue}</span>
+                  {character.ac !== acSug.unarmoredValue && (
+                    <Button variant="ghost" size="sm" className="h-5 px-1.5 text-xs" onClick={() => saveCharacterField({ ac: acSug.unarmoredValue! })}>
+                      Use
+                    </Button>
+                  )}
+                </>
+              )}
+            </span>
+          ))}
+          {effectiveSpeed !== character.speed && (
+            <span className="text-destructive">
+              Effective Speed {effectiveSpeed} ft{speedReasons ? ` · ${speedReasons}` : ""}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* ── HP & Death Saves ── */}
       <HPPanel
@@ -267,6 +377,14 @@ export function CharacterSheet({
         canEdit={canEdit}
         onSlotsLongRest={slotsLongRest}
         onSlotsShortRest={character.class.toLowerCase() === "warlock" ? slotsLongRest : undefined}
+        onRefresh={onRefreshCharacter}
+      />
+
+      {/* ── Status & Conditions ── */}
+      <StatusPanel
+        character={character}
+        canEdit={canEdit}
+        concentrationSpells={concentrationSpells}
         onRefresh={onRefreshCharacter}
       />
 
@@ -295,6 +413,7 @@ export function CharacterSheet({
         finalScores={final}
         proficiencies={character.proficiencies}
         proficiencyBonus={derived.proficiencyBonus}
+        halfProficiency={joat}
         canEdit={canEdit}
         characterId={character.id}
         onRefresh={onRefreshCharacter}
@@ -310,6 +429,18 @@ export function CharacterSheet({
         onRefresh={onRefreshCharacter}
       />
 
+      {/* ── Class Features & Traits ── */}
+      <FeaturesPanel
+        characterId={character.id}
+        className={character.class}
+        species={character.species}
+        level={character.level}
+        canEdit={canEdit}
+      />
+
+      {/* ── Class Resources ── */}
+      <ResourcesPanel characterId={character.id} canEdit={canEdit} />
+
       {/* ── Proficiencies & Languages ── */}
       <ProficienciesPanel
         character={character}
@@ -317,11 +448,20 @@ export function CharacterSheet({
         onRefresh={onRefreshCharacter}
       />
 
+      {/* ── Defenses, Senses & Movement ── */}
+      <DefensesPanel
+        character={character}
+        canEdit={canEdit}
+        onRefresh={onRefreshCharacter}
+        strengthScore={final.strength}
+      />
+
       {/* ── Weapons & Damage Cantrips ── */}
       <Card>
         <CardContent className="pt-6">
           <AttacksPanel
             characterId={character.id}
+            character={character}
             attacks={attacks}
             isOwn={canEdit}
             onRefresh={onRefreshAttacks}
@@ -334,6 +474,8 @@ export function CharacterSheet({
         <CardContent className="pt-6">
           <SpellsPanel
             characterId={character.id}
+            characterClass={character.class}
+            level={character.level}
             spellcastingAbility={spellAbility ?? null}
             spellAttackMod={spellAttackMod}
             spellSaveDc={spellSaveDc}
@@ -393,6 +535,8 @@ export function CharacterSheet({
             characterId={character.id}
             items={inventory}
             onRefresh={onRefreshInventory}
+            strengthScore={final.strength}
+            size={character.size}
           />
         </CardContent>
       </Card>

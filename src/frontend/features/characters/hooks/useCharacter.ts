@@ -46,6 +46,11 @@ export function useCharacter(characterId: string | undefined) {
         { event: "*", schema: "public", table: "ability_scores", filter: `character_id=eq.${characterId}` },
         () => load()
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "character_proficiencies", filter: `character_id=eq.${characterId}` },
+        () => load()
+      )
       .subscribe();
 
     return () => {

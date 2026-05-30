@@ -54,6 +54,7 @@ interface Props {
   ac?: number | null;
   speed?: number | null;
   level?: number;
+  passivePerception: number;
   passiveInvestigation?: number;
   passiveInsight?: number;
   canEdit?: boolean;
@@ -63,7 +64,7 @@ interface Props {
 }
 
 export function DerivedStatsBar({
-  derived, ac, speed, level, passiveInvestigation, passiveInsight,
+  derived, ac, speed, level, passivePerception, passiveInvestigation, passiveInsight,
   canEdit = false, onSaveAC, onSaveSpeed, onSaveLevel,
 }: Props) {
   const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
@@ -109,7 +110,7 @@ export function DerivedStatsBar({
       : []),
     {
       label: "Passive Perc.",
-      node: <StaticCell label="Passive Perc." value={String(derived.passivePerception)} />,
+      node: <StaticCell label="Passive Perc." value={String(passivePerception)} />,
     },
     ...(passiveInvestigation != null
       ? [{ label: "Pass. Invest.", node: <StaticCell label="Pass. Invest." value={String(passiveInvestigation)} /> }]

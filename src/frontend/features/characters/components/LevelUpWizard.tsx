@@ -27,13 +27,12 @@ import {
   getLocalClassFeatures,
   getLocalFeats,
   getClassFeatureDetails,
-  getSrdClass,
   type SrdFeatureDetail,
-  type SrdClass,
 } from "@/lib/dnd5eApi";
-import { isAsiLevel, useLevelUp } from "../hooks/useLevelUp";
+import { isAsiLevel, isEpicBoonLevel, useLevelUp } from "../hooks/useLevelUp";
+import { slotsForClass } from "../hooks/useSpellSlots";
 import { abilityModifier, finalAbilityScores } from "../types/character.types";
-import { CLASSES } from "../data/dnd2024.constants";
+import { CLASSES, resolveSpellcastingAbility } from "../data/dnd2024.constants";
 import type { CharacterWithScores, AbilityName } from "../types/character.types";
 
 interface Props {
@@ -103,9 +102,7 @@ function FeatureItem({
 
 // ── Spell slot grid ────────────────────────────────────────────────────────
 
-function SpellSlotGrid({ srdClass, level }: { srdClass: SrdClass; level: number }) {
-  const slots = srdClass.spell_slots_by_level?.[level - 1];
-  if (!slots) return null;
+function SpellSlotGrid({ slots, level, abilityLabel }: { slots: number[]; level: number; abilityLabel?: string | null }) {
   const hasAny = slots.some((s) => s > 0);
   if (!hasAny) return null;
 
@@ -113,9 +110,9 @@ function SpellSlotGrid({ srdClass, level }: { srdClass: SrdClass; level: number 
     <div className="mt-3 rounded-md bg-muted/40 p-3">
       <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
         Spell Slots at Level {level}
-        {srdClass.spellcasting_ability && (
+        {abilityLabel && (
           <span className="ml-2 font-normal normal-case">
-            ({srdClass.spellcasting_ability})
+            ({abilityLabel})
           </span>
         )}
       </p>
@@ -197,7 +194,10 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
   const avgHp = Math.floor(hitDie / 2) + 1 + conMod;
 
   const hasAsi = isAsiLevel(character.class, targetLevel);
-  const steps = hasAsi ? [0, 1, 2, 3] : [0, 2, 3];
+  const isEpicBoon = isEpicBoonLevel(targetLevel);
+  // Step 1 covers both a normal ASI and the level-19 Epic Boon (feat-only) choice.
+  const showImprovementStep = hasAsi || isEpicBoon;
+  const steps = showImprovementStep ? [0, 1, 2, 3] : [0, 2, 3];
   const [stepIndex, setStepIndex] = useState(0);
   const step = steps[stepIndex];
 
@@ -205,7 +205,6 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
   const [features, setFeatures] = useState<{ name: string; index: string }[]>([]);
   const [featDetailMap, setFeatDetailMap] = useState<Map<string, SrdFeatureDetail>>(new Map());
   const [featList, setFeatList] = useState<{ index: string; name: string; description?: string; prerequisite?: string | null; category?: string | null }[]>([]);
-  const [srdClass, setSrdClass] = useState<SrdClass | null>(null);
   const [loadingApi, setLoadingApi] = useState(false);
 
   // Choices
@@ -221,9 +220,10 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
     if (!open) return;
     setStepIndex(0);
     setRolledHp(null);
-    setAsiMode("+2");
+    // An Epic Boon is always a feat — there is no +2/+1+1 option at level 19.
+    setAsiMode(isEpicBoon ? "feat" : "+2");
     setFeatChoice("");
-  }, [open]);
+  }, [open, isEpicBoon]);
 
   useEffect(() => {
     if (!open) return;
@@ -247,30 +247,32 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
       }
       setFeatDetailMap(map);
 
-      // Spell slot data
-      const cls = await getSrdClass(character.class);
-      setSrdClass(cls);
-
-      // Feats (if ASI level)
-      if (hasAsi) {
+      // Feats (for an ASI level or the level-19 Epic Boon)
+      if (showImprovementStep) {
+        let list: { index: string; name: string; description?: string; prerequisite?: string | null; category?: string | null }[];
         const localFeats = await getLocalFeats();
         if (localFeats.length > 0) {
-          setFeatList(localFeats.map((f) => ({
+          list = localFeats.map((f) => ({
             index: f.index,
             name: f.name,
             description: f.description,
             prerequisite: f.prerequisite,
             category: f.category,
-          })));
+          }));
         } else {
-          const apiFeats = await getFeats();
-          setFeatList(apiFeats as { index: string; name: string }[]);
+          list = (await getFeats()) as { index: string; name: string }[];
         }
+        // At level 19 restrict the picker to Epic Boon feats ("Boon of …").
+        if (isEpicBoon) {
+          const boons = list.filter((f) => f.name.startsWith("Boon of"));
+          if (boons.length > 0) list = boons;
+        }
+        setFeatList(list);
       }
     }
 
     loadAll().finally(() => setLoadingApi(false));
-  }, [open, character.class, targetLevel, hasAsi]);
+  }, [open, character.class, targetLevel, showImprovementStep, isEpicBoon]);
 
   function rollHitDie() {
     const roll = Math.floor(Math.random() * hitDie) + 1;
@@ -336,8 +338,7 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
               <p className="text-sm text-muted-foreground italic">Loading features…</p>
             ) : features.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">
-                No new features this level (or SRD data not yet imported — run{" "}
-                <code className="bg-muted px-1 rounded text-xs">node scripts/parse-srd.mjs</code>).
+                No new class features gained at this level.
               </p>
             ) : (
               <ul className="space-y-2">
@@ -347,10 +348,15 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
               </ul>
             )}
 
-            {/* Spell slot progression for spellcasting classes */}
-            {srdClass?.is_spellcaster && (
-              <SpellSlotGrid srdClass={srdClass} level={targetLevel} />
-            )}
+            {/* Spell slot progression — covers full, half, third (EK/AT) and pact casters */}
+            <SpellSlotGrid
+              slots={slotsForClass(character.class, targetLevel, character.subclass)}
+              level={targetLevel}
+              abilityLabel={(() => {
+                const a = resolveSpellcastingAbility(character.class, character.spellcasting_ability);
+                return a ? ABILITY_LABELS[a] : null;
+              })()}
+            />
 
             <p className="text-xs text-muted-foreground pt-1">
               Click any feature name to read its description.
@@ -361,19 +367,25 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
         {/* ── Step 1 — ASI / Feat ───────────────────────────────────────────── */}
         {step === 1 && (
           <div className="space-y-4">
-            <h3 className="font-semibold">Ability Score Improvement</h3>
-            <div className="flex gap-2">
-              {(["+2", "+1+1", "feat"] as AsiMode[]).map((m) => (
-                <Button
-                  key={m}
-                  size="sm"
-                  variant={asiMode === m ? "default" : "outline"}
-                  onClick={() => setAsiMode(m)}
-                >
-                  {m === "+2" ? "+2 to one" : m === "+1+1" ? "+1 to two" : "Take a Feat"}
-                </Button>
-              ))}
-            </div>
+            <h3 className="font-semibold">{isEpicBoon ? "Epic Boon" : "Ability Score Improvement"}</h3>
+            {isEpicBoon ? (
+              <p className="text-sm text-muted-foreground">
+                At level 19 you gain an Epic Boon feat.
+              </p>
+            ) : (
+              <div className="flex gap-2">
+                {(["+2", "+1+1", "feat"] as AsiMode[]).map((m) => (
+                  <Button
+                    key={m}
+                    size="sm"
+                    variant={asiMode === m ? "default" : "outline"}
+                    onClick={() => setAsiMode(m)}
+                  >
+                    {m === "+2" ? "+2 to one" : m === "+1+1" ? "+1 to two" : "Take a Feat"}
+                  </Button>
+                ))}
+              </div>
+            )}
 
             {asiMode === "+2" && (
               <div>
@@ -398,7 +410,7 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
                       >
                         <span>{ABILITY_LABELS[a]}</span>
                         <span className="text-muted-foreground text-xs">
-                          {current} → {capped ? "cap" : current + 2}
+                          {current} → {capped ? "cap" : Math.min(20, current + 2)}
                         </span>
                       </button>
                     );
@@ -466,7 +478,9 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
 
             {asiMode === "feat" && (
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Choose a feat:</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {isEpicBoon ? "Choose an Epic Boon:" : "Choose a feat:"}
+                </p>
                 {loadingApi ? (
                   <p className="text-sm italic text-muted-foreground">Loading feats…</p>
                 ) : (
@@ -551,9 +565,9 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
                   </span>
                 </div>
               )}
-              {hasAsi && asiMode === "feat" && featChoice && (
+              {showImprovementStep && asiMode === "feat" && featChoice && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Feat</span>
+                  <span className="text-muted-foreground">{isEpicBoon ? "Epic Boon" : "Feat"}</span>
                   <span className="font-semibold">{featChoice}</span>
                 </div>
               )}

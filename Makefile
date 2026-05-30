@@ -32,6 +32,10 @@ tauri-dev: ## Start full Tauri app — Vite dev server + native desktop window
 build: ## Type-check and build frontend to dist/
 	npm run build
 
+.PHONY: check-srd
+check-srd: ## Diff rules constants against the parsed SRD tables (needs .env credentials)
+	npm run check:srd
+
 .PHONY: tauri-build
 tauri-build: ## Build distributable Linux desktop app
 	npm run tauri:build

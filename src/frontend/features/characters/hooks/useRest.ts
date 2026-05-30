@@ -4,6 +4,19 @@ import { abilityModifier, finalAbilityScores } from "../types/character.types";
 import { CLASSES } from "../data/dnd2024.constants";
 import type { CharacterWithScores } from "../types/character.types";
 
+// Reset `current` to `max` for every resource whose recharge matches the rest type.
+// Done row-by-row because PostgREST can't set a column to another column's value.
+async function restoreResources(characterId: string, recharges: string[]): Promise<void> {
+  const { data } = await supabase
+    .from("character_resources")
+    .select("id, max")
+    .eq("character_id", characterId)
+    .in("recharge", recharges);
+  for (const r of data ?? []) {
+    await supabase.from("character_resources").update({ current: r.max as number }).eq("id", r.id as string);
+  }
+}
+
 export function useRest(
   character: CharacterWithScores,
   onSlotsLongRest: () => Promise<void>,
@@ -35,6 +48,8 @@ export function useRest(
       death_save_failures: 0,
       will_of_void: 0,
     }).eq("id", character.id);
+    // Restore every resource that recharges on a short or long rest.
+    await restoreResources(character.id, ["short_rest", "long_rest"]);
     await onSlotsLongRest();
     setResting(false);
   }
@@ -60,6 +75,9 @@ export function useRest(
       hp_current: newHp,
       hit_dice_current: newHitDiceCurrent,
     }).eq("id", character.id);
+
+    // Restore short-rest resources.
+    await restoreResources(character.id, ["short_rest"]);
 
     // Warlocks recover all spell slots on short rest (PHB p. 107)
     if (isWarlock && onSlotsShortRest) {

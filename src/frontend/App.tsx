@@ -29,9 +29,16 @@ import RealtimeDebugOverlay from "@/core/components/RealtimeDebugOverlay";
 function RootRedirect() {
   const { isPlayer, isDM, loading } = useCampaign();
   const { isAdmin, isPlayerRole, loading: authLoading } = useAuth();
-  if (loading || authLoading) return null;
-  if (isPlayer || isPlayerRole) return <Navigate to="/characters" replace />;
+  if (loading || authLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+      </div>
+    );
+  }
+  // DM (even with player role) lands in DM tools by default
   if (isDM || isAdmin) return <Navigate to="/dm/campaigns" replace />;
+  if (isPlayer || isPlayerRole) return <Navigate to="/characters" replace />;
   return <Navigate to="/campaigns" replace />;
 }
 

@@ -9,7 +9,7 @@ import {
 import { Checkbox } from "@/core/components/ui/checkbox";
 import { Label } from "@/core/components/ui/label";
 import { useState } from "react";
-import { CONDITIONS } from "@/features/characters/data/dnd2024.constants";
+import { SHEET_CONDITIONS as CONDITIONS, CONDITION_EFFECTS } from "@/features/characters/data/rules2024";
 
 const CONDITION_STYLE: Record<string, string> = {
   Blinded:       "bg-[#74c7ec2e] text-[#74c7ec] border-[#74c7ec59]",
@@ -94,7 +94,7 @@ export function ConditionBadges({ conditions, canEdit, onUpdate }: Props) {
                   checked={local.includes(cond)}
                   onCheckedChange={() => toggle(cond)}
                 />
-                <Label htmlFor={`cond-${cond}`} className="text-sm cursor-pointer">
+                <Label htmlFor={`cond-${cond}`} className="text-sm cursor-pointer" title={CONDITION_EFFECTS[cond]?.note}>
                   {cond}
                 </Label>
               </div>

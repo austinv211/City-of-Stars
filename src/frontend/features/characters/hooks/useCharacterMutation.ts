@@ -4,6 +4,7 @@ import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { finalAbilityScores, abilityModifier } from "../types/character.types";
 import { CLASSES } from "../data/dnd2024.constants";
+import { SPECIES_TRAITS } from "../data/speciesTraits";
 import type { WizardState } from "../types/character.types";
 
 export function useCharacterMutation() {
@@ -80,13 +81,27 @@ export function useCharacterMutation() {
       const dexMod = abilityModifier(final.dexterity);
       const initHpMax = hitDie + conMod;
       const initAc = 10 + dexMod;
+
+      // Apply species traits (size/speed/darkvision) from srd_species when available.
+      const { data: sp } = await supabase
+        .from("srd_species")
+        .select("size, speed, darkvision")
+        .ilike("name", state.species)
+        .maybeSingle();
+      const speciesSpeed = (sp?.speed as number | undefined) ?? 30;
+      // 'Small or Medium' species default to Medium at creation.
+      const speciesSize = sp?.size === "Small" ? "Small" : "Medium";
+      const speciesDarkvision = (sp?.darkvision as number | undefined) ?? 0;
+
       await supabase
         .from("characters")
         .update({
           hp_max: initHpMax,
           hp_current: initHpMax,
           ac: initAc,
-          speed: 30,
+          speed: speciesSpeed,
+          size: speciesSize,
+          darkvision: speciesDarkvision > 0 ? speciesDarkvision : null,
           hit_dice_current: 1,
         })
         .eq("id", charId!);
@@ -99,16 +114,66 @@ export function useCharacterMutation() {
       });
       if (scoresErr) throw scoresErr;
 
-      // 5. Insert proficiencies
+      // 5. Insert proficiencies — class skill picks plus any SRD background grants.
       const profRows = state.skillProficiencies.map((skill) => ({
         character_id: charId,
         skill,
         source: "class",
         is_expertise: false,
       }));
+
+      // Apply the chosen background's grants (skills, tool, origin feat) when the
+      // background has parsed SRD data. Uses existing data — no hardcoded values.
+      const { data: bg } = await supabase
+        .from("srd_backgrounds")
+        .select("skill_proficiencies, tool_proficiency, feat")
+        .ilike("name", state.background)
+        .maybeSingle();
+
+      if (bg) {
+        const classSkills = new Set(state.skillProficiencies);
+        for (const skill of (bg.skill_proficiencies as string[] | null) ?? []) {
+          if (!classSkills.has(skill)) {
+            profRows.push({ character_id: charId, skill, source: "background", is_expertise: false });
+          }
+        }
+      }
+
       if (profRows.length > 0) {
         const { error: profErr } = await supabase.from("character_proficiencies").insert(profRows);
         if (profErr) throw profErr;
+      }
+
+      if (bg) {
+        const tool = bg.tool_proficiency as string | null;
+        if (tool) {
+          await supabase.from("characters").update({ tool_proficiencies: [tool] }).eq("id", charId!);
+        }
+        const feat = bg.feat as string | null;
+        if (feat) {
+          await supabase.from("character_features").insert({
+            character_id: charId,
+            name: feat,
+            level_gained: 1,
+            source: "feat",
+            description: `Origin feat from the ${state.background} background.`,
+          });
+        }
+      }
+
+      // Record species traits as structured features (source = species).
+      const speciesTraits = SPECIES_TRAITS[state.species] ?? [];
+      if (speciesTraits.length > 0) {
+        await supabase.from("character_features").insert(
+          speciesTraits.map((t, i) => ({
+            character_id: charId,
+            name: t.name,
+            level_gained: 1,
+            source: "species",
+            description: t.description,
+            sort_order: i,
+          })),
+        );
       }
 
       // 6. Move portrait to final path — non-fatal, portrait stays at temp if this fails

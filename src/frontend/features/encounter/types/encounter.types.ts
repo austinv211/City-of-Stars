@@ -50,6 +50,23 @@ export interface EncounterParticipant {
   special_abilities: MonsterSpecialAbility[] | null;
   has_rolled_initiative: boolean;
   description: string | null;
+  // Combat snapshot synced from the linked character (see sync_character_to_participants)
+  damage_resistances: string[];
+  damage_immunities: string[];
+  damage_vulnerabilities: string[];
+  concentrating_on: string | null;
+  death_save_successes: number;
+  death_save_failures: number;
+  exhaustion: number;
+  heroic_inspiration: boolean;
+  cover: "none" | "half" | "three_quarters" | "total";
+  // Per-turn action economy (reset on turn start by advance_encounter_turn).
+  action_used: boolean;
+  bonus_used: boolean;
+  reaction_used: boolean;
+  // Dodge: until the start of your next turn, attacks against you have
+  // disadvantage if you can see the attacker. Cleared on turn start too.
+  dodging: boolean;
 }
 
 export interface DiceRoll {

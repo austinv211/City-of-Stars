@@ -4,7 +4,9 @@ import { Badge } from "@/core/components/ui/badge";
 import { Swords, Check, Loader2 } from "lucide-react";
 import { useDice } from "../context/DiceContext";
 import { supabase } from "@/lib/supabase";
-import { abilityModifier } from "@/features/characters/types/character.types";
+import { abilityModifier, finalAbilityScores, deriveStats } from "@/features/characters/types/character.types";
+import { useCharacter } from "@/features/characters/hooks/useCharacter";
+import { hasJackOfAllTrades, halfProficiencyBonus, exhaustionD20Penalty } from "@/features/characters/data/rules2024";
 import type { EncounterParticipant } from "../types/encounter.types";
 import { cn } from "@/lib/utils";
 
@@ -16,12 +18,26 @@ interface Props {
 }
 
 export function InitiativeRollScreen({ encounterId, campaignId, participants, ownParticipant }: Props) {
-  const { roll } = useDice();
+  const { rollPool } = useDice();
   const [rolling, setRolling] = useState(false);
+  const [surprised, setSurprised] = useState(false);
+  const { character } = useCharacter(ownParticipant.character_id ?? undefined);
 
-  const dexScore = ownParticipant.dex_score ?? 10;
-  const dexMod = abilityModifier(dexScore);
-  const modLabel = dexMod >= 0 ? `+${dexMod}` : String(dexMod);
+  // Initiative = DEX mod, plus Jack of All Trades (Bard 2+) and any exhaustion
+  // penalty — sourced live from the character sheet when available.
+  let initMod = abilityModifier(ownParticipant.dex_score ?? 10);
+  if (character?.ability_scores) {
+    const final = finalAbilityScores(
+      character.ability_scores,
+      character.ability_scores.background_bonus_primary,
+      character.ability_scores.background_bonus_secondary,
+    );
+    const d = deriveStats(final, character.level);
+    initMod = d.initiative;
+    if (hasJackOfAllTrades(character.class, character.level)) initMod += halfProficiencyBonus(d.proficiencyBonus);
+    initMod += exhaustionD20Penalty(character.exhaustion);
+  }
+  const modLabel = initMod >= 0 ? `+${initMod}` : String(initMod);
 
   // Only show player participants in the waiting room list
   const playerParticipants = participants.filter((p) => p.is_player);
@@ -30,14 +46,15 @@ export function InitiativeRollScreen({ encounterId, campaignId, participants, ow
     if (rolling) return;
     setRolling(true);
     try {
-      const total = await roll({
+      const total = await rollPool({
         campaignId,
         encounterId,
         characterName: ownParticipant.name,
         rolledByDm: false,
-        diceType: "d20",
-        sides: 20,
-        modifier: dexMod,
+        pool: [{ sides: 20, count: 1 }],
+        modifier: initMod,
+        advantage: false,
+        disadvantage: surprised, // 2024: a surprised creature has disadvantage on Initiative
         rollType: "Initiative",
       });
 
@@ -114,6 +131,17 @@ export function InitiativeRollScreen({ encounterId, campaignId, participants, ow
 
       {/* Roll button */}
       <div className="flex flex-col items-center gap-2">
+        {!ownParticipant.has_rolled_initiative && (
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={surprised}
+              onChange={(e) => setSurprised(e.target.checked)}
+              className="h-3.5 w-3.5"
+            />
+            Surprised (roll with disadvantage)
+          </label>
+        )}
         <Button
           size="lg"
           onClick={handleRollInitiative}
@@ -132,7 +160,7 @@ export function InitiativeRollScreen({ encounterId, campaignId, participants, ow
               : `Roll Initiative (d20 ${modLabel})`}
         </Button>
         <p className="text-xs text-muted-foreground">
-          DEX modifier: {modLabel}
+          Initiative bonus: {modLabel}
         </p>
       </div>
     </div>

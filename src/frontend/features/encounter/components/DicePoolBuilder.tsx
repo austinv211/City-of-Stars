@@ -25,6 +25,7 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
   const [pool, setPool] = useState<Pool>({});
   const [modifier, setModifier] = useState(0);
   const [adv, setAdv] = useState<"none" | "advantage" | "disadvantage">("none");
+  const [name, setName] = useState("");
 
   const totalDice = Object.values(pool).reduce((s, c) => s + (c ?? 0), 0);
   const isEmpty = totalDice === 0;
@@ -49,6 +50,7 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
     setPool({});
     setModifier(0);
     setAdv("none");
+    setName("");
   }
 
   function buildLabel() {
@@ -72,13 +74,25 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
       modifier,
       advantage: adv === "advantage",
       disadvantage: adv === "disadvantage",
-      rollType: buildLabel(),
+      rollType: name.trim() || buildLabel(),
     });
     clearPool();
   }
 
   return (
     <div className="space-y-3">
+      {/* Action name (optional) — shown as the roll label instead of the notation */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Action name (optional)</Label>
+        <Input
+          className="h-7 text-xs"
+          placeholder="e.g. Sneak Attack, Eldritch Blast"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={disabled}
+        />
+      </div>
+
       {/* Die buttons */}
       <div className="flex flex-wrap gap-1.5">
         {DICE_SIZES.map((sides) => {

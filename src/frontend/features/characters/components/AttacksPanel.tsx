@@ -10,10 +10,15 @@ import { Plus, Trash2, Swords, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { searchWeapons, getEquipment, getDamageCantrips, getSpell } from "@/lib/dnd5eApi";
 import type { DndEquipmentSummary, DndSpellSummary } from "@/lib/dnd5eApi";
-import type { CharacterAttack } from "../types/character.types";
+import { abilityModifier, finalAbilityScores, deriveStats } from "../types/character.types";
+import { resolveSpellcastingAbility } from "../data/dnd2024.constants";
+import { WEAPON_MASTERY, MASTERY_PROPERTIES, MASTERY_INFO } from "../data/rules2024";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/core/components/ui/tooltip";
+import type { CharacterAttack, CharacterWithScores } from "../types/character.types";
 
 interface Props {
   characterId: string;
+  character?: CharacterWithScores;
   attacks: CharacterAttack[];
   isOwn: boolean;
   onRefresh: () => void;
@@ -34,12 +39,18 @@ interface Draft {
   damage_type: string;
   is_ranged: boolean;
   is_spell: boolean;
+  is_finesse: boolean;
+  is_thrown: boolean;
+  is_light: boolean;
+  mastery: string;
+  versatile_sides: number;
   notes: string;
 }
 
 const BLANK: Draft = {
   name: "", attack_modifier: 0, dice_count: 1, dice_sides: 6,
-  damage_modifier: 0, damage_type: "slashing", is_ranged: false, is_spell: false, notes: "",
+  damage_modifier: 0, damage_type: "slashing", is_ranged: false, is_spell: false, is_finesse: false,
+  is_thrown: false, is_light: false, mastery: "", versatile_sides: 0, notes: "",
 };
 
 function parseDice(dicePart: string): { count: number; sides: number } {
@@ -47,7 +58,13 @@ function parseDice(dicePart: string): { count: number; sides: number } {
   return m ? { count: parseInt(m[1]), sides: parseInt(m[2]) } : { count: 1, sides: 6 };
 }
 
-function WeaponSearch({ onSelect }: { onSelect: (d: Partial<Draft>) => void }) {
+function WeaponSearch({ onSelect, meleeMod, meleeAbilityMod, rangedMod, rangedAbilityMod }: {
+  onSelect: (d: Partial<Draft>) => void;
+  meleeMod: number;
+  meleeAbilityMod: number;
+  rangedMod: number;
+  rangedAbilityMod: number;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DndEquipmentSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -71,11 +88,21 @@ function WeaponSearch({ onSelect }: { onSelect: (d: Partial<Draft>) => void }) {
     const eq = await getEquipment(item.index);
     setFetchingIdx(null);
     if (!eq) { onSelect({ name: item.name }); return; }
-    const isWeapon = eq.equipment_category?.name?.toLowerCase() === "weapon";
     const isRanged = eq.weapon_range?.toLowerCase() === "ranged";
+    const props = (eq.properties ?? []).map((p) => p.name?.toLowerCase() ?? "");
+    const isFinesse = props.includes("finesse");
+    const isThrown = props.includes("thrown");
+    const isLight = props.includes("light");
+    const mastery = WEAPON_MASTERY[item.name.toLowerCase()] ?? "";
     const dmg = eq.damage;
     const { count, sides } = dmg ? parseDice(dmg.damage_dice) : { count: 1, sides: 6 };
+    const versatileSides = eq.two_handed_damage ? parseDice(eq.two_handed_damage.damage_dice).sides : 0;
     const damageType = dmg?.damage_type?.name?.toLowerCase() ?? "slashing";
+    // Finesse → better of STR/DEX. Thrown weapons use the melee (STR) modifier
+    // even at range, so only a non-thrown ranged weapon uses DEX.
+    const useRanged = isRanged && !isThrown;
+    const atkMod = isFinesse ? Math.max(meleeMod, rangedMod) : useRanged ? rangedMod : meleeMod;
+    const dmgMod = isFinesse ? Math.max(meleeAbilityMod, rangedAbilityMod) : useRanged ? rangedAbilityMod : meleeAbilityMod;
     onSelect({
       name: item.name,
       dice_count: count,
@@ -83,7 +110,13 @@ function WeaponSearch({ onSelect }: { onSelect: (d: Partial<Draft>) => void }) {
       damage_type: DAMAGE_TYPES.includes(damageType) ? damageType : "slashing",
       is_ranged: isRanged,
       is_spell: false,
-      ...(isWeapon ? {} : {}),
+      is_finesse: isFinesse,
+      is_thrown: isThrown,
+      is_light: isLight,
+      mastery,
+      versatile_sides: versatileSides,
+      attack_modifier: atkMod,
+      damage_modifier: dmgMod,
     });
   }
 
@@ -122,7 +155,7 @@ function WeaponSearch({ onSelect }: { onSelect: (d: Partial<Draft>) => void }) {
   );
 }
 
-function CantripSearch({ onSelect }: { onSelect: (d: Partial<Draft>) => void }) {
+function CantripSearch({ onSelect, spellAttackMod }: { onSelect: (d: Partial<Draft>) => void; spellAttackMod: number }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DndSpellSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -161,6 +194,7 @@ function CantripSearch({ onSelect }: { onSelect: (d: Partial<Draft>) => void }) 
       damage_type: normalizedType,
       is_spell: true,
       is_ranged: isRanged,
+      attack_modifier: spellAttackMod,
     });
   }
 
@@ -201,10 +235,33 @@ function CantripSearch({ onSelect }: { onSelect: (d: Partial<Draft>) => void }) 
   );
 }
 
-export function AttacksPanel({ characterId, attacks, isOwn, onRefresh }: Props) {
+export function AttacksPanel({ characterId, character, attacks, isOwn, onRefresh }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(BLANK);
   const [saving, setSaving] = useState(false);
+
+  // Pre-compute suggested attack/damage modifiers from character stats
+  const { meleeMod, meleeAbilityMod, rangedMod, rangedAbilityMod, spellAttackMod } = (() => {
+    if (!character?.ability_scores) {
+      return { meleeMod: 0, meleeAbilityMod: 0, rangedMod: 0, rangedAbilityMod: 0, spellAttackMod: 0 };
+    }
+    const scores = character.ability_scores;
+    const final = finalAbilityScores(scores, scores.background_bonus_primary, scores.background_bonus_secondary);
+    const { proficiencyBonus } = deriveStats(final, character.level);
+    const strMod = abilityModifier(final.strength);
+    const dexMod = abilityModifier(final.dexterity);
+    const spellAbility = resolveSpellcastingAbility(character.class, character.spellcasting_ability);
+    const spellAbilityMod = spellAbility
+      ? abilityModifier(final[spellAbility] ?? 10)
+      : 0;
+    return {
+      meleeMod: strMod + proficiencyBonus,
+      meleeAbilityMod: strMod,
+      rangedMod: dexMod + proficiencyBonus,
+      rangedAbilityMod: dexMod,
+      spellAttackMod: spellAbilityMod + proficiencyBonus,
+    };
+  })();
 
   function set<K extends keyof Draft>(field: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [field]: value }));
@@ -227,6 +284,11 @@ export function AttacksPanel({ characterId, attacks, isOwn, onRefresh }: Props) 
       damage_type: draft.damage_type,
       is_ranged: draft.is_ranged,
       is_spell: draft.is_spell,
+      is_finesse: draft.is_finesse,
+      is_thrown: draft.is_thrown,
+      is_light: draft.is_light,
+      mastery: draft.mastery || null,
+      versatile_sides: draft.versatile_sides || null,
       notes: draft.notes || null,
     });
     setSaving(false);
@@ -278,6 +340,26 @@ export function AttacksPanel({ characterId, attacks, isOwn, onRefresh }: Props) 
                   <span className="text-sm font-medium">{a.name}</span>
                   {a.is_spell && <Badge variant="secondary" className="text-xs">Spell</Badge>}
                   {a.is_ranged && <Badge variant="outline" className="text-xs">Ranged</Badge>}
+                  {a.is_finesse && <Badge variant="outline" className="text-xs">Finesse</Badge>}
+                  {a.is_thrown && <Badge variant="outline" className="text-xs">Thrown</Badge>}
+                  {a.is_light && <Badge variant="outline" className="text-xs">Light</Badge>}
+                  {a.mastery && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs cursor-help underline decoration-dotted decoration-muted-foreground/60 underline-offset-2"
+                        >
+                          {a.mastery}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                        <span className="font-semibold">{a.mastery}.</span>{" "}
+                        {MASTERY_INFO[a.mastery as keyof typeof MASTERY_INFO]}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {a.versatile_sides ? <Badge variant="outline" className="text-xs">Versatile d{a.versatile_sides}</Badge> : null}
                 </div>
                 <span className="text-xs text-muted-foreground">
                   Hit: {a.attack_modifier >= 0 ? `+${a.attack_modifier}` : a.attack_modifier} · {formatAttack(a)}
@@ -312,7 +394,13 @@ export function AttacksPanel({ characterId, attacks, isOwn, onRefresh }: Props) 
             </TabsList>
 
             <TabsContent value="weapon" className="space-y-3 pt-3">
-              <WeaponSearch onSelect={applyApiResult} />
+              <WeaponSearch
+                onSelect={applyApiResult}
+                meleeMod={meleeMod}
+                meleeAbilityMod={meleeAbilityMod}
+                rangedMod={rangedMod}
+                rangedAbilityMod={rangedAbilityMod}
+              />
               {draftFilled && (
                 <p className="text-xs text-muted-foreground">
                   Selected: <span className="font-medium text-foreground">{draft.name}</span>
@@ -322,7 +410,7 @@ export function AttacksPanel({ characterId, attacks, isOwn, onRefresh }: Props) 
             </TabsContent>
 
             <TabsContent value="cantrip" className="space-y-3 pt-3">
-              <CantripSearch onSelect={applyApiResult} />
+              <CantripSearch onSelect={applyApiResult} spellAttackMod={spellAttackMod} />
               {draftFilled && (
                 <p className="text-xs text-muted-foreground">
                   Selected: <span className="font-medium text-foreground">{draft.name}</span>
@@ -419,6 +507,56 @@ export function AttacksPanel({ characterId, attacks, isOwn, onRefresh }: Props) 
                     className="h-4 w-4"
                   />
                   <Label htmlFor="is_spell">Spell / Cantrip</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_finesse"
+                    checked={draft.is_finesse}
+                    onChange={(e) => set("is_finesse", e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="is_finesse">Finesse</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_thrown"
+                    checked={draft.is_thrown}
+                    onChange={(e) => set("is_thrown", e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="is_thrown">Thrown</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_light"
+                    checked={draft.is_light}
+                    onChange={(e) => set("is_light", e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="is_light">Light (two-weapon)</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="mastery" className="whitespace-nowrap">Mastery</Label>
+                  <Select value={draft.mastery || "__none__"} onValueChange={(v) => set("mastery", v === "__none__" ? "" : v)}>
+                    <SelectTrigger className="h-8 w-32"><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {MASTERY_PROPERTIES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="versatile" className="whitespace-nowrap">Versatile 2H die</Label>
+                  <Select value={String(draft.versatile_sides)} onValueChange={(v) => set("versatile_sides", Number(v))}>
+                    <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">None</SelectItem>
+                      {DICE_SIDES.map((s) => <SelectItem key={s} value={String(s)}>d{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

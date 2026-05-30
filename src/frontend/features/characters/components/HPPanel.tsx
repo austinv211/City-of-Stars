@@ -106,6 +106,8 @@ export function HPPanel({
         await logAudit(character.id, user.id, key, oldVal, String(val));
       }
     }
+    // Encounter participants stay in sync via the sync_character_to_participants
+    // DB trigger on characters (HP, AC, conditions).
     setSaving(false);
     onRefresh();
   }

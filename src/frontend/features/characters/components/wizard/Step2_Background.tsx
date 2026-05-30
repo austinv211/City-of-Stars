@@ -142,11 +142,6 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
             </div>
           )}
 
-          {!srdBg && (
-            <p className="text-xs text-muted-foreground italic">
-              Run <code className="bg-muted px-1 rounded">node scripts/parse-srd.mjs</code> to load full background details.
-            </p>
-          )}
         </div>
       )}
 
