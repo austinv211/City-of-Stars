@@ -23,6 +23,7 @@ export interface Encounter {
   started_at: string | null;
   ended_at: string | null;
   current_participant_id: string | null;
+  is_template: boolean;
 }
 
 export interface EncounterParticipant {

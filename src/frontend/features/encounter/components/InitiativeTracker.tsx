@@ -42,8 +42,11 @@ export function InitiativeTracker({
   return (
     <div className="space-y-2">
       {participants.map((p) => {
-        // DMs see everything; players see HP+AC only for other player characters, not NPCs
-        const canEdit = isDM || p.character_id === ownCharacterId;
+        // DMs see everything; players may edit only their own character. Guard
+        // against null === null (a characterless player/spectator vs an NPC whose
+        // character_id is also null) granting edit rights on NPCs.
+        const canEdit =
+          isDM || (ownCharacterId != null && p.character_id === ownCharacterId);
         const showHP = isDM || p.is_player;
         const showAC = isDM || p.is_player;
 
