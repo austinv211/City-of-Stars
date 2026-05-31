@@ -19,6 +19,7 @@ import { InitiativeTracker } from "../components/InitiativeTracker";
 import { ActionPanel } from "../components/ActionPanel";
 import { CharacterQuickRef } from "../components/CharacterQuickRef";
 import { InitiativeRollScreen } from "../components/InitiativeRollScreen";
+import { SpectatorRollPanel } from "../components/SpectatorRollPanel";
 import { useActiveEncounter } from "../hooks/useActiveEncounter";
 import { useEncounterParticipants } from "../hooks/useEncounterParticipants";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -181,7 +182,7 @@ function RollLog({ entries }: { entries: RollEntry[] }) {
 
 export default function EncounterPage({ playerMode = false }: { playerMode?: boolean }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, displayName } = useAuth();
   const { campaign, isDM: contextIsDM, activeEncounterId } = useCampaign();
   // playerMode forces player behaviour regardless of campaign role (used at /encounter)
   const isDM = playerMode ? false : contextIsDM;
@@ -226,6 +227,13 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
   const ownParticipant = participants.find(
     (p) => p.character_id === ownCharacter?.id,
   );
+
+  // A non-DM with no participant of their own watches as a spectator: they can
+  // still see the encounter and make basic rolls, but control no character.
+  const isSpectator = !isDM && !ownParticipant;
+  // Name to attribute spectator rolls to — their character if they have one,
+  // otherwise their chosen account display name.
+  const spectatorName = ownCharacter?.name ?? displayName;
 
   const activeParticipantId = encounter?.current_participant_id ?? null;
   const isMyTurn =
@@ -286,36 +294,6 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
-      </div>
-    );
-  }
-
-  // Player has no active character in this campaign yet.
-  if (!isDM && !ownCharacter) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
-        <Swords className="h-16 w-16 text-muted-foreground opacity-40" />
-        <div>
-          <h2 className="text-xl font-semibold">No Active Character</h2>
-          <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-            Create a character in the Characters tab before joining an encounter.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Player's character hasn't been added to this encounter by the DM yet.
-  if (!isDM && ownCharacter && !ownParticipant) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
-        <Swords className="h-16 w-16 text-muted-foreground opacity-40" />
-        <div>
-          <h2 className="text-xl font-semibold">Waiting to Join</h2>
-          <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-            The Dungeon Master hasn't added your character to this encounter yet. Stand by.
-          </p>
-        </div>
       </div>
     );
   }
@@ -427,28 +405,59 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
           className={cn("flex-1 flex flex-col overflow-hidden min-w-0 bg-card")}
         >
           <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
-            {panelParticipant && campaign ? (
-              <ActionPanel
-                participant={panelParticipant}
-                character={panelCharacter}
-                attacks={attacks}
-                campaignId={campaign.id}
-                encounterId={activeEncounterId}
-                isMyTurn={isPanelMyTurn}
-                isDM={isDM}
-                canControl={canControlPanel}
-                onSetConcentration={(spell) => setConcentration(panelParticipant.id, spell)}
-                onSetHeroicInspiration={(v) => setHeroicInspiration(panelParticipant.id, v)}
-                onSetCover={(cover) => setCover(panelParticipant.id, cover)}
-                onSetTurnFlag={(flag, v) => setTurnFlag(panelParticipant.id, flag, v)}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                {participants.length > 0
-                  ? "Select a participant to see actions"
-                  : "Waiting for participants…"}
-              </div>
-            )}
+            {(() => {
+              // Spectators (no participant of their own) default to a personal
+              // roll panel. Selecting someone in the tracker shows that
+              // participant's panel read-only, with a way back to their rolls.
+              if (isSpectator && !selectedId && campaign) {
+                return (
+                  <SpectatorRollPanel
+                    campaignId={campaign.id}
+                    encounterId={activeEncounterId}
+                    spectatorName={spectatorName}
+                    isDM={false}
+                  />
+                );
+              }
+              if (panelParticipant && campaign) {
+                return (
+                  <>
+                    {isSpectator && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mb-3 -ml-1"
+                        onClick={() => setSelectedId(null)}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Back to my rolls
+                      </Button>
+                    )}
+                    <ActionPanel
+                      participant={panelParticipant}
+                      character={panelCharacter}
+                      attacks={attacks}
+                      campaignId={campaign.id}
+                      encounterId={activeEncounterId}
+                      isMyTurn={isPanelMyTurn}
+                      isDM={isDM}
+                      canControl={canControlPanel}
+                      onSetConcentration={(spell) => setConcentration(panelParticipant.id, spell)}
+                      onSetHeroicInspiration={(v) => setHeroicInspiration(panelParticipant.id, v)}
+                      onSetCover={(cover) => setCover(panelParticipant.id, cover)}
+                      onSetTurnFlag={(flag, v) => setTurnFlag(panelParticipant.id, flag, v)}
+                    />
+                  </>
+                );
+              }
+              return (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                  {participants.length > 0
+                    ? "Select a participant to see actions"
+                    : "Waiting for participants…"}
+                </div>
+              );
+            })()}
           </div>
         </div>
 

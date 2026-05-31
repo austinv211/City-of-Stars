@@ -8,6 +8,9 @@ interface AuthContextValue {
   loading: boolean;
   isAdmin: boolean;
   isPlayerRole: boolean;
+  /** User's chosen display name, falling back to email local-part then "Player". */
+  displayName: string;
+  updateDisplayName: (name: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -94,9 +97,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }
 
+  async function updateDisplayName(name: string): Promise<{ error?: string }> {
+    const { error } = await supabase.auth.updateUser({
+      data: { display_name: name.trim() },
+    });
+    if (error) return { error: error.message };
+    return {};
+  }
+
+  const user = session?.user ?? null;
+  const metaName = (user?.user_metadata?.display_name as string | undefined)?.trim();
+  const displayName = metaName || user?.email?.split("@")[0] || "Player";
+
   return (
     <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, loading, isAdmin, isPlayerRole, signOut }}
+      value={{ session, user, loading, isAdmin, isPlayerRole, displayName, updateDisplayName, signOut }}
     >
       {children}
     </AuthContext.Provider>

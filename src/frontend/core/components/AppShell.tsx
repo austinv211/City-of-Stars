@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import {
   Swords,
@@ -12,6 +13,7 @@ import {
   UserCog,
   ChevronDown,
   Globe,
+  Settings,
 } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
@@ -33,6 +35,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { AnimatedStar, TitleBar } from "@/core/components/TitleBar";
 import { cn } from "@/lib/utils";
 import DiceRollOverlay from "./DiceRollOverlay";
+import { AccountDialog } from "./AccountDialog";
 
 const navItems = [
   { to: "/characters", label: "Characters", icon: Users },
@@ -170,7 +173,8 @@ function CampaignSelector() {
 
 export default function AppShell() {
   const { activeEncounterId, isDM } = useCampaign();
-  const { user, isAdmin, isPlayerRole, signOut } = useAuth();
+  const { user, isAdmin, isPlayerRole, signOut, displayName } = useAuth();
+  const [accountOpen, setAccountOpen] = useState(false);
 
 
   return (
@@ -242,20 +246,34 @@ export default function AppShell() {
 
               {/* Footer */}
               <div className="p-3 space-y-1">
-                <div className="px-2 py-1">
-                  <p className="truncate text-xs font-medium text-foreground">
-                    {user?.email}
-                  </p>
-                  {isDM && (
-                    <Badge variant="secondary" className="mt-1 text-[10px]">
-                      Dungeon Master
-                    </Badge>
-                  )}
-                  {isPlayerRole && !isDM && !isAdmin && (
-                    <Badge variant="outline" className="mt-1 text-[10px]">
-                      Player
-                    </Badge>
-                  )}
+                <div className="flex items-start gap-1 px-2 py-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-foreground">
+                      {displayName}
+                    </p>
+                    <p className="truncate text-[10px] text-muted-foreground leading-tight">
+                      {user?.email}
+                    </p>
+                    {isDM && (
+                      <Badge variant="secondary" className="mt-1 text-[10px]">
+                        Dungeon Master
+                      </Badge>
+                    )}
+                    {isPlayerRole && !isDM && !isAdmin && (
+                      <Badge variant="outline" className="mt-1 text-[10px]">
+                        Player
+                      </Badge>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => setAccountOpen(true)}
+                    title="Account settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
                 </div>
                 <Button
                   variant="ghost"
@@ -277,6 +295,7 @@ export default function AppShell() {
         </div>
 
         <DiceRollOverlay />
+        <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
       </TooltipProvider>
     </DiceProvider>
   );

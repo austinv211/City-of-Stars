@@ -273,6 +273,12 @@ export default function DmCampaignsPage() {
                   campaign={activeCampaign}
                   isDM
                   memberCount={characters.length}
+                  onEditDescription={async (desc) => {
+                    await supabase
+                      .from("campaigns")
+                      .update({ description: desc.trim() || null })
+                      .eq("id", activeCampaign.id);
+                  }}
                 />
                 <Button variant="outline" onClick={() => setLevelUpOpen(true)}>
                   <TrendingUp className="h-4 w-4 mr-2" />
@@ -331,11 +337,11 @@ export default function DmCampaignsPage() {
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md flex flex-col max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>New Campaign</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
             <div className="space-y-1.5">
               <Label>Campaign Name</Label>
               <Input
