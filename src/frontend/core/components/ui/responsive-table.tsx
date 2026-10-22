@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/core/components/ui/table";
+import { Skeleton } from "@/core/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -47,8 +48,12 @@ interface Props<T> {
   data: T[];
   columns: Column<T>[];
   getRowKey: (row: T) => string;
-  /** Shown instead of the table when `data` is empty. */
+  /** Shown instead of the table when `data` is empty and not loading. */
   empty?: React.ReactNode;
+  /** Render placeholder rows instead of data. */
+  loading?: boolean;
+  /** How many placeholder rows while loading. */
+  skeletonRows?: number;
   className?: string;
 }
 
@@ -57,9 +62,11 @@ export function ResponsiveTable<T>({
   columns,
   getRowKey,
   empty,
+  loading = false,
+  skeletonRows = 3,
   className,
 }: Props<T>) {
-  if (data.length === 0 && empty) return <>{empty}</>;
+  if (!loading && data.length === 0 && empty) return <>{empty}</>;
 
   return (
     <div className={cn("responsive-table border border-border", className)}>
@@ -74,24 +81,41 @@ export function ResponsiveTable<T>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row) => (
-            <TableRow key={getRowKey(row)}>
-              {columns.map((c) => (
-                <TableCell
-                  key={c.key}
-                  // Rendered as the cell's heading once the row stacks.
-                  data-label={
-                    typeof c.header === "string" && !c.primary ? c.header : undefined
-                  }
-                  data-primary={c.primary ? "" : undefined}
-                  data-actions={c.actions ? "" : undefined}
-                  className={c.cellClassName}
-                >
-                  {c.cell(row)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
+          {loading &&
+            Array.from({ length: skeletonRows }).map((_, i) => (
+              <TableRow key={`skeleton-${String(i)}`}>
+                {columns.map((c) => (
+                  <TableCell
+                    key={c.key}
+                    data-primary={c.primary ? "" : undefined}
+                    data-actions={c.actions ? "" : undefined}
+                  >
+                    <Skeleton className={c.primary ? "h-4 w-48" : "h-4 w-20"} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          {!loading &&
+            data.map((row) => (
+              <TableRow key={getRowKey(row)}>
+                {columns.map((c) => (
+                  <TableCell
+                    key={c.key}
+                    // Rendered as the cell's heading once the row stacks.
+                    data-label={
+                      typeof c.header === "string" && !c.primary
+                        ? c.header
+                        : undefined
+                    }
+                    data-primary={c.primary ? "" : undefined}
+                    data-actions={c.actions ? "" : undefined}
+                    className={c.cellClassName}
+                  >
+                    {c.cell(row)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
         </TableBody>
       </Table>
     </div>

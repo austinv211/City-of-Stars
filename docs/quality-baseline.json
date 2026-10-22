@@ -8,11 +8,11 @@
   "measuredAt": "2026-10-21",
   "eslint": {
     "errors": 0,
-    "maxWarnings": 979,
+    "maxWarnings": 978,
     "byRule": {
       "@typescript-eslint/no-unnecessary-condition": 211,
-      "@typescript-eslint/no-misused-promises": 151,
-      "@typescript-eslint/no-floating-promises": 104,
+      "@typescript-eslint/no-misused-promises": 149,
+      "@typescript-eslint/no-floating-promises": 106,
       "@typescript-eslint/restrict-template-expressions": 89,
       "react-hooks/set-state-in-effect": 45,
       "max-lines-per-function": 39,
@@ -22,7 +22,7 @@
       "@typescript-eslint/no-unsafe-assignment": 25,
       "react-hooks/exhaustive-deps": 25,
       "@typescript-eslint/no-non-null-assertion": 24,
-      "max-lines": 22,
+      "max-lines": 21,
       "no-restricted-imports": 19,
       "jsx-a11y/no-autofocus": 17,
       "@typescript-eslint/prefer-nullish-coalescing": 15,
