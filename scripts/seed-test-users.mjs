@@ -16,6 +16,8 @@
  *   node --env-file=.env.e2e scripts/seed-test-users.mjs
  */
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   assertNotProduction,
   assertTestMarker,
@@ -134,7 +136,12 @@ async function main() {
   console.log(`\n${TEST_USERS.length} test users ready.`);
 }
 
-main().catch((err) => {
-  console.error(`\n${err.message}`);
-  process.exit(1);
-});
+// Only run when invoked directly. seed-fixtures.mjs imports TEST_USERS from
+// here, and an unguarded main() would re-run the whole seed on import --
+// deleting and recreating users underneath whatever imported it.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error(`\n${err.message}`);
+    process.exit(1);
+  });
+}

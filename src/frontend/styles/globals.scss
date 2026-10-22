@@ -296,6 +296,76 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     box-shadow: var(--shadow-glow);
   }
 
+  // ── Responsive table ───────────────────────────────────────────────────────
+  // Below md, each row becomes a labelled card. See ui/responsive-table.tsx for
+  // why this is CSS on one DOM tree rather than two rendered variants.
+  .responsive-table {
+    @media (max-width: 767px) {
+      border: 0;
+
+      table,
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      // Column headings are carried per-cell by data-label instead.
+      thead {
+        display: none;
+      }
+
+      tr {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-panel);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0.75rem 0.5rem;
+      }
+
+      td {
+        border: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-height: var(--tap-min);
+        padding: 0.25rem 0;
+        text-align: left;
+      }
+
+      // Label on the left, value on the right -- a two-column mini layout.
+      td[data-label]::before {
+        content: attr(data-label);
+        color: var(--muted-foreground);
+        flex-shrink: 0;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      // The primary cell is the card's title: full width, larger, no label.
+      td[data-primary] {
+        border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        padding-bottom: 0.5rem;
+      }
+
+      // Action cells collect at the foot of the card, right-aligned.
+      td[data-actions] {
+        justify-content: flex-end;
+      }
+
+      // An empty cell (a spacer column in table mode) has nothing to show.
+      td:empty {
+        display: none;
+      }
+    }
+  }
+
   // ── Encounter ──────────────────────────────────────────────────────────────
   .hp-flash-damage {
     animation: hp-flash-damage 0.65s ease-out;
