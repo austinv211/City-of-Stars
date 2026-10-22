@@ -260,7 +260,7 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
             category: f.category,
           }));
         } else {
-          list = (await getFeats()) as { index: string; name: string }[];
+          list = (await getFeats());
         }
         // At level 19 restrict the picker to Epic Boon feats ("Boon of …").
         if (isEpicBoon) {
@@ -560,7 +560,7 @@ export function LevelUpWizard({ character, open, onClose, onDone }: Props) {
                   <span className="text-muted-foreground">Ability Score</span>
                   <span className="font-semibold">
                     {Object.entries(resolvedAsiBonus()).map(([a, b]) =>
-                      `${a.slice(0, 3).toUpperCase()} ${sign(b as number)}`
+                      `${a.slice(0, 3).toUpperCase()} ${sign(b)}`
                     ).join(", ")}
                   </span>
                 </div>

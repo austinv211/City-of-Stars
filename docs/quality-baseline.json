@@ -1,0 +1,82 @@
+{
+  "_comment": [
+    "Quality debt baseline -- the ratchet. CI fails if a number gets WORSE.",
+    "These values may only ever be edited DOWNWARD. If a PR needs to raise",
+    "one, that is the discussion, not a silent edit.",
+    "Regenerate the measurement with: npm run lint:report"
+  ],
+  "measuredAt": "2026-10-21",
+  "eslint": {
+    "errors": 0,
+    "maxWarnings": 999,
+    "byRule": {
+      "@typescript-eslint/no-unnecessary-condition": 213,
+      "@typescript-eslint/no-misused-promises": 154,
+      "@typescript-eslint/no-floating-promises": 104,
+      "@typescript-eslint/restrict-template-expressions": 99,
+      "react-hooks/set-state-in-effect": 46,
+      "max-lines-per-function": 41,
+      "complexity": 35,
+      "@typescript-eslint/no-unsafe-member-access": 26,
+      "@typescript-eslint/no-deprecated": 26,
+      "@typescript-eslint/no-unsafe-assignment": 25,
+      "react-hooks/exhaustive-deps": 25,
+      "@typescript-eslint/no-non-null-assertion": 24,
+      "max-lines": 22,
+      "no-restricted-imports": 19,
+      "jsx-a11y/no-autofocus": 17,
+      "@typescript-eslint/prefer-nullish-coalescing": 16,
+      "jsx-a11y/click-events-have-key-events": 13,
+      "sonarjs/cognitive-complexity": 12,
+      "@typescript-eslint/no-unsafe-argument": 11,
+      "jsx-a11y/no-static-element-interactions": 10,
+      "@typescript-eslint/no-explicit-any": 10,
+      "jsx-a11y/control-has-associated-label": 8,
+      "react-hooks/rules-of-hooks": 7,
+      "react-hooks/static-components": 6,
+      "react-refresh/only-export-components": 5,
+      "jsx-a11y/label-has-for": 5,
+      "@typescript-eslint/no-unsafe-return": 4,
+      "jsx-a11y/no-noninteractive-element-interactions": 3,
+      "@typescript-eslint/no-unsafe-call": 2,
+      "@typescript-eslint/no-empty-object-type": 2,
+      "react-hooks/purity": 2,
+      "jsx-a11y/heading-has-content": 1,
+      "@typescript-eslint/no-base-to-string": 1,
+      "react-hooks/immutability": 1,
+      "@typescript-eslint/no-dynamic-delete": 1,
+      "@typescript-eslint/use-unknown-in-catch-callback-variable": 1,
+      "@typescript-eslint/prefer-promise-reject-errors": 1,
+      "@typescript-eslint/no-unnecessary-type-parameters": 1
+    }
+  },
+  "typeCoverage": {
+    "atLeast": 99.7,
+    "measured": 99.71
+  },
+  "duplication": {
+    "maxPercent": 1.6,
+    "measuredPercent": 1.52,
+    "clones": 16
+  },
+  "knip": {
+    "unusedFiles": 6,
+    "unusedDependencies": 2,
+    "unusedExports": 11,
+    "unusedExportedTypes": 4
+  },
+  "worstFiles": {
+    "src/frontend/features/encounter/components/ActionPanel.tsx": 76,
+    "src/frontend/features/dm/pages/DmMonstersPage.tsx": 52,
+    "src/frontend/features/dm/hooks/useEncounterManager.ts": 49,
+    "src/frontend/features/characters/components/HPPanel.tsx": 43,
+    "src/frontend/lib/dnd5eApi.ts": 40,
+    "src/frontend/features/encounter/context/DiceContext.tsx": 39,
+    "src/frontend/features/characters/components/SpellsPanel.tsx": 34,
+    "src/frontend/core/context/CampaignContext.tsx": 26,
+    "src/frontend/features/dm/pages/DmCampaignsPage.tsx": 25,
+    "src/frontend/features/dm/pages/DmEncountersPage.tsx": 24,
+    "src/frontend/features/encounter/pages/EncounterPage.tsx": 23,
+    "src/frontend/features/encounter/components/CharacterQuickRef.tsx": 22
+  }
+}

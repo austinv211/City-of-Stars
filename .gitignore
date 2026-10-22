@@ -32,3 +32,6 @@ progress_notes.md
 
 # SRD markdown source files — content is parsed into the database
 docs/rules/
+
+# ESLint JSON report (scratch output of `npm run lint:report`)
+lint-report.json

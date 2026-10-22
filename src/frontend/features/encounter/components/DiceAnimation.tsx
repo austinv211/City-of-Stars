@@ -47,7 +47,7 @@ export function DiceAnimation({ characterName, diceType, result, modifier, total
   const velRef = useRef({ x: 0.067, y: 0.049, z: 0.031 });
 
   const sides = (() => {
-    const m = diceType.match(/d(\d+)/i);
+    const m = /d(\d+)/i.exec(diceType);
     return m ? parseInt(m[1]) : 20;
   })();
 

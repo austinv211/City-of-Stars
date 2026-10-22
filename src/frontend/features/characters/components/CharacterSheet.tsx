@@ -177,7 +177,7 @@ export function CharacterSheet({
   // Spell stats
   const spellAbility = resolveSpellcastingAbility(character.class, character.spellcasting_ability);
   const spellAbilityMod = spellAbility
-    ? abilityModifier(final[spellAbility as keyof AbilityScores] ?? 10)
+    ? abilityModifier(final[spellAbility] ?? 10)
     : 0;
   const spellAttackMod = spellAbility ? derived.proficiencyBonus + spellAbilityMod : 0;
   const spellSaveDc = spellAbility ? 8 + derived.proficiencyBonus + spellAbilityMod : 0;

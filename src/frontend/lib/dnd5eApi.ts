@@ -7,7 +7,7 @@ async function apiFetch<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BASE}${path}`);
     if (!res.ok) return null;
-    return res.json() as Promise<T>;
+    return (await res.json()) as T;
   } catch {
     return null;
   }
@@ -52,7 +52,7 @@ export interface DndMonster {
   alignment: string;
   hit_points: number;
   hit_dice: string;
-  armor_class: Array<{ value: number; type: string }>;
+  armor_class: { value: number; type: string }[];
   speed: { walk?: string; fly?: string; swim?: string; burrow?: string; climb?: string };
   strength: number;
   dexterity: number;
@@ -66,10 +66,10 @@ export interface DndMonster {
   languages: string;
   damage_resistances: string[];
   damage_immunities: string[];
-  condition_immunities: Array<{ name: string }>;
+  condition_immunities: { name: string }[];
   special_abilities?: DndMonsterSpecialAbility[];
   actions?: DndMonsterAction[];
-  legendary_actions?: Array<{ name: string; desc: string; attack_bonus?: number }>;
+  legendary_actions?: { name: string; desc: string; attack_bonus?: number }[];
 }
 
 export async function searchMonsters(query: string): Promise<DndMonsterSummary[]> {
@@ -219,7 +219,7 @@ export interface DndSpell {
     damage_at_character_level?: Record<string, string>;
     damage_at_slot_level?: Record<string, string>;
   };
-  classes: Array<{ name: string }>;
+  classes: { name: string }[];
 }
 
 export async function searchSpells(query: string): Promise<DndSpellSummary[]> {
@@ -550,7 +550,7 @@ export async function getFeatureDescription(
       .ilike("class_name", className)
       .ilike("feature_name", featureName)
       .maybeSingle();
-    return (data as { description: string } | null)?.description ?? null;
+    return data?.description ?? null;
   } catch {
     return null;
   }

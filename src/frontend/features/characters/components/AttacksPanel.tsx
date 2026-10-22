@@ -54,7 +54,7 @@ const BLANK: Draft = {
 };
 
 function parseDice(dicePart: string): { count: number; sides: number } {
-  const m = dicePart.match(/(\d+)d(\d+)/i);
+  const m = /(\d+)d(\d+)/i.exec(dicePart);
   return m ? { count: parseInt(m[1]), sides: parseInt(m[2]) } : { count: 1, sides: 6 };
 }
 

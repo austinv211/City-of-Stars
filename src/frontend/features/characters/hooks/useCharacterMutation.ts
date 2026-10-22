@@ -180,7 +180,7 @@ export function useCharacterMutation() {
       if (state.portraitFile && portraitUrl && charId) {
         try {
           const ext = state.portraitFile.name.split(".").pop();
-          const finalPath = `${user.id}/${charId!}/portrait.${ext}`;
+          const finalPath = `${user.id}/${charId}/portrait.${ext}`;
           const tmpPath = portraitUrl.split("/character-portraits/")[1];
           await supabase.storage.from("character-portraits").move(tmpPath, finalPath);
           const { data: newUrl } = supabase.storage

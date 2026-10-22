@@ -17,7 +17,11 @@ import {
 } from "@/features/characters/types/character.types";
 import { CLASSES, resolveSpellcastingAbility } from "@/features/characters/data/dnd2024.constants";
 import { useSpellSlots } from "@/features/characters/hooks/useSpellSlots";
-import type { CharacterSpellSlot } from "@/features/characters/types/character.types";
+import type { CharacterSpellSlot,
+  CharacterWithScores,
+  CharacterAttack,
+  CharacterSpell,
+  AbilityName } from "@/features/characters/types/character.types";
 import { aggregateConditions, exhaustionD20Penalty, hasJackOfAllTrades, halfProficiencyBonus, coverAcBonus, COVER_OPTIONS, MASTERY_INFO } from "@/features/characters/data/rules2024";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -25,12 +29,7 @@ import type {
   EncounterParticipant,
   ActionCategory,
 } from "../types/encounter.types";
-import type {
-  CharacterWithScores,
-  CharacterAttack,
-  CharacterSpell,
-  AbilityName,
-} from "@/features/characters/types/character.types";
+
 
 // ── Action economy data ────────────────────────────────────────────────────
 

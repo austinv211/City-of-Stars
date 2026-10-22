@@ -20,7 +20,7 @@ async function fetchWithAuthRetry(
       ? input
       : input instanceof URL
         ? input.href
-        : (input as Request).url;
+        : (input).url;
 
   let response = await fetch(input, init);
 

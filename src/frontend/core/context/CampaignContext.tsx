@@ -182,7 +182,6 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => { channels.forEach((ch) => supabase.removeChannel(ch)); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaignIdsKey]);
 
   // ── Subscribe to active campaign UPDATE (field changes only) ─────────────

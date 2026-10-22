@@ -466,7 +466,7 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
           {(() => {
             const showCharTab =
               (!isDM && !!ownCharacterFull && !!ownParticipant) ||
-              (!!isDM && !!panelCharacter && !!panelParticipant?.character_id);
+              (isDM && !!panelCharacter && !!panelParticipant?.character_id);
             const charTabCharacter = isDM ? panelCharacter : ownCharacterFull;
             const charTabParticipant = isDM ? panelParticipant : ownParticipant;
             const charTabLabel = isDM

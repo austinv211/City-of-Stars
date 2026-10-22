@@ -54,7 +54,7 @@ export function ParticipantCard({
 
   const cardStyle: Record<string, string> = {};
   if (selected) {
-    cardStyle["background"] = "color-mix(in oklch, var(--accent-turn) 20%, transparent)";
+    cardStyle.background = "color-mix(in oklch, var(--accent-turn) 20%, transparent)";
   }
 
   return (

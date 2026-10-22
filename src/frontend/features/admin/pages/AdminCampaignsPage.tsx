@@ -44,7 +44,7 @@ interface MyMembership {
   role: "dm" | "player";
 }
 
-const ALL_ROLES: Array<"dm" | "player"> = ["dm", "player"];
+const ALL_ROLES: ("dm" | "player")[] = ["dm", "player"];
 const PAGE_SIZE = 10;
 
 const ROLE_COLORS: Record<string, string> = {
@@ -102,7 +102,7 @@ export default function AdminCampaignsPage() {
     return myMemberships.filter((m) => m.campaign_id === campaignId);
   }
 
-  function missingRoles(campaignId: string): Array<"dm" | "player"> {
+  function missingRoles(campaignId: string): ("dm" | "player")[] {
     const existing = myRoles(campaignId).map((m) => m.role);
     return ALL_ROLES.filter((r) => !existing.includes(r));
   }

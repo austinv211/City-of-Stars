@@ -290,8 +290,8 @@ export function useEncounterManager() {
           int_score: (n.int_score as number) ?? null,
           wis_score: (n.wis_score as number) ?? null,
           cha_score: (n.cha_score as number) ?? null,
-          actions: (n.actions as unknown) ?? null,
-          special_abilities: (n.special_abilities as unknown) ?? null,
+          actions: (n.actions) ?? null,
+          special_abilities: (n.special_abilities) ?? null,
           description: (n.description as string) ?? null,
         })),
       );

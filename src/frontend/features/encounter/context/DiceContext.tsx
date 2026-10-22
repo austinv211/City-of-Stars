@@ -102,7 +102,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
           throwForce: 4,
           startingHeight: 12,
           settleTimeout: 3000,
-        } as ConstructorParameters<typeof DiceBox>[0]);
+        });
         initPromiseRef.current = box
           .init()
           .then(() => { boxRef.current = box; })
@@ -177,7 +177,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     setDiceAnimating(true);
 
     // Parse count from diceType ("2d6" → 2, "d20" → 1).
-    const countMatch = opts.diceType.match(/^(\d+)/i);
+    const countMatch = /^(\d+)/i.exec(opts.diceType);
     const diceCount = countMatch ? parseInt(countMatch[1]) : 1;
     const notation = `${diceCount}d${opts.sides}`;
 
