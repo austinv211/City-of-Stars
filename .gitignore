@@ -39,3 +39,7 @@ lint-report.json
 # Local Supabase start log (scratch)
 supabase-start.log
 db-reset.log
+
+# Verification screenshots (regenerate with scripts/verify-responsive.mjs)
+artifacts/
+vite-e2e.log

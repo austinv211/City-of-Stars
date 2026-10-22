@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 /**
  * Subscribe to a CSS media query.
@@ -7,31 +7,42 @@ import { useEffect, useState } from "react";
  * anywhere before this, which is why nothing in the UI could respond to
  * viewport size. Everything responsive builds on this.
  *
- * Reads the match synchronously on first render so there is no incorrect first
- * paint, and guards `window` so the hook is safe in a non-DOM environment
- * (jsdom without matchMedia, or any future SSR/prerender step).
+ * Implemented with `useSyncExternalStore` rather than useState + useEffect.
+ * matchMedia *is* an external store, and this is the API built for reading one:
+ * it gets the value during render instead of after mount, so there is no
+ * wrong-value first paint and no setState-inside-an-effect cascade.
+ *
+ * `window.matchMedia` is typed as always present but is genuinely absent in
+ * bare jsdom, so the guards are deliberate — tests would otherwise crash on
+ * import.
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    return window.matchMedia(query).matches;
-  });
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const mql = getMediaQueryList(query);
+      if (!mql) return () => undefined;
+      mql.addEventListener("change", onChange);
+      return () => {
+        mql.removeEventListener("change", onChange);
+      };
+    },
+    [query],
+  );
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
+  const getSnapshot = useCallback(
+    () => getMediaQueryList(query)?.matches ?? false,
+    [query],
+  );
 
-    const list = window.matchMedia(query);
-    // Re-sync on mount: `query` may have changed since the initial state ran.
-    setMatches(list.matches);
+  // Server/prerender snapshot: assume the query does not match, so the
+  // mobile-first layout is what renders before hydration.
+  const getServerSnapshot = useCallback(() => false, []);
 
-    const onChange = (e: MediaQueryListEvent) => {
-      setMatches(e.matches);
-    };
-    list.addEventListener("change", onChange);
-    return () => {
-      list.removeEventListener("change", onChange);
-    };
-  }, [query]);
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
 
-  return matches;
+function getMediaQueryList(query: string): MediaQueryList | null {
+  if (typeof window === "undefined") return null;
+  if (typeof window.matchMedia !== "function") return null;
+  return window.matchMedia(query);
 }

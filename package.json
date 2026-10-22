@@ -12,7 +12,9 @@
     "db:reset": "npm run guard && supabase db reset",
     "e2e:up": "supabase start && npm run db:reset",
     "e2e:down": "supabase stop",
-    "lint": "eslint . --max-warnings 983",
+    "e2e:users": "node --env-file=.env.e2e scripts/seed-test-users.mjs",
+    "verify:responsive": "node --env-file=.env.e2e scripts/verify-responsive.mjs",
+    "lint": "eslint . --max-warnings 979",
     "lint:fix": "eslint . --fix",
     "lint:report": "eslint . -f json -o lint-report.json",
     "format": "prettier --write .",
@@ -63,6 +65,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/typography": "^0.5.15",
     "@tauri-apps/cli": "^2.0.0",
     "@types/node": "^22.0.0",

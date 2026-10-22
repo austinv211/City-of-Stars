@@ -1,29 +1,10 @@
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router";
-import {
-  Swords,
-  Users,
-  BookOpen,
-  LogOut,
-  ScrollText,
-  ListChecks,
-  Skull,
-  ShieldCheck,
-  BookMarked,
-  UserCog,
-  ChevronDown,
-  Globe,
-  Settings,
-} from "lucide-react";
+import { Outlet } from "react-router";
+import { ChevronDown, LogOut, Settings, Swords } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { DiceProvider } from "@/features/encounter/context/DiceContext";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/core/components/ui/tooltip";
+import { TooltipProvider } from "@/core/components/ui/tooltip";
 import {
   Popover,
   PopoverContent,
@@ -33,97 +14,29 @@ import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
 import { AnimatedStar, TitleBar } from "@/core/components/TitleBar";
-import { cn } from "@/lib/utils";
+import { NavSections } from "@/core/components/nav/NavSections";
+import { MobileNav } from "@/core/components/nav/MobileNav";
 import { useBreakpoint } from "@/core/hooks/useBreakpoint";
+import { cn } from "@/lib/utils";
 import DiceRollOverlay from "./DiceRollOverlay";
 import { AccountDialog } from "./AccountDialog";
 
-const navItems = [
-  { to: "/characters", label: "Characters", icon: Users },
-  { to: "/campaigns", label: "Campaigns", icon: BookOpen },
-  {
-    to: "/encounter",
-    label: "Encounter",
-    icon: Swords,
-    requiresEncounter: true,
-  },
-];
-
-const dmNavItems = [
-  { to: "/dm/campaigns", label: "Campaigns", icon: BookMarked },
-  { to: "/dm/members", label: "Members", icon: UserCog },
-  { to: "/dm/characters", label: "Characters", icon: Users },
-  { to: "/dm/sessions", label: "Session Manager", icon: ScrollText },
-  { to: "/dm/encounters", label: "Encounters", icon: ListChecks },
-  { to: "/dm/monsters", label: "Monster Library", icon: Skull },
-];
-
-const adminNavItems = [
-  { to: "/admin/whitelist", label: "Email Whitelist", icon: ShieldCheck },
-  { to: "/admin/campaigns", label: "All Campaigns", icon: Globe },
-];
-
-function NavItem({
-  to,
-  label,
-  icon: Icon,
-  disabled,
-  disabledTip,
-  badge,
-}: {
-  to: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  disabled?: boolean;
-  disabledTip?: string;
-  badge?: React.ReactNode;
-}) {
-  if (disabled) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="flex cursor-not-allowed items-center gap-3 px-3 py-2 text-sm text-muted-foreground opacity-40 select-none">
-            <Icon className="h-4 w-4" />
-            {label}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="right">{disabledTip}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        cn(
-          "flex items-center gap-3 px-3 py-2 text-sm transition-all duration-150",
-          isActive
-            ? "bg-primary/10 font-medium text-primary border-l-2 border-primary"
-            : "text-muted-foreground hover:bg-accent/30 hover:text-foreground",
-        )
-      }
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      {label}
-      {badge}
-    </NavLink>
-  );
-}
-
+/**
+ * Brand + active campaign, with a switcher when there is more than one.
+ * Shared by the desktop sidebar header and the phone header.
+ */
 function CampaignSelector() {
-  const { campaign, campaigns, campaignEncounters, switchCampaign } =
-    useCampaign();
+  const { campaign, campaigns, campaignEncounters, switchCampaign } = useCampaign();
   const { isPhone } = useBreakpoint();
 
   if (campaigns.length <= 1) {
     return (
       <div className="min-w-0">
-        <p className="text-sm font-bold tracking-tight leading-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <p className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-sm font-bold leading-tight tracking-tight text-transparent">
           City of Stars
         </p>
         {campaign && (
-          <p className="truncate text-[11px] text-muted-foreground leading-tight mt-0.5">
+          <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
             {campaign.name}
           </p>
         )}
@@ -134,20 +47,20 @@ function CampaignSelector() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" className="min-w-0 text-left group">
-          <p className="text-sm font-bold tracking-tight leading-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <button type="button" className="group min-w-0 text-left">
+          <p className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-sm font-bold leading-tight tracking-tight text-transparent">
             City of Stars
           </p>
-          <div className="flex items-center gap-1 mt-0.5">
-            <p className="truncate text-[11px] text-muted-foreground leading-tight group-hover:text-foreground transition-colors">
+          <div className="mt-0.5 flex items-center gap-1">
+            <p className="truncate text-[11px] leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
               {campaign?.name ?? "Select campaign"}
             </p>
-            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
           </div>
         </button>
       </PopoverTrigger>
       {/* side="right" pushes a 208px panel off-screen on a narrow viewport,
-          where the sidebar is an overlay rather than a fixed rail. */}
+          where the nav is an overlay rather than a fixed rail. */}
       <PopoverContent
         side={isPhone ? "bottom" : "right"}
         align="start"
@@ -160,11 +73,13 @@ function CampaignSelector() {
           <button
             key={c.id}
             type="button"
-            onClick={() => switchCampaign(c.id)}
+            onClick={() => {
+              switchCampaign(c.id);
+            }}
             className={cn(
-              "w-full text-left px-2 py-1.5 text-sm transition-colors flex items-center gap-2",
+              "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors",
               c.id === campaign?.id
-                ? "bg-primary/15 text-primary font-medium"
+                ? "bg-primary/15 font-medium text-primary"
                 : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground",
             )}
           >
@@ -179,127 +94,155 @@ function CampaignSelector() {
   );
 }
 
-export default function AppShell() {
-  const { activeEncounterId, isDM } = useCampaign();
+/** Identity + account controls, for the desktop sidebar footer. */
+function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
   const { user, isAdmin, isPlayerRole, signOut, displayName } = useAuth();
-  const [accountOpen, setAccountOpen] = useState(false);
+  const { isDM } = useCampaign();
 
+  return (
+    <div className="space-y-1 p-3">
+      <div className="flex items-start gap-1 px-2 py-1">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-foreground">{displayName}</p>
+          <p className="truncate text-[10px] leading-tight text-muted-foreground">
+            {user?.email}
+          </p>
+          {isDM && (
+            <Badge variant="secondary" className="mt-1 text-[10px]">
+              Dungeon Master
+            </Badge>
+          )}
+          {isPlayerRole && !isDM && !isAdmin && (
+            <Badge variant="outline" className="mt-1 text-[10px]">
+              Player
+            </Badge>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+          onClick={onOpenAccount}
+          aria-label="Account settings"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+        onClick={() => {
+          void signOut();
+        }}
+      >
+        <LogOut className="h-4 w-4" />
+        Sign out
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Application shell.
+ *
+ * Three layouts, selected by CSS rather than by a JS breakpoint hook. That
+ * matters: switching on `useBreakpoint()` would unmount and remount the whole
+ * nav tree on every resize across a boundary, and would flash the wrong layout
+ * for a frame on first paint. Media queries do it for free.
+ *
+ *   < 768px     phone  — brand header on top, bottom tab bar below
+ *   768-1279px  tablet — 64px icon rail with tooltips
+ *   >= 1280px   desktop — 224px labelled sidebar (the original layout)
+ *
+ * `h-dvh` rather than `h-screen`: `vh` on mobile browsers includes the area
+ * behind the retracting URL bar, which would push the bottom tab bar off-screen.
+ */
+export default function AppShell() {
+  const [accountOpen, setAccountOpen] = useState(false);
+  const { signOut } = useAuth();
+
+  const openAccount = () => {
+    setAccountOpen(true);
+  };
 
   return (
     <DiceProvider>
       <TooltipProvider>
-        <div className="flex h-screen flex-col bg-background overflow-hidden">
+        <div className="flex h-dvh flex-col overflow-hidden bg-background">
+          {/* Desktop Tauri window chrome; renders nothing on a mobile shell. */}
           <TitleBar />
 
+          {/* Phone header — the sidebar's brand block, relocated. */}
+          <header className="flex h-12 shrink-0 items-center gap-2.5 border-b border-border/40 bg-card px-3 pt-[var(--safe-top)] md:hidden">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/15">
+              <AnimatedStar size={20} />
+            </div>
+            <CampaignSelector />
+          </header>
+
           <div className="flex flex-1 overflow-hidden">
-            {/* Sidebar */}
-            <aside className="flex w-56 shrink-0 flex-col bg-card border-r border-border/40">
-              {/* Brand + Campaign Selector */}
-              <div className="h-12 flex items-center gap-2.5 px-4 border-b border-border/40">
-                <div className="flex h-8 w-8 items-center justify-center shrink-0 bg-primary/15">
+            {/* ── Tablet: icon rail ──────────────────────────────────────── */}
+            <aside className="hidden w-16 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] md:flex xl:hidden">
+              <div className="flex h-12 shrink-0 items-center justify-center border-b border-border/40">
+                <div className="flex h-8 w-8 items-center justify-center bg-primary/15">
                   <AnimatedStar size={20} />
                 </div>
-                <CampaignSelector />
               </div>
-
-              {/* Nav */}
-              <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3">
-                {isPlayerRole && navItems.map(({ to, label, icon, requiresEncounter }) => {
-                  const disabled = requiresEncounter && !activeEncounterId;
-                  return (
-                    <NavItem
-                      key={to}
-                      to={to}
-                      label={label}
-                      icon={icon}
-                      disabled={disabled}
-                      disabledTip="No active encounter"
-                      badge={
-                        requiresEncounter && activeEncounterId ? (
-                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-success" />
-                        ) : undefined
-                      }
-                    />
-                  );
-                })}
-
-                {(isDM || isAdmin) && (
-                  <>
-                    <div className="px-3 pt-4 pb-1">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                        DM Tools
-                      </p>
-                    </div>
-                    {dmNavItems.map(({ to, label, icon }) => (
-                      <NavItem key={to} to={to} label={label} icon={icon} />
-                    ))}
-                  </>
-                )}
-
-                {isAdmin && (
-                  <>
-                    <div className="px-3 pt-4 pb-1">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-destructive">
-                        Admin
-                      </p>
-                    </div>
-                    {adminNavItems.map(({ to, label, icon }) => (
-                      <NavItem key={to} to={to} label={label} icon={icon} />
-                    ))}
-                  </>
-                )}
-              </nav>
-
+              <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
+                <NavSections variant="icon" />
+              </div>
               <Separator />
-
-              {/* Footer */}
-              <div className="p-3 space-y-1">
-                <div className="flex items-start gap-1 px-2 py-1">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {displayName}
-                    </p>
-                    <p className="truncate text-[10px] text-muted-foreground leading-tight">
-                      {user?.email}
-                    </p>
-                    {isDM && (
-                      <Badge variant="secondary" className="mt-1 text-[10px]">
-                        Dungeon Master
-                      </Badge>
-                    )}
-                    {isPlayerRole && !isDM && !isAdmin && (
-                      <Badge variant="outline" className="mt-1 text-[10px]">
-                        Player
-                      </Badge>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => setAccountOpen(true)}
-                    title="Account settings"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
+              <div className="flex flex-col items-center gap-1 p-2">
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-                  onClick={signOut}
+                  size="icon"
+                  className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                  onClick={openAccount}
+                  aria-label="Account settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    void signOut();
+                  }}
+                  aria-label="Sign out"
                 >
                   <LogOut className="h-4 w-4" />
-                  Sign out
                 </Button>
               </div>
             </aside>
 
-            {/* Main content */}
-            <main className="flex flex-1 flex-col overflow-auto min-w-0">
+            {/* ── Desktop: full sidebar ──────────────────────────────────── */}
+            <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">
+              <div className="flex h-12 items-center gap-2.5 border-b border-border/40 px-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/15">
+                  <AnimatedStar size={20} />
+                </div>
+                <CampaignSelector />
+              </div>
+              <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
+                <NavSections variant="full" />
+              </div>
+              <Separator />
+              <SidebarFooter onOpenAccount={openAccount} />
+            </aside>
+
+            {/* ── Content ────────────────────────────────────────────────── */}
+            <main
+              data-scroll-container
+              className="flex min-w-0 flex-1 flex-col overflow-auto"
+            >
               <Outlet />
             </main>
           </div>
+
+          {/* Phone bottom tab bar + overflow sheet. */}
+          <MobileNav onOpenAccount={openAccount} />
         </div>
 
         <DiceRollOverlay />

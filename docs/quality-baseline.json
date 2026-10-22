@@ -8,12 +8,12 @@
   "measuredAt": "2026-10-21",
   "eslint": {
     "errors": 0,
-    "maxWarnings": 983,
+    "maxWarnings": 979,
     "byRule": {
       "@typescript-eslint/no-unnecessary-condition": 211,
-      "@typescript-eslint/no-misused-promises": 153,
-      "@typescript-eslint/no-floating-promises": 103,
-      "@typescript-eslint/restrict-template-expressions": 92,
+      "@typescript-eslint/no-misused-promises": 151,
+      "@typescript-eslint/no-floating-promises": 104,
+      "@typescript-eslint/restrict-template-expressions": 89,
       "react-hooks/set-state-in-effect": 45,
       "max-lines-per-function": 39,
       "complexity": 34,
@@ -69,7 +69,7 @@
   },
   "worstFiles": {
     "src/frontend/features/encounter/components/ActionPanel.tsx": 76,
-    "src/frontend/features/dm/pages/DmMonstersPage.tsx": 52,
+    "src/frontend/features/dm/pages/DmMonstersPage.tsx": 50,
     "src/frontend/features/dm/hooks/useEncounterManager.ts": 49,
     "src/frontend/features/characters/components/HPPanel.tsx": 43,
     "src/frontend/lib/dnd5eApi.ts": 40,
