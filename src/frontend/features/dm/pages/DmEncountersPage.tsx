@@ -7,14 +7,7 @@ import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Checkbox } from "@/core/components/ui/checkbox";
 import { Separator } from "@/core/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/core/components/ui/table";
+import { ResponsiveTable } from "@/core/components/ui/responsive-table";
 import {
   Dialog,
   DialogContent,
@@ -287,35 +280,52 @@ export default function DmEncountersPage() {
             </h2>
             <Card className="border-primary/40 ring-1 ring-primary/20">
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead className="w-28 text-center">Combatants</TableHead>
-                      <TableHead className="w-32">Started</TableHead>
-                      <TableHead className="w-28 text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {openEncounters.map((enc) => (
-                      <TableRow key={enc.id}>
-                        <TableCell className="font-medium">{enc.name ?? "Unnamed Encounter"}</TableCell>
-                        <TableCell className="text-center text-muted-foreground">
-                          {counts[enc.id]?.total ?? 0}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {enc.started_at ? new Date(enc.started_at).toLocaleString() : "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" onClick={() => navigate("/dm/encounters/active")}>
-                            <Eye className="h-3 w-3 mr-1.5" />
-                            Open
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <ResponsiveTable
+                  className="border-0"
+                  data={openEncounters}
+                  getRowKey={(enc) => enc.id}
+                  columns={[
+                    {
+                      key: "name",
+                      header: "Name",
+                      primary: true,
+                      cell: (enc) => enc.name ?? "Unnamed Encounter",
+                    },
+                    {
+                      key: "combatants",
+                      header: "Combatants",
+                      headClassName: "w-28 text-center",
+                      cellClassName: "text-muted-foreground md:text-center",
+                      cell: (enc) => counts[enc.id]?.total ?? 0,
+                    },
+                    {
+                      key: "started",
+                      header: "Started",
+                      headClassName: "w-32",
+                      cellClassName: "text-xs text-muted-foreground",
+                      cell: (enc) =>
+                        enc.started_at ? new Date(enc.started_at).toLocaleString() : "—",
+                    },
+                    {
+                      key: "actions",
+                      header: "Actions",
+                      actions: true,
+                      headClassName: "w-28 text-right",
+                      cellClassName: "md:text-right",
+                      cell: () => (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            navigate("/dm/encounters/active");
+                          }}
+                        >
+                          <Eye className="mr-1.5 h-3 w-3" />
+                          Open
+                        </Button>
+                      ),
+                    },
+                  ]}
+                />
               </CardContent>
             </Card>
           </section>
@@ -341,49 +351,66 @@ export default function DmEncountersPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead className="w-20 text-center">NPCs</TableHead>
-                      <TableHead className="w-56 text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {templates.map((t) => (
-                      <TableRow key={t.id}>
-                        <TableCell className="font-medium">{t.name ?? "Unnamed Template"}</TableCell>
-                        <TableCell className="text-center text-muted-foreground">
-                          {counts[t.id]?.npc ?? 0}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button size="sm" onClick={() => openStart(t)}>
-                              <Play className="h-3 w-3 mr-1.5" />
-                              Run
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditTemplate(t)}
-                            >
-                              <Pencil className="h-3 w-3 mr-1.5" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={() => deleteEncounter(t.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <ResponsiveTable
+                  className="border-0"
+                  data={templates}
+                  getRowKey={(tpl) => tpl.id}
+                  columns={[
+                    {
+                      key: "name",
+                      header: "Name",
+                      primary: true,
+                      cell: (tpl) => tpl.name ?? "Unnamed Template",
+                    },
+                    {
+                      key: "npcs",
+                      header: "NPCs",
+                      headClassName: "w-20 text-center",
+                      cellClassName: "text-muted-foreground md:text-center",
+                      cell: (tpl) => counts[tpl.id]?.npc ?? 0,
+                    },
+                    {
+                      key: "actions",
+                      header: "Actions",
+                      actions: true,
+                      headClassName: "w-56 text-right",
+                      cell: (tpl) => (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              openStart(tpl);
+                            }}
+                          >
+                            <Play className="mr-1.5 h-3 w-3" />
+                            Run
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              openEditTemplate(tpl);
+                            }}
+                          >
+                            <Pencil className="mr-1.5 h-3 w-3" />
+                            Edit
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => {
+                              void deleteEncounter(tpl.id);
+                            }}
+                            aria-label={`Delete ${tpl.name ?? "template"}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
               </CardContent>
             </Card>
           )}
@@ -400,57 +427,86 @@ export default function DmEncountersPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead className="w-28">Status</TableHead>
-                      <TableHead className="w-24 text-center">Combatants</TableHead>
-                      <TableHead className="w-40">Date</TableHead>
-                      <TableHead className="w-44 text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {history.map((enc) => (
-                      <TableRow
-                        key={enc.id}
-                        className={enc.id === historyEncounter?.id ? "bg-primary/5" : undefined}
-                      >
-                        <TableCell className="font-medium">{enc.name ?? "Unnamed Encounter"}</TableCell>
-                        <TableCell><StatusBadge status={enc.status} /></TableCell>
-                        <TableCell className="text-center text-muted-foreground">
-                          {counts[enc.id]?.total ?? 0}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {new Date(enc.ended_at ?? enc.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {enc.status === "completed" ? (
-                              <Button size="sm" variant="outline" onClick={() => openHistory(enc)}>
-                                <ScrollText className="h-3 w-3 mr-1.5" />
-                                View
-                              </Button>
-                            ) : (
-                              <Button size="sm" onClick={() => openStart(enc)}>
-                                <Play className="h-3 w-3 mr-1.5" />
-                                Start
-                              </Button>
-                            )}
+                <ResponsiveTable
+                  className="border-0"
+                  data={history}
+                  getRowKey={(enc) => enc.id}
+                  rowClassName={(enc) =>
+                    enc.id === historyEncounter?.id ? "bg-primary/5" : undefined
+                  }
+                  columns={[
+                    {
+                      key: "name",
+                      header: "Name",
+                      primary: true,
+                      cell: (enc) => enc.name ?? "Unnamed Encounter",
+                    },
+                    {
+                      key: "status",
+                      header: "Status",
+                      headClassName: "w-28",
+                      cell: (enc) => <StatusBadge status={enc.status} />,
+                    },
+                    {
+                      key: "combatants",
+                      header: "Combatants",
+                      headClassName: "w-24 text-center",
+                      cellClassName: "text-muted-foreground md:text-center",
+                      cell: (enc) => counts[enc.id]?.total ?? 0,
+                    },
+                    {
+                      key: "date",
+                      header: "Date",
+                      headClassName: "w-40",
+                      cellClassName: "text-xs text-muted-foreground",
+                      cell: (enc) =>
+                        new Date(enc.ended_at ?? enc.created_at).toLocaleDateString(),
+                    },
+                    {
+                      key: "actions",
+                      header: "Actions",
+                      actions: true,
+                      headClassName: "w-44 text-right",
+                      cell: (enc) => (
+                        <div className="flex items-center justify-end gap-1.5">
+                          {enc.status === "completed" ? (
                             <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={() => deleteEncounter(enc.id)}
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                void openHistory(enc);
+                              }}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <ScrollText className="mr-1.5 h-3 w-3" />
+                              View
                             </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                openStart(enc);
+                              }}
+                            >
+                              <Play className="mr-1.5 h-3 w-3" />
+                              Start
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => {
+                              void deleteEncounter(enc.id);
+                            }}
+                            aria-label={`Delete ${enc.name ?? "encounter"}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
               </CardContent>
             </Card>
           )}

@@ -50,6 +50,8 @@ interface Props<T> {
   getRowKey: (row: T) => string;
   /** Shown instead of the table when `data` is empty and not loading. */
   empty?: React.ReactNode;
+  /** Per-row classes, e.g. to highlight a selected row. */
+  rowClassName?: (row: T) => string | undefined;
   /** Render placeholder rows instead of data. */
   loading?: boolean;
   /** How many placeholder rows while loading. */
@@ -62,6 +64,7 @@ export function ResponsiveTable<T>({
   columns,
   getRowKey,
   empty,
+  rowClassName,
   loading = false,
   skeletonRows = 3,
   className,
@@ -97,13 +100,15 @@ export function ResponsiveTable<T>({
             ))}
           {!loading &&
             data.map((row) => (
-              <TableRow key={getRowKey(row)}>
+              <TableRow key={getRowKey(row)} className={rowClassName?.(row)}>
                 {columns.map((c) => (
                   <TableCell
                     key={c.key}
                     // Rendered as the cell's heading once the row stacks.
+                    // No label on the title cell (it IS the title) or an
+                    // actions cell, where the buttons speak for themselves.
                     data-label={
-                      typeof c.header === "string" && !c.primary
+                      typeof c.header === "string" && !c.primary && !c.actions
                         ? c.header
                         : undefined
                     }

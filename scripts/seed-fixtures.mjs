@@ -117,6 +117,50 @@ async function main() {
     console.log(`  ✔ character: ${c.name} (${p.email})`);
   }
 
+  // ── A monster and an encounter template ─────────────────────────────────
+  // Gives the encounter list and its three tables real rows to render, and
+  // gives Phase 3's redesign something to run against.
+  const [goblin] = await rest("custom_monsters", {
+    body: {
+      campaign_id: CAMPAIGN_ID,
+      name: "Vault Goblin",
+      hp: 7,
+      ac: 15,
+      default_initiative: 2,
+      cr: "1/4",
+      xp: 50,
+      dex_score: 14,
+      actions: [
+        { name: "Scimitar", desc: "Melee Weapon Attack: +4 to hit, 5 ft. Hit: 5 (1d6+2) slashing." },
+      ],
+    },
+  });
+
+  const [template] = await rest("encounters", {
+    body: {
+      campaign_id: CAMPAIGN_ID,
+      created_by: dm.id,
+      name: "Vault Ambush",
+      status: "pending",
+      is_template: true,
+    },
+  });
+
+  await rest("encounter_participants", {
+    body: [1, 2, 3].map((n) => ({
+      encounter_id: template.id,
+      name: `${goblin.name} ${String(n)}`,
+      hp_current: goblin.hp,
+      hp_max: goblin.hp,
+      ac: goblin.ac,
+      initiative_order: n,
+      initiative_score: goblin.default_initiative,
+      is_player: false,
+      dex_score: goblin.dex_score,
+      actions: goblin.actions,
+    })),
+  });
+  console.log("  ✔ template: Vault Ambush (3 goblins)");
   console.log("\nFixture ready.");
 }
 

@@ -8,11 +8,11 @@
   "measuredAt": "2026-10-21",
   "eslint": {
     "errors": 0,
-    "maxWarnings": 978,
+    "maxWarnings": 975,
     "byRule": {
       "@typescript-eslint/no-unnecessary-condition": 211,
-      "@typescript-eslint/no-misused-promises": 149,
-      "@typescript-eslint/no-floating-promises": 106,
+      "@typescript-eslint/no-misused-promises": 144,
+      "@typescript-eslint/no-floating-promises": 108,
       "@typescript-eslint/restrict-template-expressions": 89,
       "react-hooks/set-state-in-effect": 45,
       "max-lines-per-function": 39,
@@ -77,8 +77,8 @@
     "src/frontend/features/characters/components/SpellsPanel.tsx": 34,
     "src/frontend/core/context/CampaignContext.tsx": 26,
     "src/frontend/features/dm/pages/DmCampaignsPage.tsx": 25,
-    "src/frontend/features/dm/pages/DmEncountersPage.tsx": 24,
     "src/frontend/features/encounter/pages/EncounterPage.tsx": 23,
-    "src/frontend/features/encounter/components/CharacterQuickRef.tsx": 22
+    "src/frontend/features/encounter/components/CharacterQuickRef.tsx": 22,
+    "src/frontend/features/dm/pages/DmCharacterViewPage.tsx": 21
   }
 }
