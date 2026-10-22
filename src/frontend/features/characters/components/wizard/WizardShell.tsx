@@ -32,7 +32,7 @@ export function WizardShell({ state, dispatch, children, onBack }: WizardShellPr
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex min-h-0 flex-1 flex-col bg-background">
       <div className="sticky top-0 z-10 bg-background shadow-sm px-6 py-4">
         <div>
           <div className="flex items-center gap-4 mb-3">

@@ -269,7 +269,7 @@ function ScorePreview({ state }: { state: WizardState }) {
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
         Final scores (with background bonuses)
       </p>
-      <div className="grid grid-cols-6 gap-2 text-center">
+      <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
         {ABILITIES.map((a) => (
           <div key={a}>
             <div className="text-xs text-muted-foreground">{ABILITY_LABELS[a]}</div>

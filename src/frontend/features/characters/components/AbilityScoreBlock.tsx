@@ -74,8 +74,10 @@ function ScoreCell({
 }
 
 export function AbilityScoreBlock({ scores, canEdit = false, onSave }: Props) {
+  // Six columns of text-2xl scores is ~44px each at 360px. Two rows of three
+  // reads far better on a phone.
   return (
-    <div className="grid grid-cols-6 gap-2 text-center">
+    <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
       {ABILITIES.map(({ key, label }) => (
         <ScoreCell
           key={key}

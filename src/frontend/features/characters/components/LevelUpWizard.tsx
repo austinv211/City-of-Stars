@@ -91,7 +91,7 @@ function FeatureItem({
             {name}
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 max-h-72 overflow-y-auto text-xs leading-relaxed space-y-1 p-3">
+        <PopoverContent className="max-h-72 w-[min(20rem,calc(100vw-2rem))] space-y-1 overflow-y-auto p-3 text-xs leading-relaxed">
           <p className="font-semibold text-sm mb-1">{name}</p>
           <p className="whitespace-pre-wrap text-muted-foreground">{detail.description}</p>
         </PopoverContent>

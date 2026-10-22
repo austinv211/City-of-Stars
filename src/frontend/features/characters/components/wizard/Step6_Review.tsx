@@ -75,7 +75,7 @@ export function Step6_Review({ state, onCommit, loading, error }: Props) {
         <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-muted-foreground">
           Ability Scores
         </h3>
-        <div className="grid grid-cols-6 gap-2 text-center">
+        <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
           {ABILITIES.map((ability, i) => (
             <div key={ability} className="rounded-lg border bg-card p-2">
               <div className="text-xs text-muted-foreground font-semibold">

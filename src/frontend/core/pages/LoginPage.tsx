@@ -78,7 +78,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+    <div className="relative flex min-h-dvh items-center justify-center bg-background p-4">
       {/* Subtle radial glow behind the card */}
       <div
         className="pointer-events-none absolute inset-0"

@@ -650,7 +650,7 @@ export default function DmMonstersPage() {
             </div>
 
             {/* ── Basic stats ── */}
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               <div className="space-y-1">
                 <Label className="text-xs">HP</Label>
                 <Input type="number" min={1} value={form.hp}
@@ -695,7 +695,7 @@ export default function DmMonstersPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Ability Scores
               </p>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 <AbilityInput label="STR" scoreKey="str_score" />
                 <AbilityInput label="DEX" scoreKey="dex_score" />
                 <AbilityInput label="CON" scoreKey="con_score" />
