@@ -8,18 +8,163 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same ref makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  typecheck:
-    name: TypeScript type-check
+  # ── Static analysis ─────────────────────────────────────────────────────────
+  lint:
+    name: Lint & type-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+
+      # --max-warnings is pinned to docs/quality-baseline.json. It is a ratchet:
+      # the number may only ever be edited DOWNWARD. A PR that needs it raised
+      # is a conversation, not a silent edit.
+      - name: ESLint (0 errors, warnings capped at the baseline)
+        run: npm run lint
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+  quality:
+    name: Quality ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Dead code & unused dependencies
+        run: npm run knip:strict
+
+      - name: Type coverage
+        run: npm run types:coverage
+
+      - name: Duplication
+        run: npm run dup
+
+      # The baseline is the project's quality debt in one reviewable file. Its
+      # diff is the honest signal of whether a PR improved things.
+      - name: Baseline present and parseable
+        run: node -e "JSON.parse(require('fs').readFileSync('docs/quality-baseline.json','utf8'))"
+
+  # ── The schema must be reproducible from zero ───────────────────────────────
+  # This is what §0.1 fixed: the duplicate-migration history made `db reset`
+  # abort, so a local stack could not be stood up at all. Guarding it here stops
+  # that regressing, and is a disaster-recovery property in its own right.
+  migrations-replay:
+    name: Migrations replay from zero
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Start local Supabase stack
+        run: npx supabase start --exclude studio,imgproxy,inbucket,realtime,storage-api
+
+      # Applies all migrations to an empty database, then the seeds. No
+      # production credential exists in this job -- see `guard` below.
+      - name: supabase db reset
+        run: npx supabase db reset --no-seed
+
+      - name: Seeds apply cleanly
+        run: npx supabase db reset
+
+      - name: Production-safety guard refuses non-local targets
+        run: npm run guard
+
+      - name: Stop stack
+        if: always()
+        run: npx supabase stop --no-backup
+
+  # ── Rust ────────────────────────────────────────────────────────────────────
+  # None of this existed before. The crate is currently a thin webview shim with
+  # zero commands, so `cargo test` finds nothing -- the point is that the gate is
+  # in place BEFORE the first real #[tauri::command] lands, not after.
+  rust:
+    name: Rust fmt / clippy / test
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: '. -> target'
+
+      # Same system libraries release.yml's build-linux job installs.
+      - name: Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libxdo-dev build-essential libssl-dev
+
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+
+  # ── Supply chain & secrets ──────────────────────────────────────────────────
+  # Pointed at this repo specifically: release.yml injects Supabase credentials
+  # into its build jobs, scripts/parse-srd.mjs uses the service-role key, and
+  # the Makefile URL-encodes SUPABASE_DB_PASSWORD inline -- several ways for a
+  # real secret to end up in a commit.
+  security:
+    name: Dependency audit & secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks needs history, not just the tip
 
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
-
       - run: npm ci
 
-      - run: npx tsc --noEmit
+      - name: npm audit (high and above)
+        run: npm audit --audit-level=high
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # .env.e2e is committed on purpose and holds only the well-known local
+      # `supabase start` demo keys. Assert it never grows a real one.
+      - name: .env.e2e stays local-only
+        run: |
+          if grep -qE 'supabase\.(co|in)' .env.e2e; then
+            echo "::error file=.env.e2e::.env.e2e references a hosted Supabase project. It must only ever point at 127.0.0.1."
+            exit 1
+          fi
+          echo ".env.e2e is loopback-only"
+
+# ── Deliberately not here yet ─────────────────────────────────────────────────
+# test-unit / test-component  need vitest + the fake Supabase client (§2.3-2.4)
+# test-db                     needs the RLS suite (§2.6)
+# test-e2e                    needs Playwright + seeds (§2.5)
+# format:check                needs the one-time `prettier --write` reformat
+# semgrep / CodeQL            need rule config (§2.8)
+#
+# Each is added with the layer it guards, so every job in this file passes on
+# master rather than sitting red as a placeholder.
+

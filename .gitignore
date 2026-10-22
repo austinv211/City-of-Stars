@@ -35,3 +35,6 @@ docs/rules/
 
 # ESLint JSON report (scratch output of `npm run lint:report`)
 lint-report.json
+
+# Local Supabase start log (scratch)
+supabase-start.log
