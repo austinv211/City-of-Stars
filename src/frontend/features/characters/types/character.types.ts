@@ -279,7 +279,13 @@ export function finalAbilityScores(
 ): AbilityScores {
   const result = { ...scores };
   if (primary) result[primary] = result[primary] + 2;
-  if (secondary) result[secondary] = result[secondary] + 1;
+  // The 2024 background rules give +2/+1 across two DIFFERENT abilities (or
+  // +1 to three). Nothing stopped a caller passing the same ability twice,
+  // which silently produced +3 -- and flowed straight into attack rolls,
+  // save DCs and AC via deriveStats.
+  if (secondary && secondary !== primary) {
+    result[secondary] = result[secondary] + 1;
+  }
   return result;
 }
 
