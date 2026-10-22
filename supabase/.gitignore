@@ -6,3 +6,7 @@
 .env.keys
 .env.local
 .env.*.local
+
+# Sanitised production snapshot — regenerate with `npm run snapshot`.
+# Never commit: it carries campaign content, even though PII is scrubbed.
+seed/90-test-seed.sql
