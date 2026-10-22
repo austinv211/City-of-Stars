@@ -38,3 +38,4 @@ lint-report.json
 
 # Local Supabase start log (scratch)
 supabase-start.log
+db-reset.log
