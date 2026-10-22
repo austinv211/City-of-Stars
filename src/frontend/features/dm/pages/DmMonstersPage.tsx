@@ -29,6 +29,7 @@ import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
 import { searchMonsters, getMonster, monsterToDbForm } from "@/lib/dnd5eApi";
 import type { DndMonsterSummary } from "@/lib/dnd5eApi";
 import type { MonsterAction, MonsterSpecialAbility } from "@/features/encounter/types/encounter.types";
+import { abilityModifier, formatScoreWithModifier } from "@/lib/abilityScore";
 
 const SIZES = ["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"];
 const TYPES = [
@@ -99,11 +100,10 @@ const BLANK_FORM: MonsterForm = {
 };
 
 function abilityMod(score: number) {
-  return Math.floor((score - 10) / 2);
+  return abilityModifier(score);
 }
 function modStr(score: number) {
-  const m = abilityMod(score);
-  return `${score} (${m >= 0 ? "+" : ""}${m})`;
+  return formatScoreWithModifier(score);
 }
 
 function dbRowToForm(row: Record<string, unknown>): MonsterRecord {

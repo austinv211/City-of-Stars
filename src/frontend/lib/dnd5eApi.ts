@@ -87,14 +87,14 @@ export async function getMonster(index: string): Promise<DndMonster | null> {
 /** Derive minimal NPC encounter defaults from a monster entry */
 export function monsterToNpc(m: DndMonster) {
   const ac = m.armor_class?.[0]?.value ?? 12;
-  const dexMod = Math.floor(((m.dexterity ?? 10) - 10) / 2);
+  const dexMod = abilityModifier(m.dexterity ?? 10);
   return { name: m.name, hp: m.hit_points, ac, initiative: dexMod };
 }
 
 /** Convert a full API monster to the custom_monsters DB row shape */
 export function monsterToDbForm(m: DndMonster) {
   const ac = m.armor_class?.[0]?.value ?? 12;
-  const dexMod = Math.floor(((m.dexterity ?? 10) - 10) / 2);
+  const dexMod = abilityModifier(m.dexterity ?? 10);
   const walkSpeed = parseInt(m.speed?.walk ?? "30") || 30;
 
   const actions = (m.actions ?? []).map((a) => ({
@@ -321,6 +321,7 @@ export async function getFeats(): Promise<{ index: string; name: string }[]> {
 // These are preferred over the external API when available.
 
 import { supabase } from "@/lib/supabase";
+import { abilityModifier } from "./abilityScore";
 
 export interface SrdClassFeatureRow {
   class_name: string;

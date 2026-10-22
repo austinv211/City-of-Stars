@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar
 import { CLASSES } from "../../data/dnd2024.constants";
 import { finalAbilityScores, deriveStats, passiveScore } from "../../types/character.types";
 import type { WizardState } from "../../types/character.types";
+import { abilityModifier, formatModifier } from "@/lib/abilityScore";
 
 const ABILITY_LABELS = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
 const ABILITIES = [
@@ -12,8 +13,7 @@ const ABILITIES = [
 ] as const;
 
 function mod(score: number) {
-  const m = Math.floor((score - 10) / 2);
-  return m >= 0 ? `+${m}` : `${m}`;
+  return formatModifier(abilityModifier(score));
 }
 
 interface Props {

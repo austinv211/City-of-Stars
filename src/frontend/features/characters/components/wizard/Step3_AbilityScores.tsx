@@ -21,6 +21,7 @@ import {
   finalAbilityScores,
 } from "../../types/character.types";
 import type { WizardState, WizardAction, AbilityName, AbilityScores } from "../../types/character.types";
+import { abilityModifier, formatModifier } from "@/lib/abilityScore";
 
 const ABILITIES: AbilityName[] = [
   "strength",
@@ -41,8 +42,7 @@ const ABILITY_LABELS: Record<AbilityName, string> = {
 };
 
 function mod(score: number) {
-  const m = Math.floor((score - 10) / 2);
-  return m >= 0 ? `+${m}` : `${m}`;
+  return formatModifier(abilityModifier(score));
 }
 
 function pointBuySpent(scores: AbilityScores): number {
