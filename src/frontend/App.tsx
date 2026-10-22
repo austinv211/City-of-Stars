@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/core/components/ErrorBoundary";
 import AppShell from "@/core/components/AppShell";
 import EncounterGuard from "@/core/components/EncounterGuard";
 import DmGuard from "@/core/components/DmGuard";
+import AdminGuard from "@/core/components/AdminGuard";
 import PlayerGuard from "@/core/components/PlayerGuard";
 import LoginPage from "@/core/pages/LoginPage";
 import NotFoundPage from "@/core/pages/NotFoundPage";
@@ -83,8 +84,10 @@ export default function App() {
                 <Route path="/dm/monsters" element={<DmMonstersPage />} />
               </Route>
               {/* Admin-only routes */}
-              <Route path="/admin/whitelist" element={<AdminWhitelistPage />} />
-              <Route path="/admin/campaigns" element={<AdminCampaignsPage />} />
+              <Route element={<AdminGuard />}>
+                <Route path="/admin/whitelist" element={<AdminWhitelistPage />} />
+                <Route path="/admin/campaigns" element={<AdminCampaignsPage />} />
+              </Route>
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />
