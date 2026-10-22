@@ -34,6 +34,7 @@ import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
 import { AnimatedStar, TitleBar } from "@/core/components/TitleBar";
 import { cn } from "@/lib/utils";
+import { useBreakpoint } from "@/core/hooks/useBreakpoint";
 import DiceRollOverlay from "./DiceRollOverlay";
 import { AccountDialog } from "./AccountDialog";
 
@@ -113,6 +114,7 @@ function NavItem({
 function CampaignSelector() {
   const { campaign, campaigns, campaignEncounters, switchCampaign } =
     useCampaign();
+  const { isPhone } = useBreakpoint();
 
   if (campaigns.length <= 1) {
     return (
@@ -144,7 +146,13 @@ function CampaignSelector() {
           </div>
         </button>
       </PopoverTrigger>
-      <PopoverContent side="right" align="start" className="w-52 p-1">
+      {/* side="right" pushes a 208px panel off-screen on a narrow viewport,
+          where the sidebar is an overlay rather than a fixed rail. */}
+      <PopoverContent
+        side={isPhone ? "bottom" : "right"}
+        align="start"
+        className="w-52 p-1"
+      >
         <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Switch Campaign
         </p>

@@ -1,5 +1,6 @@
 import { Minus, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePlatform } from "@/core/hooks/usePlatform";
 
 // ── Multicolored 4-pointed sparkle star ────────────────────────────────────
 
@@ -63,6 +64,13 @@ async function tauriWindow() {
 }
 
 export function TitleBar() {
+  const { isDesktopShell, isMobileShell } = usePlatform();
+
+  // On Android/iOS the OS draws the system bars, and an 8px brand strip plus a
+  // 2px accent bar is real vertical budget on a phone. AppShell's mobile header
+  // carries the brand instead.
+  if (isMobileShell) return null;
+
   return (
     <div className="flex w-full shrink-0 select-none flex-col bg-[var(--titlebar)]">
       <div className="flex h-8 w-full items-center" data-tauri-drag-region>
@@ -77,7 +85,10 @@ export function TitleBar() {
         {/* Drag region filler */}
         <div className="flex-1" data-tauri-drag-region />
 
-        {/* Window controls — excluded from drag region */}
+        {/* Window controls — desktop Tauri only. In a browser these have
+            nothing to act on and were previously rendered anyway, failing
+            silently through tauriWindow()'s try/catch. */}
+        {isDesktopShell && (
         <div className="flex items-stretch h-8">
           <WinBtn
             title="Minimize"
@@ -101,6 +112,7 @@ export function TitleBar() {
             <X className="h-3.5 w-3.5" />
           </WinBtn>
         </div>
+        )}
       </div>
 
       {/* Rainbow accent bar — hardcoded Catppuccin branding colors */}
