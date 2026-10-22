@@ -7,3 +7,4 @@ package-lock.json
 lint-report.json
 docs/rules
 supabase/seed/90-test-seed.sql
+src/frontend/types/database.ts

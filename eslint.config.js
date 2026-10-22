@@ -45,6 +45,8 @@ export default tseslint.config(
   {
     ignores: [
       "dist/**",
+      // Generated from the live schema; regenerate, never hand-edit.
+      "src/frontend/types/database.ts",
       "node_modules/**",
       "src/tauri/**",
       "supabase/**",

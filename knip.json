@@ -1,7 +1,17 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/frontend/main.tsx!", "index.html", "scripts/*.{mjs,ts}"],
-  "project": ["src/frontend/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}"],
+  "entry": [
+    "src/frontend/main.tsx!",
+    "index.html",
+    "scripts/*.{mjs,ts}"
+  ],
+  "project": [
+    "src/frontend/**/*.{ts,tsx}",
+    "scripts/**/*.{mjs,ts}"
+  ],
   "ignoreExportsUsedInFile": true,
-  "ignore": ["src/frontend/core/components/ui/**"]
+  "ignore": [
+    "src/frontend/core/components/ui/**",
+    "src/frontend/types/database.ts"
+  ]
 }
