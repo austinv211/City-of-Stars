@@ -44,16 +44,22 @@ ALTER TABLE srd_classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE srd_backgrounds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE srd_feature_details ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "srd_classes_read" ON srd_classes;
 CREATE POLICY "srd_classes_read" ON srd_classes
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "srd_backgrounds_read" ON srd_backgrounds;
 CREATE POLICY "srd_backgrounds_read" ON srd_backgrounds
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "srd_feature_details_read" ON srd_feature_details;
 CREATE POLICY "srd_feature_details_read" ON srd_feature_details
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "srd_classes_admin_write" ON srd_classes;
 CREATE POLICY "srd_classes_admin_write" ON srd_classes
   FOR ALL TO authenticated USING (is_app_admin()) WITH CHECK (is_app_admin());
+DROP POLICY IF EXISTS "srd_backgrounds_admin_write" ON srd_backgrounds;
 CREATE POLICY "srd_backgrounds_admin_write" ON srd_backgrounds
   FOR ALL TO authenticated USING (is_app_admin()) WITH CHECK (is_app_admin());
+DROP POLICY IF EXISTS "srd_feature_details_admin_write" ON srd_feature_details;
 CREATE POLICY "srd_feature_details_admin_write" ON srd_feature_details
   FOR ALL TO authenticated USING (is_app_admin()) WITH CHECK (is_app_admin());

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.character_spell_slots (
 
 ALTER TABLE public.character_spell_slots ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "character_spell_slots_owner" ON public.character_spell_slots;
 CREATE POLICY "character_spell_slots_owner" ON public.character_spell_slots
   FOR ALL USING (
     EXISTS (
@@ -41,6 +42,7 @@ CREATE POLICY "character_spell_slots_owner" ON public.character_spell_slots
     )
   );
 
+DROP POLICY IF EXISTS "character_spell_slots_campaign_read" ON public.character_spell_slots;
 CREATE POLICY "character_spell_slots_campaign_read" ON public.character_spell_slots
   FOR SELECT USING (
     EXISTS (
@@ -62,9 +64,11 @@ CREATE TABLE IF NOT EXISTS public.character_audit_log (
 
 ALTER TABLE public.character_audit_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "character_audit_log_insert" ON public.character_audit_log;
 CREATE POLICY "character_audit_log_insert" ON public.character_audit_log
   FOR INSERT WITH CHECK (changed_by = auth.uid());
 
+DROP POLICY IF EXISTS "character_audit_log_dm_read" ON public.character_audit_log;
 CREATE POLICY "character_audit_log_dm_read" ON public.character_audit_log
   FOR SELECT USING (
     EXISTS (
@@ -76,6 +80,7 @@ CREATE POLICY "character_audit_log_dm_read" ON public.character_audit_log
     )
   );
 
+DROP POLICY IF EXISTS "character_audit_log_owner_read" ON public.character_audit_log;
 CREATE POLICY "character_audit_log_owner_read" ON public.character_audit_log
   FOR SELECT USING (
     EXISTS (
