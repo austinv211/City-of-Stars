@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Input } from "@/core/components/ui/input";
 import { Badge } from "@/core/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/core/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/core/components/ui/responsive-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
 import {
   searchRulesGlossary,
@@ -101,9 +101,9 @@ function GlossaryPanel() {
   const categories = ["all", "Condition", "Action", "Hazard", "General"];
 
   return (
-    <div className="flex gap-4 h-[520px]">
+    <div className="flex h-[65dvh] flex-col gap-4 md:h-[520px] md:flex-row">
       {/* Left — list */}
-      <div className="w-64 shrink-0 flex flex-col gap-2">
+      <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
         <Input
           placeholder="Search rules…"
           value={query}
@@ -207,8 +207,8 @@ function SpellsPanel() {
   const levels = Object.keys(byLevel).map(Number).sort((a, b) => a - b);
 
   return (
-    <div className="flex gap-4 h-[520px]">
-      <div className="w-64 shrink-0 flex flex-col gap-2">
+    <div className="flex h-[65dvh] flex-col gap-4 md:h-[520px] md:flex-row">
+      <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
         <Input
           placeholder={`Search ${allSpells.length || ""} spells…`}
           value={query}
@@ -306,8 +306,8 @@ function ClassFeaturesPanel() {
   }, [selectedClass]);
 
   return (
-    <div className="flex gap-4 h-[520px]">
-      <div className="w-64 shrink-0 flex flex-col gap-2">
+    <div className="flex h-[65dvh] flex-col gap-4 md:h-[520px] md:flex-row">
+      <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
         <select
           className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           value={selectedClass}
@@ -392,8 +392,8 @@ function FeatsPanel() {
   }, {});
 
   return (
-    <div className="flex gap-4 h-[520px]">
-      <div className="w-64 shrink-0 flex flex-col gap-2">
+    <div className="flex h-[65dvh] flex-col gap-4 md:h-[520px] md:flex-row">
+      <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
         <Input
           placeholder="Filter feats…"
           value={query}
@@ -471,14 +471,24 @@ interface RulesLookupProps {
 
 export function RulesLookup({ open, onClose, initialTab = "glossary" }: RulesLookupProps) {
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-background border-border">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
+      <ResponsiveDialogContent
+        widthClassName="md:max-w-4xl"
+        className="bg-background"
+      >
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2">
             Rules Reference
-            <Badge variant="secondary" className="text-xs font-normal">2024 PHB SRD</Badge>
-          </DialogTitle>
-        </DialogHeader>
+            <Badge variant="secondary" className="text-xs font-normal">
+              2024 PHB SRD
+            </Badge>
+          </ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
 
         <Tabs defaultValue={initialTab} className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="shrink-0">
@@ -503,7 +513,7 @@ export function RulesLookup({ open, onClose, initialTab = "glossary" }: RulesLoo
             </TabsContent>
           </div>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

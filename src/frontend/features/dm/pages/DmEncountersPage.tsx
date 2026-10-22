@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from "@/core/components/ui/dialog";
 import { Plus, Trash2, Swords, Play, BookOpen, ScrollText, X, Pencil, Eye } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Textarea } from "@/core/components/ui/textarea";
 import { useEncounterManager } from "@/features/dm/hooks/useEncounterManager";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
@@ -257,7 +258,14 @@ export default function DmEncountersPage() {
   return (
     <div className="flex h-full overflow-hidden">
       {/* ── Main column ── */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-8 space-y-8 min-w-0">
+      <div
+        className={cn(
+          "min-w-0 flex-1 space-y-8 overflow-y-auto px-4 py-8 sm:px-6",
+          // On a narrow screen the detail panel replaces the list rather
+          // than squeezing it; the panel's close button restores this view.
+          historyEncounter && "hidden lg:block",
+        )}
+      >
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Encounters</h1>
@@ -515,7 +523,7 @@ export default function DmEncountersPage() {
 
       {/* ── Right column — history detail panel ── */}
       {historyEncounter && (
-        <div className="w-80 shrink-0 border-l overflow-y-auto p-4 space-y-4">
+        <div className="w-full shrink-0 space-y-4 overflow-y-auto p-4 lg:w-80 lg:border-l">
           <div className="flex items-center justify-between">
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate">{historyEncounter.name ?? "Encounter"}</p>

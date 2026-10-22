@@ -13,12 +13,12 @@ import {
   SelectValue,
 } from "@/core/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/core/components/ui/dialog";
+  ResponsiveDialog as Dialog,
+  ResponsiveDialogContent as DialogContent,
+  ResponsiveDialogHeader as DialogHeader,
+  ResponsiveDialogTitle as DialogTitle,
+  ResponsiveDialogFooter as DialogFooter,
+} from "@/core/components/ui/responsive-dialog";
 import { UserPlus, Trash2, Users, AlertTriangle, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -306,7 +306,7 @@ export default function DmMembersPage() {
           if (!o) setAddOpen(false);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent widthClassName="md:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Member</DialogTitle>
           </DialogHeader>
@@ -359,7 +359,7 @@ export default function DmMembersPage() {
           if (!o) setRemoveTarget(null);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent widthClassName="md:max-w-md">
           <DialogHeader>
             <DialogTitle>Remove member?</DialogTitle>
           </DialogHeader>
