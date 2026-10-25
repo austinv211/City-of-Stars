@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { EffectExpiry, EncounterEffect } from "../types/encounter.types";
 
@@ -33,14 +34,16 @@ export function useEncounterEffects(encounterId: string | null) {
   useEffect(() => {
     if (!encounterId) return;
 
-    void supabase
-      .from("encounter_effects")
-      .select("*")
-      .eq("encounter_id", encounterId)
-      .order("created_at")
-      .then(({ data }) => {
-        setEffects((data as EncounterEffect[] | null) ?? []);
-      });
+    const load = () =>
+      supabase
+        .from("encounter_effects")
+        .select("*")
+        .eq("encounter_id", encounterId)
+        .order("created_at")
+        .then(({ data }) => {
+          setEffects((data as EncounterEffect[] | null) ?? []);
+        });
+    void load();
 
     const channel = supabase
       .channel(`encounter_effects:${encounterId}`)
@@ -70,7 +73,11 @@ export function useEncounterEffects(encounterId: string | null) {
           );
         },
       )
-      .subscribe();
+      // Load again once joined, so an effect added between the first load
+      // and the join is not missed; also resyncs after a reconnect.
+      .subscribe((status) => {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) void load();
+      });
 
     return () => {
       void supabase.removeChannel(channel);

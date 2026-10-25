@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
 import { applyDamageMitigation, concentrationDC, resolveDeathSave } from "@/features/characters/data/rules2024";
@@ -82,7 +83,12 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
           }
         }
       )
-      .subscribe();
+      // Load again once joined: a change made between the first load and the
+      // join is never delivered, and a player who rolled initiative in that
+      // gap stayed on the roll screen. Also resyncs after a reconnect.
+      .subscribe((status) => {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) void load();
+      });
 
     return () => {
       supabase.removeChannel(channel);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import type { Encounter } from "../types/encounter.types";
@@ -15,8 +16,9 @@ export function useActiveEncounter() {
       return;
     }
 
-    async function load() {
-      setLoading(true);
+    async function load(background = false) {
+      // A resync must not flash the screen back to its loading state.
+      if (!background) setLoading(true);
       const { data } = await supabase
         .from("encounters")
         .select("*")
@@ -44,7 +46,12 @@ export function useActiveEncounter() {
           );
         }
       )
-      .subscribe();
+      // Load again once joined: a change made between the first load and the
+      // join is never delivered, and a turn advanced in that gap would
+      // show the wrong combatant acting. Also resyncs after a reconnect.
+      .subscribe((status) => {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) void load(true);
+      });
 
     return () => {
       supabase.removeChannel(channel);
