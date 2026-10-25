@@ -161,8 +161,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # v3 downloads the legacy "tools" package, which Google has removed;
+      # v4.0.2+ fixed that (v0.3.0's first release run failed here).
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4.0.4
 
       - name: Install Android SDK components
         run: |
