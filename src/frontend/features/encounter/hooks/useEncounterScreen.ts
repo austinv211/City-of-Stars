@@ -10,6 +10,7 @@ import { deriveStage } from "../lib/encounterStage";
 import { targetInfo } from "../lib/attack";
 import { useActiveEncounter } from "./useActiveEncounter";
 import { useEncounterEffects } from "./useEncounterEffects";
+import { useEncounterEvents } from "./useEncounterEvents";
 import { useEncounterParticipants } from "./useEncounterParticipants";
 
 /**
@@ -27,6 +28,8 @@ export function useEncounterScreen(playerMode: boolean) {
   const active = useActiveEncounter();
   const combat = useEncounterParticipants(activeEncounterId, campaign?.id);
   const effects = useEncounterEffects(activeEncounterId);
+  // The event log is the DM's: history and undo.
+  const log = useEncounterEvents(activeEncounterId, isDM);
   const { characters, loading: charsLoading } = useCharacters();
   const { history: allHistory, roll } = useDice();
 
@@ -97,6 +100,7 @@ export function useEncounterScreen(playerMode: boolean) {
     participants,
     effects,
     history: allHistory.filter((e) => e.encounterId === activeEncounterId),
+    log,
     rollDeathSave,
 
     ownCharacter: ownCharacter ?? null,
