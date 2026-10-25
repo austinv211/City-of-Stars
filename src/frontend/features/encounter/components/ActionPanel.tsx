@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
@@ -27,7 +28,6 @@ interface Props {
   attacks: CharacterAttack[];
   campaignId: string;
   encounterId: string;
-  isMyTurn: boolean;
   isDM: boolean;
   canControl: boolean;
   onSetConcentration: (spell: string | null) => void;
@@ -36,7 +36,16 @@ interface Props {
   onSetTurnFlag: (flag: TurnFlag, value: boolean) => void;
   target: TargetInfo | null;
   /** DM only; see CombatantView.onApplyDamage. */
-  onApplyDamage?: (amount: number, type: string | null, crit: boolean) => Promise<DamageResult>;
+  onApplyDamage?: (
+    amount: number,
+    type: string | null,
+    crit: boolean,
+  ) => Promise<DamageResult>;
+  /**
+   * On a player's own turn: lead with the economy and attacks, and fold the
+   * dice pool, saves and checks behind "More".
+   */
+  secondaryCollapsed?: boolean;
 }
 
 /**
@@ -52,7 +61,6 @@ export function ActionPanel({
   attacks,
   campaignId,
   encounterId,
-  isMyTurn,
   isDM,
   canControl,
   onSetConcentration,
@@ -61,6 +69,7 @@ export function ActionPanel({
   onSetTurnFlag,
   target,
   onApplyDamage,
+  secondaryCollapsed = false,
 }: Props) {
   const rolls = useCombatRolls({
     participant,
@@ -83,39 +92,39 @@ export function ActionPanel({
     onApplyDamage,
   };
 
+  const combatStatus = (
+    <CombatStatus
+      participant={participant}
+      locked={view.locked}
+      onSetHeroicInspiration={onSetHeroicInspiration}
+      onSetConcentration={onSetConcentration}
+      onSetCover={onSetCover}
+    />
+  );
+  const dicePool = (
+    <div>
+      <p className="mb-2 text-xs font-semibold text-muted-foreground">Dice Pool</p>
+      <DicePoolBuilder
+        disabled={view.locked}
+        onRoll={(args) => void rolls.rollPool(args)}
+      />
+    </div>
+  );
+  const checks = (
+    <>
+      <SaveRow view={view} />
+      <Separator />
+      <SkillRow view={view} />
+      <AbilityCheckRow view={view} />
+    </>
+  );
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-4 pr-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            {participant.name}
-          </span>
-          {isMyTurn && (
-            <Badge className="animate-pulse border-success/50 bg-success/20 text-success">
-              Your Turn
-            </Badge>
-          )}
-          {!participant.is_player && (
-            <Badge variant="secondary" className="text-xs">
-              NPC
-            </Badge>
-          )}
-        </div>
+        <PanelHeader participant={participant} />
 
-        {/* Monster flavour / description (DM reference). */}
-        {!participant.is_player && participant.description && (
-          <p className="text-xs italic leading-relaxed text-muted-foreground">
-            {participant.description}
-          </p>
-        )}
-
-        <CombatStatus
-          participant={participant}
-          locked={view.locked}
-          onSetHeroicInspiration={onSetHeroicInspiration}
-          onSetConcentration={onSetConcentration}
-          onSetCover={onSetCover}
-        />
+        {!secondaryCollapsed && combatStatus}
         <ConditionEffects stats={view.stats} />
 
         {participant.is_player && (
@@ -130,25 +139,65 @@ export function ActionPanel({
             <Separator />
           </>
         )}
+        {secondaryCollapsed && combatStatus}
 
-        <div>
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">Dice Pool</p>
-          <DicePoolBuilder
-            disabled={view.locked}
-            onRoll={(args) => void rolls.rollPool(args)}
-          />
-        </div>
-        <Separator />
+        {!secondaryCollapsed && (
+          <>
+            {dicePool}
+            <Separator />
+          </>
+        )}
 
         <MonsterTraits traits={participant.special_abilities ?? []} />
         <MonsterActionList view={view} />
         <AttackCardList view={view} attacks={attacks} />
         {participant.is_player && <UnarmedStrike view={view} />}
-        <SaveRow view={view} />
-        <Separator />
-        <SkillRow view={view} />
-        <AbilityCheckRow view={view} />
+        {secondaryCollapsed ? (
+          <MoreSection>
+            {dicePool}
+            <Separator />
+            {checks}
+          </MoreSection>
+        ) : (
+          checks
+        )}
       </div>
     </ScrollArea>
+  );
+}
+
+function MoreSection({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="group border border-border/40">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 text-xs font-semibold text-muted-foreground">
+        More — dice pool, saves and checks
+        <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="space-y-4 border-t border-border/40 p-3">{children}</div>
+    </details>
+  );
+}
+
+/** Name, and for a monster the NPC badge and its flavour text (DM reference). */
+function PanelHeader({ participant }: { participant: EncounterParticipant }) {
+  const npc = !participant.is_player;
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {participant.name}
+        </span>
+        {npc && (
+          <Badge variant="secondary" className="text-xs">
+            NPC
+          </Badge>
+        )}
+      </div>
+      {npc && participant.description && (
+        <p className="text-xs italic leading-relaxed text-muted-foreground">
+          {participant.description}
+        </p>
+      )}
+    </>
   );
 }

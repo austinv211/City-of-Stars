@@ -5,6 +5,7 @@ import { SpectatorRollPanel } from "../SpectatorRollPanel";
 import { EffectsTray } from "../stage/EffectsTray";
 import { TargetBar } from "../stage/TargetBar";
 import type { EncounterScreen } from "../../hooks/useEncounterScreen";
+import { OwnStage } from "./OwnStage";
 
 /**
  * The centre of the screen: effects, the current target, and the action
@@ -91,6 +92,36 @@ function PanelArea({ screen }: { screen: EncounterScreen }) {
   }
 
   const id = panelParticipant.id;
+  const panel = ({ secondaryCollapsed }: { secondaryCollapsed: boolean }) => (
+    <ActionPanel
+      participant={panelParticipant}
+      character={screen.panelCharacter}
+      attacks={screen.attacks}
+      campaignId={campaign.id}
+      encounterId={encounterId}
+      isDM={isDM}
+      canControl={screen.canControlPanel}
+      onSetConcentration={(spell) => void combat.setConcentration(id, spell)}
+      onSetHeroicInspiration={(v) => void combat.setHeroicInspiration(id, v)}
+      onSetCover={(cover) => void combat.setCover(id, cover)}
+      onSetTurnFlag={(flag, v) => void combat.setTurnFlag(id, flag, v)}
+      target={target}
+      onApplyDamage={
+        isDM && target
+          ? (amount, type, crit) =>
+              combat.applyDamage(target.participant.id, amount, type, { crit })
+          : undefined
+      }
+      secondaryCollapsed={secondaryCollapsed}
+    />
+  );
+
+  // A player looking at their own combatant gets the phase-driven stage.
+  const own = screen.ownParticipant;
+  if (!isDM && own?.id === id) {
+    return <OwnStage screen={screen} own={own} panel={panel} />;
+  }
+
   return (
     <>
       {isSpectator && (
@@ -106,30 +137,7 @@ function PanelArea({ screen }: { screen: EncounterScreen }) {
           Back to my rolls
         </Button>
       )}
-      <ActionPanel
-        participant={panelParticipant}
-        character={screen.panelCharacter}
-        attacks={screen.attacks}
-        campaignId={campaign.id}
-        encounterId={encounterId}
-        isMyTurn={
-          id === screen.ownParticipant?.id &&
-          id === screen.encounter?.current_participant_id
-        }
-        isDM={isDM}
-        canControl={screen.canControlPanel}
-        onSetConcentration={(spell) => void combat.setConcentration(id, spell)}
-        onSetHeroicInspiration={(v) => void combat.setHeroicInspiration(id, v)}
-        onSetCover={(cover) => void combat.setCover(id, cover)}
-        onSetTurnFlag={(flag, v) => void combat.setTurnFlag(id, flag, v)}
-        target={target}
-        onApplyDamage={
-          isDM && target
-            ? (amount, type, crit) =>
-                combat.applyDamage(target.participant.id, amount, type, { crit })
-            : undefined
-        }
-      />
+      {panel({ secondaryCollapsed: false })}
     </>
   );
 }

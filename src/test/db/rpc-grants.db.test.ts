@@ -57,7 +57,7 @@ describe("an unauthenticated (anon) caller", () => {
 });
 
 describe("advance_encounter_turn", () => {
-  it("refuses a player who is a member but not the DM", async () => {
+  it("refuses a member who is not the DM and does not hold the turn", async () => {
     const { error } = await member.rpc("advance_encounter_turn", {
       p_encounter_id: fx.encounterId,
     });

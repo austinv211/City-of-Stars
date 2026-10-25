@@ -80,6 +80,42 @@ describe("rounds", () => {
   });
 });
 
+describe("ending your own turn", () => {
+  it("a player holding the turn may end it", async () => {
+    await advance(); // the player's turn
+    const { error } = await player.rpc("advance_encounter_turn", {
+      p_encounter_id: fx.encounterId,
+    });
+    expect(error).toBeNull();
+    expect((await encounterState())?.current_participant_id).toBe(fx.npcParticipantId);
+  });
+
+  it("a player cannot end someone else's turn", async () => {
+    await advance(); // player's turn
+    await advance(); // goblin's turn
+    const { error } = await player.rpc("advance_encounter_turn", {
+      p_encounter_id: fx.encounterId,
+    });
+    expect(error?.code).toBe("42501");
+    expect((await encounterState())?.current_participant_id).toBe(fx.npcParticipantId);
+  });
+
+  // A double tap on End Turn, or End Turn landing just after the DM's Next:
+  // the second call must not advance again and skip a combatant.
+  it("ending it twice advances once", async () => {
+    await advance(); // player's turn
+    const [a, b] = await Promise.all([
+      player.rpc("advance_encounter_turn", { p_encounter_id: fx.encounterId }),
+      player.rpc("advance_encounter_turn", { p_encounter_id: fx.encounterId }),
+    ]);
+    expect([a.error, b.error].filter(Boolean)).toHaveLength(1);
+    expect(await encounterState()).toMatchObject({
+      turn_seq: 2,
+      current_participant_id: fx.npcParticipantId,
+    });
+  });
+});
+
 describe("legendary actions", () => {
   it("refill at the start of the creature's own turn", async () => {
     await service
@@ -187,15 +223,13 @@ describe("effect expiry", () => {
   });
 
   it("manual: survives any number of turns", async () => {
-    await dm
-      .from("encounter_effects")
-      .insert(
-        effect({
-          name: "Cursed",
-          target_participant_id: fx.npcParticipantId,
-          expiry: "manual",
-        }),
-      );
+    await dm.from("encounter_effects").insert(
+      effect({
+        name: "Cursed",
+        target_participant_id: fx.npcParticipantId,
+        expiry: "manual",
+      }),
+    );
     for (let i = 0; i < 4; i++) await advance();
     expect(await effectNames()).toEqual(["Cursed"]);
   });
@@ -227,15 +261,13 @@ describe("encounter_effects access", () => {
   });
 
   it("a player cannot remove the DM's effect on them", async () => {
-    await dm
-      .from("encounter_effects")
-      .insert(
-        effect({
-          name: "Restrained",
-          target_participant_id: fx.playerParticipantId,
-          expiry: "manual",
-        }),
-      );
+    await dm.from("encounter_effects").insert(
+      effect({
+        name: "Restrained",
+        target_participant_id: fx.playerParticipantId,
+        expiry: "manual",
+      }),
+    );
     await player.from("encounter_effects").delete().eq("encounter_id", fx.encounterId);
     expect(await effectNames()).toEqual(["Restrained"]);
   });
@@ -271,15 +303,13 @@ describe("encounter_effects access", () => {
   });
 
   it("is invisible outside the campaign", async () => {
-    await dm
-      .from("encounter_effects")
-      .insert(
-        effect({
-          name: "Secret",
-          target_participant_id: fx.npcParticipantId,
-          expiry: "manual",
-        }),
-      );
+    await dm.from("encounter_effects").insert(
+      effect({
+        name: "Secret",
+        target_participant_id: fx.npcParticipantId,
+        expiry: "manual",
+      }),
+    );
     const { data } = await outsider
       .from("encounter_effects")
       .select("id")
