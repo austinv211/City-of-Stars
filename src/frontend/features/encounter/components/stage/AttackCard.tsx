@@ -29,6 +29,7 @@ export function AttackCard({
   onOffhandDamage,
   onCleaveDamage,
   castControl,
+  outcome,
 }: {
   name: string;
   typeLabel: string;
@@ -47,6 +48,8 @@ export function AttackCard({
   onOffhandDamage?: () => void;
   onCleaveDamage?: () => void;
   castControl?: React.ReactNode;
+  /** What the last roll means against the current target. */
+  outcome?: React.ReactNode;
 }) {
   return (
     <div className="space-y-2 rounded-lg border bg-card/60 p-2.5">
@@ -165,6 +168,7 @@ export function AttackCard({
         </div>
       )}
       {castControl}
+      {outcome}
     </div>
   );
 }

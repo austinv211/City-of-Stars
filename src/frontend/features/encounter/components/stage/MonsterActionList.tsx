@@ -6,6 +6,8 @@ import type { MonsterAction, MonsterSpecialAbility } from "../../types/encounter
 import { renderInline } from "./renderInline";
 import { parseDamageDice, sign } from "./combatantStats";
 import type { CombatantView } from "./combatantView";
+import { AttackOutcome } from "./AttackOutcome";
+import { useAttackOutcome } from "./useAttackOutcome";
 
 /** A monster's passive traits (special abilities). */
 export function MonsterTraits({ traits }: { traits: MonsterSpecialAbility[] }) {
@@ -60,8 +62,21 @@ function MonsterActionCard({
 }) {
   const { rolls, stats, locked } = view;
   const { attackOpts, exhaustPenalty } = stats;
+  const outcome = useAttackOutcome();
   const dice = action.damage_dice ? parseDamageDice(action.damage_dice) : null;
   const attackBonus = action.attack_bonus;
+  const damage = (count: number, label: string, crit: boolean) => () => {
+    if (!dice) return;
+    outcome.deal(
+      rolls.doRoll(
+        `${String(count)}d${String(dice.sides)}`,
+        dice.sides,
+        dice.mod,
+        `${action.name} ${label}`,
+      ),
+      crit,
+    );
+  };
 
   return (
     <div className="space-y-2 rounded-lg border bg-card/60 p-2.5">
@@ -86,13 +101,13 @@ function MonsterActionCard({
               variant="default"
               className="h-8 gap-1.5 text-xs"
               disabled={locked}
-              onClick={() =>
-                void rolls.rollD20(
-                  attackBonus + exhaustPenalty,
-                  `${action.name} Attack`,
-                  attackOpts,
-                )
-              }
+              onClick={() => {
+                const toHit = attackBonus + exhaustPenalty;
+                outcome.aim(
+                  rolls.rollD20(toHit, `${action.name} Attack`, attackOpts),
+                  toHit,
+                );
+              }}
             >
               <Crosshair className="h-3.5 w-3.5 shrink-0" />
               To Hit {sign(attackBonus)}
@@ -106,14 +121,7 @@ function MonsterActionCard({
               variant="destructive"
               className="h-8 gap-1.5 text-xs"
               disabled={locked}
-              onClick={() =>
-                void rolls.doRoll(
-                  `${dice.count}d${dice.sides}`,
-                  dice.sides,
-                  dice.mod,
-                  `${action.name} Dmg`,
-                )
-              }
+              onClick={damage(dice.count, "Dmg", false)}
             >
               <Swords className="h-3.5 w-3.5 shrink-0" />
               {action.damage_dice}
@@ -125,14 +133,7 @@ function MonsterActionCard({
               variant="secondary"
               className="h-8 gap-1.5 px-2 text-xs"
               disabled={locked}
-              onClick={() =>
-                void rolls.doRoll(
-                  `${dice.count * 2}d${dice.sides}`,
-                  dice.sides,
-                  dice.mod,
-                  `${action.name} Crit`,
-                )
-              }
+              onClick={damage(dice.count * 2, "Crit", true)}
               title="Critical hit: double the damage dice"
             >
               <Flame className="h-3.5 w-3.5" /> Crit
@@ -140,6 +141,12 @@ function MonsterActionCard({
           )}
         </div>
       )}
+      <AttackOutcome
+        outcome={outcome}
+        target={view.target}
+        damageType={action.damage_type ?? ""}
+        onApplyDamage={view.onApplyDamage}
+      />
     </div>
   );
 }

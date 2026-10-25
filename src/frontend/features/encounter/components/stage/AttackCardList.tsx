@@ -7,6 +7,8 @@ import type {
 } from "@/features/characters/types/character.types";
 import { useDamageSpells, useSpellDescriptions } from "../../hooks/useCombatantSpells";
 import { AttackCard } from "./AttackCard";
+import { AttackOutcome } from "./AttackOutcome";
+import { useAttackOutcome } from "./useAttackOutcome";
 import { SpellSlotCast } from "./SpellSlotCast";
 import { parseDamageDice, sign } from "./combatantStats";
 import type { CombatantView } from "./combatantView";
@@ -75,6 +77,7 @@ function WeaponAttack({
   description: string | null;
 }) {
   const { rolls, stats, locked } = view;
+  const outcome = useAttackOutcome();
   const { attackMod, damageMod, diceCount } = stats.attackRoll(atk);
   const toHit = attackMod + stats.exhaustPenalty;
   const dice = `${diceCount}d${atk.dice_sides}`;
@@ -82,8 +85,11 @@ function WeaponAttack({
   // modifier (a negative modifier still applies, per 2024).
   const noPosMod = Math.min(0, damageMod);
   const versatile = atk.versatile_sides;
-  const damage = (diceExpr: string, sides: number, mod: number, label: string) => () =>
-    void rolls.doRoll(diceExpr, sides, mod, `${atk.name} ${label}`);
+  const damage =
+    (diceExpr: string, sides: number, mod: number, label: string, crit = false) =>
+    () => {
+      outcome.deal(rolls.doRoll(diceExpr, sides, mod, `${atk.name} ${label}`), crit);
+    };
 
   return (
     <AttackCard
@@ -97,13 +103,19 @@ function WeaponAttack({
       adjust={stats.condEffects.attackAdjust}
       mastery={atk.mastery}
       versatileLabel={versatile ? `d${versatile}` : undefined}
-      onAttack={() => void rolls.rollD20(toHit, `${atk.name} Attack`, stats.attackOpts)}
+      onAttack={() => {
+        outcome.aim(
+          rolls.rollD20(toHit, `${atk.name} Attack`, stats.attackOpts),
+          toHit,
+        );
+      }}
       onDamage={damage(dice, atk.dice_sides, damageMod, "Dmg")}
       onCritDamage={damage(
         `${diceCount * 2}d${atk.dice_sides}`,
         atk.dice_sides,
         damageMod,
         "Crit",
+        true,
       )}
       onVersatileDamage={
         versatile
@@ -119,6 +131,14 @@ function WeaponAttack({
         atk.mastery === "Cleave"
           ? damage(dice, atk.dice_sides, noPosMod, "Cleave Dmg")
           : undefined
+      }
+      outcome={
+        <AttackOutcome
+          outcome={outcome}
+          target={view.target}
+          damageType={atk.damage_type}
+          onApplyDamage={view.onApplyDamage}
+        />
       }
     />
   );
@@ -136,6 +156,7 @@ function DamageSpell({
   onExpend: (level: number) => void;
 }) {
   const { participant, character, rolls, stats, locked } = view;
+  const outcome = useAttackOutcome();
   const { count, sides, mod } = parseDamageDice(spell.damage_dice ?? "");
   // Cantrips (level 0) scale their dice with character level.
   const dmgCount = spell.level === 0 && character ? count * stats.cantripMult : count;
@@ -151,15 +172,24 @@ function DamageSpell({
       damageLabel={`${dmgCount}d${sides}${mod ? sign(mod) : ""}`}
       disabled={locked}
       adjust={stats.condEffects.attackAdjust}
-      onAttack={() =>
-        void rolls.rollD20(toHit, `${spell.name} Attack`, stats.attackOpts)
-      }
-      onDamage={() =>
-        void rolls.doRoll(`${dmgCount}d${sides}`, sides, mod, `${spell.name} Dmg`)
-      }
-      onCritDamage={() =>
-        void rolls.doRoll(`${dmgCount * 2}d${sides}`, sides, mod, `${spell.name} Crit`)
-      }
+      onAttack={() => {
+        outcome.aim(
+          rolls.rollD20(toHit, `${spell.name} Attack`, stats.attackOpts),
+          toHit,
+        );
+      }}
+      onDamage={() => {
+        outcome.deal(
+          rolls.doRoll(`${dmgCount}d${sides}`, sides, mod, `${spell.name} Dmg`),
+          false,
+        );
+      }}
+      onCritDamage={() => {
+        outcome.deal(
+          rolls.doRoll(`${dmgCount * 2}d${sides}`, sides, mod, `${spell.name} Crit`),
+          true,
+        );
+      }}
       castControl={
         participant.is_player && spell.level > 0 ? (
           <SpellSlotCast
@@ -169,6 +199,14 @@ function DamageSpell({
             onExpend={onExpend}
           />
         ) : undefined
+      }
+      outcome={
+        <AttackOutcome
+          outcome={outcome}
+          target={view.target}
+          damageType={spell.damage_type ?? ""}
+          onApplyDamage={view.onApplyDamage}
+        />
       }
     />
   );

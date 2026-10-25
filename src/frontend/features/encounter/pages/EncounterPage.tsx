@@ -23,6 +23,8 @@ import { SpectatorRollPanel } from "../components/SpectatorRollPanel";
 import { TurnBar } from "../components/stage/TurnBar";
 import { EffectsTray } from "../components/stage/EffectsTray";
 import { AddEffectDialog } from "../components/stage/AddEffectDialog";
+import { TargetBar } from "../components/stage/TargetBar";
+import { targetInfo } from "../lib/attack";
 import { useActiveEncounter } from "../hooks/useActiveEncounter";
 import { useEncounterEffects } from "../hooks/useEncounterEffects";
 import { deriveStage } from "../lib/encounterStage";
@@ -224,6 +226,9 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
     await applyDeathSaveRoll(participantId, total);
   }
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Client-only: who the viewer's attacks are aimed at. Not the same as
+  // selectedId, which is whose panel is showing.
+  const [targetId, setTargetId] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [attacks, setAttacks] = useState<CharacterAttack[]>([]);
@@ -317,6 +322,10 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
     );
   }
 
+  const targetParticipant = participants.find((p) => p.id === targetId);
+  const target = targetParticipant ? targetInfo(isDM, targetParticipant) : null;
+  const canTarget = isDM || !!ownParticipant;
+
   const stage = deriveStage({
     isDM,
     encounter,
@@ -400,6 +409,14 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
               onSetCover={setCover}
               onSelect={setSelectedId}
               selectedId={selectedId}
+              targetId={targetId}
+              onTarget={
+                canTarget
+                  ? (id) => {
+                      setTargetId((cur) => (cur === id ? null : id));
+                    }
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -419,6 +436,16 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
                   onRemove={(id) => void removeEffect(id)}
                   onAdd={() => {
                     setAddEffectOpen(true);
+                  }}
+                />
+              </div>
+            )}
+            {target && (
+              <div className="mb-3">
+                <TargetBar
+                  target={target}
+                  onClear={() => {
+                    setTargetId(null);
                   }}
                 />
               </div>
@@ -464,6 +491,13 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
                       onSetHeroicInspiration={(v) => setHeroicInspiration(panelParticipant.id, v)}
                       onSetCover={(cover) => setCover(panelParticipant.id, cover)}
                       onSetTurnFlag={(flag, v) => setTurnFlag(panelParticipant.id, flag, v)}
+                      target={target}
+                      onApplyDamage={
+                        isDM && target
+                          ? (amount, type, crit) =>
+                              applyDamage(target.participant.id, amount, type, { crit })
+                          : undefined
+                      }
                     />
                   </>
                 );

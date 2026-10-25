@@ -6,6 +6,8 @@ import type {
   CharacterAttack,
 } from "@/features/characters/types/character.types";
 import type { EncounterParticipant } from "../types/encounter.types";
+import type { DamageResult } from "../hooks/useEncounterParticipants";
+import type { TargetInfo } from "../lib/attack";
 import { DicePoolBuilder } from "./DicePoolBuilder";
 import { AttackCardList } from "./stage/AttackCardList";
 import { AbilityCheckRow, SaveRow, SkillRow } from "./stage/CheckRows";
@@ -32,6 +34,9 @@ interface Props {
   onSetHeroicInspiration: (value: boolean) => void;
   onSetCover: (cover: string) => void;
   onSetTurnFlag: (flag: TurnFlag, value: boolean) => void;
+  target: TargetInfo | null;
+  /** DM only; see CombatantView.onApplyDamage. */
+  onApplyDamage?: (amount: number, type: string | null, crit: boolean) => Promise<DamageResult>;
 }
 
 /**
@@ -54,6 +59,8 @@ export function ActionPanel({
   onSetHeroicInspiration,
   onSetCover,
   onSetTurnFlag,
+  target,
+  onApplyDamage,
 }: Props) {
   const rolls = useCombatRolls({
     participant,
@@ -72,6 +79,8 @@ export function ActionPanel({
     stats: combatantStats(participant, character),
     rolls,
     locked: !canControl,
+    target,
+    onApplyDamage,
   };
 
   return (

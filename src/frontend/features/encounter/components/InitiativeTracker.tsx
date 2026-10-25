@@ -15,6 +15,9 @@ interface Props {
   onSetCover: (id: string, cover: string) => void;
   onSelect: (id: string) => void;
   selectedId: string | null;
+  targetId?: string | null;
+  /** Absent when the viewer cannot attack (a spectator). */
+  onTarget?: (id: string) => void;
 }
 
 export function InitiativeTracker({
@@ -30,6 +33,8 @@ export function InitiativeTracker({
   onSetCover,
   onSelect,
   selectedId,
+  targetId,
+  onTarget,
 }: Props) {
   if (participants.length === 0) {
     return (
@@ -66,6 +71,8 @@ export function InitiativeTracker({
             onSetCover={(cover) => onSetCover(p.id, cover)}
             onClick={() => onSelect(p.id)}
             selected={p.id === selectedId}
+            isTarget={p.id === targetId}
+            onTarget={onTarget ? () => { onTarget(p.id); } : undefined}
           />
         );
       })}

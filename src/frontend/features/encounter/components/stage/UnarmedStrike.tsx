@@ -1,6 +1,8 @@
 import { Button } from "@/core/components/ui/button";
 import { Separator } from "@/core/components/ui/separator";
 import { AttackCard } from "./AttackCard";
+import { AttackOutcome } from "./AttackOutcome";
+import { useAttackOutcome } from "./useAttackOutcome";
 import type { CombatantView } from "./combatantView";
 
 /** Every player's unarmed strike, with Grapple and Shove as its alternatives. */
@@ -9,6 +11,7 @@ export function UnarmedStrike({ view }: { view: CombatantView }) {
   const strength = stats.mods.strength;
   const toHit = strength + stats.profBonus + stats.exhaustPenalty;
   const noAction = locked || participant.action_used;
+  const outcome = useAttackOutcome();
 
   return (
     <>
@@ -25,10 +28,23 @@ export function UnarmedStrike({ view }: { view: CombatantView }) {
           damageLabel={`${1 + strength}`}
           disabled={locked}
           adjust={stats.condEffects.attackAdjust}
-          onAttack={() =>
-            void rolls.rollD20(toHit, "Unarmed Strike Attack", stats.attackOpts)
+          onAttack={() => {
+            outcome.aim(
+              rolls.rollD20(toHit, "Unarmed Strike Attack", stats.attackOpts),
+              toHit,
+            );
+          }}
+          onDamage={() => {
+            outcome.deal(rolls.doRoll("1d1", 1, strength, "Unarmed Strike Dmg"), false);
+          }}
+          outcome={
+            <AttackOutcome
+              outcome={outcome}
+              target={view.target}
+              damageType="bludgeoning"
+              onApplyDamage={view.onApplyDamage}
+            />
           }
-          onDamage={() => void rolls.doRoll("1d1", 1, strength, "Unarmed Strike Dmg")}
           castControl={
             <div className="flex gap-2">
               <Button

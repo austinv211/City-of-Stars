@@ -7,7 +7,7 @@ import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent } from "@/core/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
-import { Shield, Droplets, Brain } from "lucide-react";
+import { Shield, Droplets, Brain, Crosshair } from "lucide-react";
 import { HPAdjuster } from "./HPAdjuster";
 import { ConditionBadges } from "./ConditionBadges";
 import { DamageHealControl } from "./DamageHealControl";
@@ -30,6 +30,10 @@ interface Props {
   onSetCover?: (cover: string) => void;
   onClick?: () => void;
   selected?: boolean;
+  /** This combatant is the viewer's current target. */
+  isTarget?: boolean;
+  /** Toggle targeting. Absent for viewers who cannot attack (spectators). */
+  onTarget?: () => void;
 }
 
 export function ParticipantCard({
@@ -46,6 +50,8 @@ export function ParticipantCard({
   onSetCover,
   onClick,
   selected,
+  isTarget,
+  onTarget,
 }: Props) {
   const initials = participant.name.slice(0, 2).toUpperCase();
   const coverBonus = coverAcBonus(participant.cover);
@@ -61,6 +67,7 @@ export function ParticipantCard({
     <Card
       className={cn(
         "cursor-pointer transition-all duration-300",
+        isTarget && "ring-1 ring-destructive/70",
         selected
           ? "border-primary"
           : isActive
@@ -91,6 +98,27 @@ export function ParticipantCard({
               <span className="font-semibold text-sm truncate">{participant.name}</span>
               {!participant.is_player && (
                 <Badge variant="outline" className="text-xs">NPC</Badge>
+              )}
+              {onTarget && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "ml-auto h-7 w-7 shrink-0",
+                    isTarget ? "text-destructive" : "text-muted-foreground",
+                  )}
+                  aria-pressed={isTarget}
+                  aria-label={isTarget ? `Stop targeting ${participant.name}` : `Target ${participant.name}`}
+                  title={isTarget ? "Stop targeting" : "Target"}
+                  onClick={(e) => {
+                    // Targeting is not selecting: keep the panel where it is.
+                    e.stopPropagation();
+                    onTarget();
+                  }}
+                >
+                  <Crosshair className="h-4 w-4" />
+                </Button>
               )}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
