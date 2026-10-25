@@ -1,27 +1,23 @@
 import { supabase } from "@/lib/supabase";
 
+/**
+ * Add to one of the campaign's running tallies (crits, fumbles, damage dealt,
+ * HP lost/healed, monsters defeated).
+ *
+ * One atomic server call: increment_party_stat upserts under a row lock, so
+ * concurrent rolls no longer lose counts, and any campaign member may call it
+ * -- the old client-side read-modify-write was refused by RLS for players, so
+ * only the DM's rolls were ever counted.
+ */
 export async function incrementPartyStat(
   campaignId: string,
   key: string,
-  amount: number
+  amount: number,
 ): Promise<void> {
-  const { data } = await supabase
-    .from("party_stats")
-    .select("id, stats")
-    .eq("campaign_id", campaignId)
-    .maybeSingle();
-
-  const current = (data?.stats as Record<string, number> | null) ?? {};
-  const updated = { ...current, [key]: (current[key] ?? 0) + amount };
-
-  if (data) {
-    await supabase
-      .from("party_stats")
-      .update({ stats: updated })
-      .eq("id", data.id);
-  } else {
-    await supabase
-      .from("party_stats")
-      .insert({ campaign_id: campaignId, stats: updated, void_alignment: 0 });
-  }
+  const { error } = await supabase.rpc("increment_party_stat", {
+    p_campaign_id: campaignId,
+    p_key: key,
+    p_amount: Math.round(amount),
+  });
+  if (error) console.error("[increment_party_stat]", error.message);
 }

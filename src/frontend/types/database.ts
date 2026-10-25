@@ -1712,6 +1712,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_my_app_roles: { Args: never; Returns: string[] }
+      increment_party_stat: {
+        Args: { p_amount: number; p_campaign_id: string; p_key: string }
+        Returns: undefined
+      }
       is_app_admin: { Args: never; Returns: boolean }
       is_campaign_dm: { Args: { _campaign_id: string }; Returns: boolean }
       is_campaign_member: { Args: { _campaign_id: string }; Returns: boolean }
