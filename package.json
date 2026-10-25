@@ -18,7 +18,7 @@
     "test:watch": "vitest",
     "e2e:users": "node --env-file=.env.e2e scripts/seed-test-users.mjs",
     "verify:responsive": "node --env-file=.env.e2e scripts/verify-responsive.mjs",
-    "lint": "eslint . --max-warnings 957",
+    "lint": "eslint . --max-warnings 920",
     "lint:fix": "eslint . --fix",
     "lint:report": "eslint . -f json -o lint-report.json",
     "format": "prettier --write .",
