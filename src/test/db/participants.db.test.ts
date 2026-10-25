@@ -57,7 +57,7 @@ describe("a player editing their own participant", () => {
     ["name", () => ({ name: "Someone Else" })],
   ];
 
-  it.fails.each(pinned)("cannot change %s", async (_column, change) => {
+  it.each(pinned)("cannot change %s", async (_column, change) => {
     const before = await readParticipant(fx.playerParticipantId);
     const { error } = await player
       .from("encounter_participants")
