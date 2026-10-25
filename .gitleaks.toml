@@ -1,0 +1,16 @@
+# gitleaks: the default rules, plus one narrow allowance.
+#
+# .env.e2e is committed on purpose (see its header): it holds the well-known
+# demo keys that every local `supabase start` publishes, so the test jobs need
+# no GitHub secrets. Those keys are JWTs whose payload begins
+# {"iss":"supabase-demo" -- base64 "eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi". Only a JWT
+# with that issuer is allowed; a real project key in .env.e2e (or anywhere)
+# still fails the scan, and CI separately asserts .env.e2e is loopback-only.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local Supabase demo JWTs (iss: supabase-demo)"
+regexTarget = "match"
+regexes = ['''eyJ[A-Za-z0-9_-]+\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+''']
