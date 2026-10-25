@@ -134,6 +134,15 @@ jobs:
 
       - run: npm run test:db
 
+      # The same linter as the dashboard's advisors / the get_advisors MCP tool.
+      # Security is a gate (zero findings today); performance is reported only
+      # -- 46 auth_rls_initplan + 234 multiple_permissive_policies WARNs are
+      # known debt, tracked in the plan rather than failing every PR.
+      - name: Security advisors (gate)
+        run: npx supabase db advisors --local --type security --level warn --fail-on warn
+      - name: Performance advisors (report)
+        run: npx supabase db advisors --local --type performance --level warn --fail-on none
+
       - name: Stop stack
         if: always()
         run: npx supabase stop --no-backup
@@ -165,6 +174,13 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+
+      # RustSec advisories. Vulnerabilities fail; "unmaintained" notices (13
+      # today, all transitive via tauri's GTK / D-Bus stack) are reported only.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit
 
   # ── Supply chain & secrets ──────────────────────────────────────────────────
   # Pointed at this repo specifically: release.yml injects Supabase credentials
@@ -203,10 +219,27 @@ jobs:
           fi
           echo ".env.e2e is loopback-only"
 
+  # ── Static analysis (§2.8) ──────────────────────────────────────────────────
+  # Community React/TypeScript/secrets rulesets plus .semgrep/, which encodes
+  # this codebase's own hazards: user-authored text rendered as HTML, and the
+  # service-role key reaching the bundle. CodeQL runs in codeql.yml.
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.140.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep scan
+        run: >-
+          semgrep scan --error --metrics=off
+          --config p/react --config p/typescript --config p/secrets
+          --config .semgrep
+          --exclude node_modules --exclude dist --exclude target
+
 # ── Deliberately not here yet ─────────────────────────────────────────────────
 # test-e2e                    needs Playwright + seeds (§2.5)
 # format:check                needs the one-time `prettier --write` reformat
-# semgrep / CodeQL            need rule config (§2.8)
 #
 # Each is added with the layer it guards, so every job in this file passes on
 # master rather than sitting red as a placeholder.
