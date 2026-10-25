@@ -18,7 +18,7 @@ interface Props {
 /**
  * The full navigation tree, role-filtered, at the requested density.
  *
- * Shared by the desktop sidebar (variant "full"), the tablet rail ("icon") and
+ * Shared by the desktop sidebar (variant "full"), the tablet rail ("rail") and
  * the phone More sheet ("tile"), so the role gating and the live-encounter dot
  * are implemented once. The variants differ only in how a group is laid out:
  * a column of rows, a column of icons, or a two-up grid of cards.
@@ -26,13 +26,15 @@ interface Props {
 export function NavSections({ variant, onNavigate, exclude = [], className }: Props) {
   const { activeEncounterId } = useCampaign();
   const groups = useNavGroups(exclude);
-  const iconOnly = variant === "icon";
+  const rail = variant === "rail";
   const tiles = variant === "tile";
 
   const heading = (group: NavGroup, index: number) => {
     if (!group.heading) return null;
-    if (iconOnly) {
-      // A rail has no room for text headings; a divider carries the grouping.
+    if (rail) {
+      // A rail has no room for text headings; a divider carries the grouping
+      // -- between groups only, never directly under the logo.
+      if (index === 0) return null;
       return (
         <div className="my-1.5 px-2" role="separator">
           <div className="h-px bg-border/60" />
@@ -62,7 +64,7 @@ export function NavSections({ variant, onNavigate, exclude = [], className }: Pr
       aria-label="Main"
       className={cn(
         "flex flex-col",
-        iconOnly ? "items-center gap-1" : "gap-0.5",
+        "gap-0.5",
         className,
       )}
     >

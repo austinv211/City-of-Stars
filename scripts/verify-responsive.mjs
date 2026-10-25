@@ -89,7 +89,7 @@ async function main() {
     // ── the right single nav surface is visible ────────────────────────────
     const surfaces = {
       tabbar: await page.locator("[aria-label='More navigation']").isVisible(),
-      rail: await page.locator("aside.w-16").isVisible(),
+      rail: await page.getByRole("complementary", { name: "Navigation rail" }).isVisible(),
       sidebar: await page.locator("aside.w-56").isVisible(),
     };
     const visible = Object.entries(surfaces)

@@ -48,12 +48,11 @@ describe("NavItem", () => {
     expect(screen.getByText(text)).toBeInTheDocument();
   });
 
-  it("keeps an accessible name on the icon-only rail variant", () => {
-    renderItem({ variant: "icon" });
+  it("shows the rail's label, keeping the full name accessible", () => {
+    renderItem({ variant: "rail", entry: { ...entry, railLabel: "Fight" } });
     const link = screen.getByRole("link", { name: "Encounter" });
-    expect(link).toBeInTheDocument();
-    // Icon-only: no visible text to read.
-    expect(link).not.toHaveTextContent("Encounter");
+    // A touch tablet has no hover, so the label must be visible, not a tooltip.
+    expect(link).toHaveTextContent("Fight");
   });
 
   it("marks the active route with aria-current", () => {

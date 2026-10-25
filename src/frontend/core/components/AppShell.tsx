@@ -1,99 +1,21 @@
 import { useState } from "react";
 import { Outlet } from "react-router";
-import { ChevronDown, LogOut, Settings, Swords } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { DiceProvider } from "@/features/encounter/context/DiceContext";
 import { TooltipProvider } from "@/core/components/ui/tooltip";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/core/components/ui/popover";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
 import { AnimatedStar, TitleBar } from "@/core/components/TitleBar";
 import { NavSections } from "@/core/components/nav/NavSections";
 import { MobileNav } from "@/core/components/nav/MobileNav";
-import { useBreakpoint } from "@/core/hooks/useBreakpoint";
+import { CampaignSelector } from "@/core/components/nav/CampaignSelector";
+import { TabletRail } from "@/core/components/nav/TabletRail";
 import { useMotionAttribute } from "@/core/hooks/useFeelPrefs";
-import { cn } from "@/lib/utils";
 import DiceRollOverlay from "./DiceRollOverlay";
 import { AccountDialog } from "./AccountDialog";
-
-/**
- * Brand + active campaign, with a switcher when there is more than one.
- * Shared by the desktop sidebar header and the phone header.
- */
-function CampaignSelector() {
-  const { campaign, campaigns, campaignEncounters, switchCampaign } = useCampaign();
-  const { isPhone } = useBreakpoint();
-
-  if (campaigns.length <= 1) {
-    return (
-      <div className="min-w-0">
-        <p className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-sm font-bold leading-tight tracking-tight text-transparent">
-          City of Stars
-        </p>
-        {campaign && (
-          <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
-            {campaign.name}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button type="button" className="group min-w-0 text-left">
-          <p className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-sm font-bold leading-tight tracking-tight text-transparent">
-            City of Stars
-          </p>
-          <div className="mt-0.5 flex items-center gap-1">
-            <p className="truncate text-[11px] leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
-              {campaign?.name ?? "Select campaign"}
-            </p>
-            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-          </div>
-        </button>
-      </PopoverTrigger>
-      {/* side="right" pushes a 208px panel off-screen on a narrow viewport,
-          where the nav is an overlay rather than a fixed rail. */}
-      <PopoverContent
-        side={isPhone ? "bottom" : "right"}
-        align="start"
-        className="w-52 p-1"
-      >
-        <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Switch Campaign
-        </p>
-        {campaigns.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => {
-              switchCampaign(c.id);
-            }}
-            className={cn(
-              "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors",
-              c.id === campaign?.id
-                ? "bg-primary/15 font-medium text-primary"
-                : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground",
-            )}
-          >
-            <span className="flex-1 truncate">{c.name}</span>
-            {campaignEncounters[c.id] && (
-              <Swords className="h-3 w-3 shrink-0 text-success" />
-            )}
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 /** Identity + account controls, for the desktop sidebar footer. */
 function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
@@ -161,7 +83,6 @@ function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
  */
 export default function AppShell() {
   const [accountOpen, setAccountOpen] = useState(false);
-  const { signOut } = useAuth();
   useMotionAttribute();
 
   const openAccount = () => {
@@ -184,40 +105,8 @@ export default function AppShell() {
           </header>
 
           <div className="flex flex-1 overflow-hidden">
-            {/* ── Tablet: icon rail ──────────────────────────────────────── */}
-            <aside className="hidden w-16 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] md:flex xl:hidden">
-              <div className="flex h-12 shrink-0 items-center justify-center border-b border-border/40">
-                <div className="flex h-8 w-8 items-center justify-center bg-primary/15">
-                  <AnimatedStar size={20} />
-                </div>
-              </div>
-              <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
-                <NavSections variant="icon" />
-              </div>
-              <Separator />
-              <div className="flex flex-col items-center gap-1 p-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 text-muted-foreground hover:text-foreground"
-                  onClick={openAccount}
-                  aria-label="Account settings"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    void signOut();
-                  }}
-                  aria-label="Sign out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </aside>
+            {/* ── Tablet: labelled rail ─────────────────────────────────── */}
+            <TabletRail onOpenAccount={openAccount} />
 
             {/* ── Desktop: full sidebar ──────────────────────────────────── */}
             <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">

@@ -26,6 +26,11 @@ export interface NavEntry {
   /** Shorter label for the bottom tab bar, where ~68px is the budget. */
   shortLabel?: string;
   /**
+   * Label for the tablet rail (~80px), where one word fits but two long
+   * ones wrap. Defaults to `label`.
+   */
+  railLabel?: string;
+  /**
    * One line of context for the phone "More" sheet, where a destination is a
    * tile rather than a sidebar row and the label alone does not say enough.
    */
@@ -83,6 +88,7 @@ export const dmNav: NavEntry[] = [
   {
     to: "/dm/sessions",
     label: "Session Manager",
+    railLabel: "Sessions",
     description: "Party and DM notes per session",
     icon: ScrollText,
   },
@@ -95,6 +101,7 @@ export const dmNav: NavEntry[] = [
   {
     to: "/dm/monsters",
     label: "Monster Library",
+    railLabel: "Monsters",
     description: "Custom stat blocks",
     icon: Skull,
   },
@@ -104,6 +111,7 @@ export const adminNav: NavEntry[] = [
   {
     to: "/admin/whitelist",
     label: "Email Whitelist",
+    railLabel: "Whitelist",
     description: "Who is allowed to sign up",
     icon: ShieldCheck,
   },

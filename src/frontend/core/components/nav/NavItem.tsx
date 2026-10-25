@@ -3,13 +3,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/core/components/ui/to
 import { cn } from "@/lib/utils";
 import type { NavEntry } from "./navConfig";
 
-export type NavVariant = "full" | "icon" | "tab" | "tile";
+export type NavVariant = "full" | "rail" | "tab" | "tile";
 
 /**
  * Per-variant geometry, in one place so the three renderers below cannot drift.
  *
  *   full  desktop sidebar — icon + label, left accent bar when active
- *   icon  tablet rail     — icon only, label in a tooltip
+ *   rail  tablet rail     — icon in an indicator chip over a short label;
+ *         88px wide, every target at least 56px tall. It used to be a bare
+ *         16px icon with the label in a hover tooltip, which on a tablet --
+ *         a touch device, with no hover -- meant no label at all.
  *   tab   phone tab bar   — stacked icon over label, top accent bar when active
  *   tile  phone More sheet — a card: icon chip, label, one-line description.
  *         Rendered by TileItem below rather than through these tables, since
@@ -17,19 +20,28 @@ export type NavVariant = "full" | "icon" | "tab" | "tile";
  */
 const LAYOUT: Record<Exclude<NavVariant, "tile">, string> = {
   full: "gap-3 px-3 py-2 text-sm",
-  icon: "h-10 w-full justify-center",
+  rail: "group min-h-14 w-full flex-col justify-center gap-1 px-1 py-1.5 text-center text-[11px] leading-tight",
   tab: "flex-1 flex-col justify-center gap-1 py-1.5 text-[11px]",
 };
 
 const ACTIVE: Record<Exclude<NavVariant, "tile">, string> = {
   full: "border-l-2 border-primary bg-primary/10",
-  icon: "bg-primary/10",
+  // The chip carries the active state (see chip below), not the whole row.
+  rail: "",
   // Top bar rather than left: the tab bar sits at the bottom of the screen,
   // so the accent reads better against the content above it.
   tab: "bg-primary/10 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-primary",
 };
 
-const iconSize = (v: NavVariant) => (v === "tab" ? "h-5 w-5" : "h-4 w-4");
+const iconSize = (v: NavVariant) => (v === "full" ? "h-4 w-4" : "h-5 w-5");
+
+/** The label each layout has room for. */
+const textFor = (v: NavVariant, e: NavEntry) =>
+  v === "tab"
+    ? (e.shortLabel ?? e.label)
+    : v === "rail"
+      ? (e.railLabel ?? e.label)
+      : e.label;
 
 interface Props {
   entry: NavEntry;
@@ -62,7 +74,7 @@ function DisabledItem({
   variant,
   disabledTip,
 }: Props & { variant: Exclude<NavVariant, "tile"> }) {
-  const { label, shortLabel, icon: Icon } = entry;
+  const { icon: Icon } = entry;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -73,8 +85,16 @@ function DisabledItem({
             LAYOUT[variant],
           )}
         >
-          <Icon className={cn("shrink-0", iconSize(variant))} />
-          {variant !== "icon" && (variant === "tab" ? (shortLabel ?? label) : label)}
+          {variant === "rail" ? (
+            <span className={chip(false)}>
+              <Icon className={iconSize(variant)} />
+            </span>
+          ) : (
+            <Icon className={cn("shrink-0", iconSize(variant))} />
+          )}
+          <span className={variant === "rail" ? "line-clamp-2" : undefined}>
+            {textFor(variant, entry)}
+          </span>
         </span>
       </TooltipTrigger>
       <TooltipContent side={variant === "tab" ? "top" : "right"}>
@@ -90,47 +110,66 @@ function ActiveItem({
   showLiveDot,
   onNavigate,
 }: Props & { variant: Exclude<NavVariant, "tile"> }) {
-  const { to, label, shortLabel, icon: Icon } = entry;
-  const text = variant === "tab" ? (shortLabel ?? label) : label;
+  const { to, icon: Icon } = entry;
+  const rail = variant === "rail";
 
-  const link = (
+  const icon = (
+    <>
+      <Icon className={iconSize(variant)} />
+      {showLiveDot && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute rounded-full bg-success",
+            rail
+              ? "right-3 top-1 h-2 w-2 ring-2 ring-card"
+              : variant === "full"
+                ? "-right-1 -top-1 h-1.5 w-1.5"
+                : "-right-1.5 -top-0.5 h-1.5 w-1.5",
+          )}
+        />
+      )}
+    </>
+  );
+
+  return (
     <NavLink
       to={to}
       onClick={onNavigate}
-      aria-label={variant === "icon" ? label : undefined}
+      // The rail's short label ("Sessions") is what shows; the full one is
+      // the accessible name, as it is everywhere else.
+      aria-label={rail ? entry.label : undefined}
       className={({ isActive }) =>
         cn(
           "relative flex items-center transition-all duration-150",
           LAYOUT[variant],
           isActive
             ? cn("font-medium text-primary", ACTIVE[variant])
-            : "text-muted-foreground hover:bg-accent/30 hover:text-foreground",
+            : cn(
+                "text-muted-foreground hover:text-foreground",
+                // The rail highlights its chip on hover, not the whole row.
+                !rail && "hover:bg-accent/30",
+              ),
         )
       }
     >
-      <span className="relative shrink-0">
-        <Icon className={iconSize(variant)} />
-        {showLiveDot && (
-          <span
-            aria-hidden="true"
-            className={cn(
-              "absolute h-1.5 w-1.5 rounded-full bg-success",
-              variant === "full" ? "-right-1 -top-1" : "-right-1.5 -top-0.5",
-            )}
-          />
-        )}
-      </span>
-      {variant !== "icon" && <span className="truncate">{text}</span>}
+      {({ isActive }) => (
+        <>
+          <span className={rail ? chip(isActive) : "relative shrink-0"}>{icon}</span>
+          <span className={rail ? "line-clamp-2 w-full break-words" : "truncate"}>
+            {textFor(variant, entry)}
+          </span>
+        </>
+      )}
     </NavLink>
   );
+}
 
-  // Icon-only rail: the label has to be reachable somehow.
-  if (variant !== "icon") return link;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
+/** The rail's indicator: the icon sits in it, and it fills when active. */
+function chip(active: boolean) {
+  return cn(
+    "relative flex h-8 w-14 shrink-0 items-center justify-center transition-colors",
+    active ? "bg-primary/20 text-primary" : "group-hover:bg-accent/30",
   );
 }
 
