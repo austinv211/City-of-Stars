@@ -18,9 +18,13 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "City of Stars",
         "width": 1200,
         "height": 800,
+        "minWidth": 420,
+        "minHeight": 600,
+        "resizable": true,
         "decorations": false
       }
     ],

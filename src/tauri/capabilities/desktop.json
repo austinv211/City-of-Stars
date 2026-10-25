@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2/capability",
-  "identifier": "default",
-  "description": "Window management permissions for City of Stars.",
+  "identifier": "desktop",
+  "description": "Desktop window chrome: the custom TitleBar's minimise, maximise, close and drag. Meaningless on a phone, so scoped to desktop platforms.",
+  "platforms": ["linux", "macOS", "windows"],
   "windows": ["main"],
   "permissions": [
     "core:default",

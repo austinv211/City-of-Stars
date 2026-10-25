@@ -1,3 +1,13 @@
 [workspace]
 members = ["src/tauri"]
 resolver = "2"
+
+# Release profile lives here, not in src/tauri/Cargo.toml: Cargo ignores
+# profiles declared in a workspace member, so these never applied while they
+# sat there (cargo warned on every build).
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
