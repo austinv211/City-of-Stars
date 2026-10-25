@@ -978,6 +978,114 @@ export type Database = {
           },
         ]
       }
+      encounter_effects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_round: number
+          created_turn_seq: number
+          description: string | null
+          encounter_id: string
+          expiry: string
+          id: string
+          name: string
+          rounds_remaining: number | null
+          source_participant_id: string | null
+          target_participant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_round?: number
+          created_turn_seq?: number
+          description?: string | null
+          encounter_id: string
+          expiry: string
+          id?: string
+          name: string
+          rounds_remaining?: number | null
+          source_participant_id?: string | null
+          target_participant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_round?: number
+          created_turn_seq?: number
+          description?: string | null
+          encounter_id?: string
+          expiry?: string
+          id?: string
+          name?: string
+          rounds_remaining?: number | null
+          source_participant_id?: string | null
+          target_participant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_effects_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_effects_source_fkey"
+            columns: ["source_participant_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_participants"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_effects_target_fkey"
+            columns: ["target_participant_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_participants"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
+      encounter_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          encounter_id: string
+          id: number
+          kind: string
+          participant_id: string | null
+          payload: Json
+          round: number | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          encounter_id: string
+          id?: number
+          kind: string
+          participant_id?: string | null
+          payload: Json
+          round?: number | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          encounter_id?: string
+          id?: number
+          kind?: string
+          participant_id?: string | null
+          payload?: Json
+          round?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_events_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encounter_participants: {
         Row: {
           ac: number
@@ -1010,6 +1118,9 @@ export type Database = {
           initiative_score: number
           int_score: number | null
           is_player: boolean
+          legendary_actions: Json | null
+          legendary_actions_max: number
+          legendary_actions_remaining: number
           name: string
           owner_id: string | null
           portrait_url: string | null
@@ -1049,6 +1160,9 @@ export type Database = {
           initiative_score?: number
           int_score?: number | null
           is_player?: boolean
+          legendary_actions?: Json | null
+          legendary_actions_max?: number
+          legendary_actions_remaining?: number
           name: string
           owner_id?: string | null
           portrait_url?: string | null
@@ -1088,6 +1202,9 @@ export type Database = {
           initiative_score?: number
           int_score?: number | null
           is_player?: boolean
+          legendary_actions?: Json | null
+          legendary_actions_max?: number
+          legendary_actions_remaining?: number
           name?: string
           owner_id?: string | null
           portrait_url?: string | null
@@ -1122,9 +1239,12 @@ export type Database = {
           ended_at: string | null
           id: string
           is_template: boolean
+          lair_action_initiative: number | null
           name: string
+          round: number
           started_at: string | null
           status: string
+          turn_seq: number
         }
         Insert: {
           campaign_id: string
@@ -1134,9 +1254,12 @@ export type Database = {
           ended_at?: string | null
           id?: string
           is_template?: boolean
+          lair_action_initiative?: number | null
           name?: string
+          round?: number
           started_at?: string | null
           status?: string
+          turn_seq?: number
         }
         Update: {
           campaign_id?: string
@@ -1146,9 +1269,12 @@ export type Database = {
           ended_at?: string | null
           id?: string
           is_template?: boolean
+          lair_action_initiative?: number | null
           name?: string
+          round?: number
           started_at?: string | null
           status?: string
+          turn_seq?: number
         }
         Relationships: [
           {
@@ -1597,6 +1723,16 @@ export type Database = {
       }
       set_campaign_session: {
         Args: { p_campaign_id: string; p_session: number }
+        Returns: undefined
+      }
+      tick_encounter_effects: {
+        Args: {
+          p_encounter_id: string
+          p_next: string
+          p_prev: string
+          p_prev_seq: number
+          p_wrapped: boolean
+        }
         Returns: undefined
       }
     }
