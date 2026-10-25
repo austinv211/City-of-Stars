@@ -133,6 +133,15 @@ async function createCampaign(title: string): Promise<TestCampaign> {
         dex_score: 14,
         initiative_order: 1,
         initiative_score: 2,
+        actions: [
+          {
+            name: "Scimitar",
+            desc: "Melee Weapon Attack: +4 to hit, reach 5 ft. Hit: 5 (1d6 + 2) slashing.",
+            attack_bonus: 4,
+            damage_dice: "1d6+2",
+            damage_type: "slashing",
+          },
+        ],
       })
       .select("id")
       .single(),

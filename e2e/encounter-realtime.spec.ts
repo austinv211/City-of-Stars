@@ -84,6 +84,8 @@ test("a full fight reaches every player live", async ({ openAs, campaign }) => {
       .update({ concentrating_on: "Bless" })
       .eq("id", isoldeRow.id);
 
+    // The prompt reads the DM's copy of the row: wait for the update to land.
+    await expect(await dm.combatant(isoldeRow.id)).toContainText("Bless");
     await dm.damage(isoldeRow.id, 10);
     await expect(await dm.concentrationPrompt(isoldeRow.id)).toContainText(
       "DC 10 for Bless",

@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { AppShell } from "./AppShell";
 
 /**
  * The encounter screen, as the DM (/dm/encounters/active) or a player
@@ -12,8 +13,14 @@ import { expect, type Locator, type Page } from "@playwright/test";
 export class EncounterPage {
   constructor(private readonly page: Page) {}
 
+  /**
+   * Open /encounter and wait for the app to boot. Under a full parallel run
+   * the dev server can take a while over a cold page, longer than an
+   * assertion's default timeout.
+   */
   async goto() {
     await this.page.goto("/encounter");
+    await new AppShell(this.page).expectSignedIn();
   }
 
   private get isPhone() {
@@ -140,6 +147,32 @@ export class EncounterPage {
   async deathSaveTrackOf(participantId: string): Promise<Locator> {
     await this.showTab("Party");
     return this.page.getByTestId(`enc-participant-deathsaves:${participantId}`);
+  }
+
+  /** Bring a combatant's panel onto the stage (a phone jumps back to Turn). */
+  async select(participantId: string, name: string) {
+    if (this.isPhone) {
+      await this.page
+        .getByRole("navigation", { name: "Initiative order" })
+        .getByRole("button", { name: new RegExp(`^${name}`) })
+        .click();
+    } else {
+      await this.page.getByTestId(`enc-participant:${participantId}`).click();
+    }
+  }
+
+  /** Aim at a combatant with the crosshair on its card. */
+  async target(participantId: string, name: string) {
+    const card = await this.combatant(participantId);
+    await card.getByRole("button", { name: `Target ${name}` }).click();
+    await expect(
+      card.getByRole("button", { name: `Stop targeting ${name}` }),
+    ).toBeVisible();
+  }
+
+  /** One of the staged monster's actions: its To Hit, damage, and outcome. */
+  monsterAction(name: string) {
+    return this.page.getByRole("group", { name });
   }
 
   /** The DM applies `amount` damage to a combatant through its card. */

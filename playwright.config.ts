@@ -9,7 +9,7 @@ import { parseEnv } from "node:util";
  *   npm run e2e         # this suite
  *
  * The environment is .env.e2e and nothing else, loaded here and handed to
- * both the test workers and the dev server explicitly -- vite's own --mode
+ * both the test workers and the vite build explicitly -- vite's own --mode
  * loading would layer the real .env (production) underneath it.
  * global-setup refuses to run unless that environment is provably local.
  */
@@ -17,6 +17,7 @@ const e2eEnv = parseEnv(readFileSync(".env.e2e", "utf8")) as Record<string, stri
 Object.assign(process.env, e2eEnv);
 
 const PORT = 1421;
+const OUT_DIR = "dist-e2e";
 const baseURL = `http://localhost:${String(PORT)}`;
 
 export default defineConfig({
@@ -60,11 +61,17 @@ export default defineConfig({
       },
     },
   ],
+  // A production build, served by `vite preview`: what ships, and none of
+  // the dev server's on-demand transforms -- which, under nine browsers at
+  // once, intermittently failed a module import and left a blank app. Built
+  // to its own directory so dist/ (the Tauri bundle input) is never touched.
   webServer: {
-    command: `npx vite --mode e2e --port ${String(PORT)} --strictPort`,
+    command:
+      `npx vite build --mode e2e --outDir ${OUT_DIR} --emptyOutDir && ` +
+      `npx vite preview --mode e2e --outDir ${OUT_DIR} --port ${String(PORT)} --strictPort`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
     env: e2eEnv,
   },
 });

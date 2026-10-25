@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { AppShell } from "./AppShell";
 
 /** The DM's encounter list: templates, and the dialog that runs one. */
 export class DmEncountersPage {
@@ -6,6 +7,7 @@ export class DmEncountersPage {
 
   async goto() {
     await this.page.goto("/dm/encounters");
+    await new AppShell(this.page).expectSignedIn();
   }
 
   templateRow(name: string) {

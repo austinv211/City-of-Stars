@@ -5,7 +5,7 @@ Playwright against the **local** Supabase stack, at three viewports
 
 ```powershell
 npm run e2e:up     # once: start the stack, reset schema + seeds (Docker)
-npm run e2e        # the suite; starts its own vite on :1421 in e2e mode
+npm run e2e        # the suite; builds the app in e2e mode and serves it on :1421
 npm run e2e:ui     # Playwright's UI mode, for writing and debugging specs
 ```
 
@@ -33,3 +33,21 @@ and signs each role in once. Specs start already signed in.
 - **Arrange through the service role, act through the UI.** `support/admin.ts`
   is for setting the scene and reading ground truth, not for the step under test.
 - A test that needs a retry to pass is a bug, not a tolerance.
+
+## What runs where
+
+| Spec                 | Covers                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `auth`               | sign in, a refused password, a signed-out deep link                                 |
+| `encounter-smoke`    | the DM starts an encounter; a watching player is pulled in                          |
+| `encounter-realtime` | DM + two players through a whole fight, every assertion in the player's own browser |
+| `encounter-attack`   | target, to-hit judged against real AC, damage applied in one tap                    |
+| `responsive`         | every top-level route at every viewport: no page scroll, right nav, 44px taps, axe  |
+
+The suite runs against a production build (`vite build --mode e2e` then
+`vite preview`), not the dev server: the dev server's on-demand transforms
+intermittently failed under nine parallel browsers.
+
+`responsive.spec.ts` fails on any serious or critical axe finding except those
+in its `KNOWN_AXE_DEBT` list (today: colour contrast, a theme-token decision),
+which it reports as test annotations instead. That list only ever shrinks.
