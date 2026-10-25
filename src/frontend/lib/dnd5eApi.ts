@@ -1,7 +1,9 @@
 // D&D 5e SRD API — https://www.dnd5eapi.co
 // The 2024 PHB endpoints are not yet populated; all data comes from the 2014 SRD
 // which shares the same monster/spell roster as the 2024 rules.
-const BASE = "https://www.dnd5eapi.co/api";
+// Versioned path: the unversioned /api/... now answers 301 to /api/2014/...,
+// an extra round trip on every lookup and an alias that may not last.
+const BASE = "https://www.dnd5eapi.co/api/2014";
 
 async function apiFetch<T>(path: string): Promise<T | null> {
   try {
