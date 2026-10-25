@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { EncounterParticipant } from "../types/encounter.types";
 import type { EncounterEvent } from "../lib/events";
@@ -73,5 +73,19 @@ export function useEncounterEvents(encounterId: string | null, enabled: boolean)
     }
   }
 
-  return { events: active ? events : [], undo };
+  /**
+   * The whole log, oldest first -- for the end-of-encounter summary. Stable
+   * per encounter, since callers use it as an effect dependency.
+   */
+  const fetchAll = useCallback(async (): Promise<EncounterEvent[]> => {
+    if (!encounterId) return [];
+    const { data } = await supabase
+      .from("encounter_events")
+      .select("*")
+      .eq("encounter_id", encounterId)
+      .order("id");
+    return (data as EncounterEvent[] | null) ?? [];
+  }, [encounterId]);
+
+  return { events: active ? events : [], undo, fetchAll };
 }

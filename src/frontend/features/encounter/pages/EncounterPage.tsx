@@ -1,13 +1,5 @@
 import { useState } from "react";
 import { Swords } from "lucide-react";
-import { Button } from "@/core/components/ui/button";
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogFooter,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "@/core/components/ui/responsive-dialog";
 import { useBreakpoint } from "@/core/hooks/useBreakpoint";
 import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import { InitiativeRollScreen } from "../components/InitiativeRollScreen";
@@ -19,6 +11,7 @@ import {
   type LayoutProps,
 } from "../components/screen/EncounterLayouts";
 import { TargetPicker } from "../components/screen/TargetPicker";
+import { EndEncounterDialog } from "../components/screen/EndEncounterDialog";
 import { useEncounterScreen } from "../hooks/useEncounterScreen";
 
 /**
@@ -93,37 +86,15 @@ export default function EncounterPage({
         <EncounterDesktop {...layout} />
       )}
 
-      <ResponsiveDialog open={confirmEnd} onOpenChange={setConfirmEnd}>
-        <ResponsiveDialogContent>
-          <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>End Encounter?</ResponsiveDialogTitle>
-          </ResponsiveDialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This will mark the encounter as completed and unlock the encounter page for
-            all players.
-          </p>
-          <ResponsiveDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setConfirmEnd(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() =>
-                void screen.endEncounter().then(() => {
-                  setConfirmEnd(false);
-                })
-              }
-            >
-              End Encounter
-            </Button>
-          </ResponsiveDialogFooter>
-        </ResponsiveDialogContent>
-      </ResponsiveDialog>
+      <EndEncounterDialog
+        open={confirmEnd}
+        onOpenChange={setConfirmEnd}
+        loadEvents={screen.log.fetchAll}
+        participants={screen.participants}
+        rolls={screen.history}
+        round={screen.encounter.round}
+        onEnd={screen.endEncounter}
+      />
 
       <AddEffectDialog
         // Re-mount per selection so the default target follows it.
