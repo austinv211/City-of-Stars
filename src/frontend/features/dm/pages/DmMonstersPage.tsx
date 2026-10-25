@@ -552,6 +552,7 @@ export default function DmMonstersPage() {
                   value={importQuery}
                   onChange={(e) => setImportQuery(e.target.value)}
                   placeholder="Search monsters… (e.g. goblin, beholder)"
+                  aria-label="Search the SRD for a monster"
                 />
                 {importSearching && (
                   <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />

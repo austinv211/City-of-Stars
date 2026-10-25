@@ -43,6 +43,10 @@ and signs each role in once. Specs start already signed in.
 | `encounter-realtime` | DM + two players through a whole fight, every assertion in the player's own browser |
 | `encounter-attack`   | target, to-hit judged against real AC, damage applied in one tap                    |
 | `responsive`         | every top-level route at every viewport: no page scroll, right nav, 44px taps, axe  |
+| `character-create`   | the six-step wizard as a player, checked against the database                       |
+| `level-up`           | the DM levels the party; the player's open sheet runs the wizard live               |
+| `monster-import`     | SRD search → pre-filled form → saved to the library (API replayed, see below)       |
+| `rules-lookup`       | glossary search and entry from the encounter screen                                 |
 
 The suite runs against a production build (`vite build --mode e2e` then
 `vite preview`), not the dev server: the dev server's on-demand transforms
@@ -51,3 +55,9 @@ intermittently failed under nine parallel browsers.
 `responsive.spec.ts` fails on any serious or critical axe finding except those
 in its `KNOWN_AXE_DEBT` list (today: colour contrast, a theme-token decision),
 which it reports as test annotations instead. That list only ever shrinks.
+
+**No spec reaches the network beyond the local stack.** The D&D 5e SRD API is
+replayed from `recordings/dnd5eapi/` by `support/srdApi.ts`; an unrecorded
+request is aborted. SRD tables are empty in a test database (they are parsed
+from the uncommitted `docs/rules`), so specs that need SRD rows insert their
+own, uniquely named, and delete them.

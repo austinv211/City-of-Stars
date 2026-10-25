@@ -18,7 +18,11 @@ Object.assign(process.env, e2eEnv);
 
 const PORT = 1421;
 const OUT_DIR = "dist-e2e";
-const baseURL = `http://localhost:${String(PORT)}`;
+// 127.0.0.1, not localhost: on Windows localhost is dual-stack, and under a
+// burst of parallel connections the fallback between ::1 and 127.0.0.1
+// intermittently refused one.
+const HOST = "127.0.0.1";
+const baseURL = `http://${HOST}:${String(PORT)}`;
 
 export default defineConfig({
   testDir: "e2e",
@@ -33,6 +37,13 @@ export default defineConfig({
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never", outputFolder: "artifacts/e2e/report" }]]
     : [["list"], ["html", { open: "never", outputFolder: "artifacts/e2e/report" }]],
+  // Realtime assertions wait on one local realtime server. In a full
+  // parallel run every spec creates a campaign for the SAME seeded users, so
+  // each open page rebuilds its campaign channels whenever another spec
+  // starts -- churn real users never cause -- and an echo occasionally takes
+  // longer than Playwright's default 5s. 10s is a timeout, not a retry: a
+  // change that never arrives still fails.
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: "retain-on-failure",
@@ -68,7 +79,7 @@ export default defineConfig({
   webServer: {
     command:
       `npx vite build --mode e2e --outDir ${OUT_DIR} --emptyOutDir && ` +
-      `npx vite preview --mode e2e --outDir ${OUT_DIR} --port ${String(PORT)} --strictPort`,
+      `npx vite preview --mode e2e --outDir ${OUT_DIR} --host ${HOST} --port ${String(PORT)} --strictPort`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

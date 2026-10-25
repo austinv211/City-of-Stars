@@ -106,6 +106,7 @@ function GlossaryPanel() {
       <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
         <Input
           placeholder="Search rules…"
+          aria-label="Search rules"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className={searchInputCls}
@@ -211,6 +212,7 @@ function SpellsPanel() {
       <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
         <Input
           placeholder={`Search ${allSpells.length || ""} spells…`}
+          aria-label="Search spells"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
@@ -396,6 +398,7 @@ function FeatsPanel() {
       <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
         <Input
           placeholder="Filter feats…"
+          aria-label="Filter feats"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className={searchInputCls}
