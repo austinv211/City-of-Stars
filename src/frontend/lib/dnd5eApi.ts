@@ -84,11 +84,33 @@ export async function getMonster(index: string): Promise<DndMonster | null> {
   return apiFetch<DndMonster>(`/monsters/${index}`);
 }
 
-/** Derive minimal NPC encounter defaults from a monster entry */
+/**
+ * An SRD monster as an encounter combatant.
+ *
+ * Derived from monsterToDbForm so the two cannot drift. It used to build its
+ * own four-field object -- name, hp, ac, initiative -- so a monster added
+ * straight from the SRD search arrived with no ability scores, actions,
+ * traits, legendary actions or resistances.
+ */
 export function monsterToNpc(m: DndMonster) {
-  const ac = m.armor_class?.[0]?.value ?? 12;
-  const dexMod = abilityModifier(m.dexterity ?? 10);
-  return { name: m.name, hp: m.hit_points, ac, initiative: dexMod };
+  const f = monsterToDbForm(m);
+  return {
+    name: f.name,
+    hp: f.hp,
+    ac: f.ac,
+    initiative: f.default_initiative,
+    str_score: f.str_score,
+    dex_score: f.dex_score,
+    con_score: f.con_score,
+    int_score: f.int_score,
+    wis_score: f.wis_score,
+    cha_score: f.cha_score,
+    actions: f.actions,
+    special_abilities: f.special_abilities,
+    legendary_actions: f.legendary_actions,
+    damage_resistances: f.damage_resistances,
+    damage_immunities: f.damage_immunities,
+  };
 }
 
 /** Convert a full API monster to the custom_monsters DB row shape */

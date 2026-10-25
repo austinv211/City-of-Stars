@@ -9,7 +9,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { Loader2, Plus, Trash2, BookOpen, BookmarkPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
-import { searchMonsters, getMonster, monsterToNpc } from "@/lib/dnd5eApi";
+import { searchMonsters, getMonster, monsterToNpc, monsterToDbForm } from "@/lib/dnd5eApi";
 import type { DndMonsterSummary } from "@/lib/dnd5eApi";
 import type { NpcDraft } from "@/features/dm/hooks/useEncounterManager";
 import type { MonsterAction, MonsterSpecialAbility } from "@/features/encounter/types/encounter.types";
@@ -28,6 +28,9 @@ export interface CustomMonster {
   cha_score?: number;
   actions?: unknown;
   special_abilities?: unknown;
+  legendary_actions?: unknown;
+  damage_resistances?: string[];
+  damage_immunities?: string[];
   description?: string | null;
 }
 
@@ -78,13 +81,12 @@ export function MonsterPicker({ customMonsters, onSelect, onLibraryChange }: Pro
     setSavingIdx(summary.index);
     const m = await getMonster(summary.index);
     if (m) {
-      const npc = monsterToNpc(m);
+      // The full stat block, as the monster library's own import does. This
+      // used to save only name/hp/ac/initiative, so a monster bookmarked from
+      // here came back from the library as an empty shell.
       await supabase.from("custom_monsters").insert({
         campaign_id: campaign.id,
-        name: npc.name,
-        hp: npc.hp,
-        ac: npc.ac,
-        default_initiative: npc.initiative,
+        ...monsterToDbForm(m),
       });
       onLibraryChange();
     }
@@ -262,6 +264,9 @@ export function MonsterPicker({ customMonsters, onSelect, onLibraryChange }: Pro
                         cha_score: m.cha_score,
                         actions: m.actions as MonsterAction[] | undefined,
                         special_abilities: m.special_abilities as MonsterSpecialAbility[] | undefined,
+                        legendary_actions: m.legendary_actions as MonsterSpecialAbility[] | undefined,
+                        damage_resistances: m.damage_resistances,
+                        damage_immunities: m.damage_immunities,
                         description: m.description ?? undefined,
                       })
                     }

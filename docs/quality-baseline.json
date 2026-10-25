@@ -5,12 +5,12 @@
     "one, that is the discussion, not a silent edit.",
     "Regenerate the measurement with: npm run lint:report"
   ],
-  "measuredAt": "2026-10-21",
+  "measuredAt": "2026-10-25",
   "eslint": {
     "errors": 0,
-    "maxWarnings": 982,
+    "maxWarnings": 957,
     "byRule": {
-      "@typescript-eslint/no-unnecessary-condition": 211,
+      "@typescript-eslint/no-unnecessary-condition": 186,
       "@typescript-eslint/no-misused-promises": 151,
       "@typescript-eslint/no-floating-promises": 108,
       "@typescript-eslint/restrict-template-expressions": 89,
@@ -19,7 +19,7 @@
       "complexity": 34,
       "@typescript-eslint/no-unsafe-member-access": 26,
       "@typescript-eslint/no-deprecated": 26,
-      "@typescript-eslint/no-unsafe-assignment": 25,
+      "@typescript-eslint/no-unsafe-assignment": 24,
       "react-hooks/exhaustive-deps": 25,
       "@typescript-eslint/no-non-null-assertion": 24,
       "max-lines": 21,
@@ -28,7 +28,7 @@
       "@typescript-eslint/prefer-nullish-coalescing": 15,
       "jsx-a11y/click-events-have-key-events": 13,
       "sonarjs/cognitive-complexity": 12,
-      "@typescript-eslint/no-unsafe-argument": 11,
+      "@typescript-eslint/no-unsafe-argument": 12,
       "jsx-a11y/no-static-element-interactions": 10,
       "@typescript-eslint/no-explicit-any": 10,
       "jsx-a11y/control-has-associated-label": 8,
@@ -49,7 +49,8 @@
       "@typescript-eslint/prefer-promise-reject-errors": 1,
       "@typescript-eslint/no-unnecessary-type-parameters": 1
     },
-    "_rebaseNote": "975 -> 982 is a REBASE, not new debt. Adding src/test and vitest.config.ts to tsconfig's include broadened the type-aware program, so no-misused-promises (+7) now resolves in pre-existing app files it previously could not type -- all 151 occurrences are in app code (EncounterPage 14, DmCharacterViewPage 12, CharacterViewPage 11, ...). The three test files contribute zero warnings. Verified by measuring with the old include (984) and the new one (982)."
+    "_rebaseNote": "975 -> 982 is a REBASE, not new debt. Adding src/test and vitest.config.ts to tsconfig's include broadened the type-aware program, so no-misused-promises (+7) now resolves in pre-existing app files it previously could not type -- all 151 occurrences are in app code (EncounterPage 14, DmCharacterViewPage 12, CharacterViewPage 11, ...). The three test files contribute zero warnings. Verified by measuring with the old include (984) and the new one (982).",
+    "_ratchetNote": "982 -> 957 (2026-10-25). Typing useEncounterManager's NPC rows with the generated ParticipantRow, and collapsing runTemplate's and getTemplateNpcs' two hand-copied field lists into one rowToNpc, retired ~23 unsafe-any / unnecessary-condition warnings in that file alone."
   },
   "typeCoverage": {
     "atLeast": 99.7,
