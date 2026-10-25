@@ -79,6 +79,9 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<RollEntry[]>([]);
   const [animQueue, setAnimQueue] = useState<DiceRollBroadcast[]>([]);
   const [diceAnimating, setDiceAnimating] = useState(false);
+  // Physics rolls still settling. While any is, the table is theirs: see
+  // clearDiceAnimation.
+  const inFlightRef = useRef(0);
 
   // Lazy-init DiceBox on first roll. By then #dice-box-container is in the
   // DOM (rendered by DiceBoxOverlay, which mounts inside this provider).
@@ -184,6 +187,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     // DiceBox is the authoritative RNG — its physics result is what the card shows.
     let individualRolls: number[];
     let result: number;
+    inFlightRef.current += 1;
     try {
       const box = await getOrInitBox();
       const rollResults = await box.roll(notation);
@@ -194,6 +198,8 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     } catch {
       individualRolls = Array.from({ length: diceCount }, () => cryptoRoll(opts.sides));
       result = individualRolls.reduce((a, b) => a + b, 0);
+    } finally {
+      inFlightRef.current -= 1;
     }
 
     // Populate the queue after physics settles so the result card matches the die face.
@@ -265,6 +271,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         s + Array.from({ length: count }, () => cryptoRoll(sides)).reduce((a, b) => a + b, 0), 0);
     }
 
+    inFlightRef.current += 1;
     try {
       const box = await getOrInitBox();
 
@@ -315,6 +322,8 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
           allRolls.push(...rolls);
         }
       }
+    } finally {
+      inFlightRef.current -= 1;
     }
 
     const total = diceSum + opts.modifier;
@@ -392,6 +401,11 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearDiceAnimation = useCallback(() => {
+    // The previous result card's dismiss timer must not clear the table under
+    // a roll that is still settling: its dice would vanish mid-physics, never
+    // settle, and its promise would never resolve -- the roll silently lost.
+    // That roll's own card clears the box once it lands.
+    if (inFlightRef.current > 0) return;
     boxRef.current?.clear();
     setDiceAnimating(false);
   }, []);
