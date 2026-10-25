@@ -47,6 +47,7 @@ and signs each role in once. Specs start already signed in.
 | `level-up`           | the DM levels the party; the player's open sheet runs the wizard live               |
 | `monster-import`     | SRD search → pre-filled form → saved to the library (API replayed, see below)       |
 | `rules-lookup`       | glossary search and entry from the encounter screen                                 |
+| `quick-rolls`        | rolling a check with advantage from the character sheet, out of combat              |
 
 The suite runs against a production build (`vite build --mode e2e` then
 `vite preview`), not the dev server: the dev server's on-demand transforms
