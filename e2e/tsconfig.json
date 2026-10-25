@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
+    "checkJs": false
+  },
+  "include": [".", "../playwright.config.ts"]
+}

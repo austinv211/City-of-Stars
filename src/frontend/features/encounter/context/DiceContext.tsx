@@ -5,8 +5,10 @@ import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
 import type { DiceRollBroadcast, ActionCategory } from "../types/encounter.types";
+import { DETERMINISTIC_DICE, deterministicDie } from "../lib/testDice";
 
 function cryptoRoll(sides: number): number {
+  if (DETERMINISTIC_DICE) return deterministicDie(sides);
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
   return (array[0] % sides) + 1;
@@ -86,6 +88,9 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
   // Lazy-init DiceBox on first roll. By then #dice-box-container is in the
   // DOM (rendered by DiceBoxOverlay, which mounts inside this provider).
   const getOrInitBox = useCallback((): Promise<InstanceType<typeof DiceBox>> => {
+    // E2E: no physics. Rejecting sends every roll down the fallback path,
+    // which draws from the deterministic source via cryptoRoll.
+    if (DETERMINISTIC_DICE) return Promise.reject(new Error("deterministic dice"));
     if (!initPromiseRef.current) {
       try {
         const box = new DiceBox({

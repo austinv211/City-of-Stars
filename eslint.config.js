@@ -241,11 +241,12 @@ export default tseslint.config(
     },
   },
 
-  // ── Node-side scripts ──────────────────────────────────────────────────────
+  // ── Node-side scripts and the E2E suite ────────────────────────────────────
   // Not type-aware: these sit outside tsconfig's `include`, so asking for type
-  // information would just fail to resolve a project for them.
+  // information would just fail to resolve a project for them. The E2E suite
+  // is type-checked by its own e2e/tsconfig.json instead (`npm run quality`).
   {
-    files: ["scripts/**/*.{js,mjs,ts}"],
+    files: ["scripts/**/*.{js,mjs,ts}", "e2e/**/*.ts"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 2022,

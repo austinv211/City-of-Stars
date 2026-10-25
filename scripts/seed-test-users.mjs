@@ -83,22 +83,28 @@ function admin(path, init = {}) {
 }
 
 async function upsertUser(u) {
-  // Idempotent: delete first so repeated runs converge instead of 422-ing on
-  // a duplicate email.
-  await admin(`/auth/v1/admin/users/${u.id}`, { method: "DELETE" });
-
-  const res = await admin("/auth/v1/admin/users", {
-    method: "POST",
-    body: JSON.stringify({
-      id: u.id,
-      email: u.email,
-      password: u.password,
-      email_confirm: true, // no inbox round-trip in tests
-      user_metadata: { display_name: u.displayName },
-    }),
-  });
+  // Idempotent: an existing user is reset in place rather than deleted and
+  // recreated. Deleting fails once the user owns rows (a campaign's
+  // created_by, a character), and when it did succeed it took everything
+  // hanging off the user with it.
+  const attrs = {
+    email: u.email,
+    password: u.password,
+    email_confirm: true, // no inbox round-trip in tests
+    user_metadata: { display_name: u.displayName },
+  };
+  const existing = await admin(`/auth/v1/admin/users/${u.id}`);
+  const res = existing.ok
+    ? await admin(`/auth/v1/admin/users/${u.id}`, {
+        method: "PUT",
+        body: JSON.stringify(attrs),
+      })
+    : await admin("/auth/v1/admin/users", {
+        method: "POST",
+        body: JSON.stringify({ id: u.id, ...attrs }),
+      });
   if (!res.ok) {
-    throw new Error(`create ${u.email} failed: ${res.status} ${await res.text()}`);
+    throw new Error(`upsert ${u.email} failed: ${res.status} ${await res.text()}`);
   }
   return u;
 }

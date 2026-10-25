@@ -43,3 +43,6 @@ db-reset.log
 # Verification screenshots (regenerate with scripts/verify-responsive.mjs)
 artifacts/
 vite-e2e.log
+
+# Playwright: saved sessions and run output
+e2e/.auth/
