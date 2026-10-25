@@ -99,7 +99,10 @@ function StandardArrayTab({ state, dispatch }: Pick<Props, "state" | "dispatch">
                 value={STANDARD_ARRAY.includes(current) ? String(current) : ""}
                 onValueChange={(v) => handleAssign(ability, v)}
               >
-                <SelectTrigger className="flex-1">
+                <SelectTrigger
+                  className="flex-1"
+                  aria-label={`${ABILITY_LABELS[ability]} score`}
+                >
                   <SelectValue placeholder="—" />
                 </SelectTrigger>
                 <SelectContent>

@@ -75,9 +75,9 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label>Background</Label>
+        <Label htmlFor="char-background">Background</Label>
         <Select value={state.background} onValueChange={handleBackgroundChange}>
-          <SelectTrigger>
+          <SelectTrigger id="char-background">
             <SelectValue placeholder="Choose a background" />
           </SelectTrigger>
           <SelectContent>
@@ -148,12 +148,12 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
       {bg && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>+2 Ability Score</Label>
+            <Label htmlFor="char-bonus-primary">+2 Ability Score</Label>
             <Select
               value={state.backgroundBonusPrimary}
               onValueChange={(v) => handlePrimaryChange(v as AbilityName)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="char-bonus-primary">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -167,12 +167,12 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>+1 Ability Score</Label>
+            <Label htmlFor="char-bonus-secondary">+1 Ability Score</Label>
             <Select
               value={state.backgroundBonusSecondary}
               onValueChange={(v) => set("backgroundBonusSecondary", v as AbilityName)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="char-bonus-secondary">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -188,9 +188,9 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
       )}
 
       <div className="space-y-2">
-        <Label>Alignment <span className="text-muted-foreground">(optional)</span></Label>
+        <Label htmlFor="char-alignment">Alignment <span className="text-muted-foreground">(optional)</span></Label>
         <Select value={state.alignment} onValueChange={(v) => set("alignment", v)}>
-          <SelectTrigger>
+          <SelectTrigger id="char-alignment">
             <SelectValue placeholder="Choose alignment (optional)" />
           </SelectTrigger>
           <SelectContent>
@@ -208,10 +208,11 @@ export function Step2_Background({ state, dispatch, onNext }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label>
+        <Label htmlFor="char-backstory">
           Backstory <span className="text-muted-foreground">(optional)</span>
         </Label>
         <Textarea
+          id="char-backstory"
           placeholder="Share your character's history, motivations, and goals..."
           value={state.backstory}
           onChange={(e) => set("backstory", e.target.value)}

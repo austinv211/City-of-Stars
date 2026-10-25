@@ -49,9 +49,9 @@ export function Step1_Identity({ state, dispatch, onNext }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label>Species</Label>
+        <Label htmlFor="char-species">Species</Label>
         <Select value={state.species} onValueChange={(v) => set("species", v)}>
-          <SelectTrigger>
+          <SelectTrigger id="char-species">
             <SelectValue placeholder="Choose a species" />
           </SelectTrigger>
           <SelectContent>
@@ -72,9 +72,9 @@ export function Step1_Identity({ state, dispatch, onNext }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label>Class</Label>
+        <Label htmlFor="char-class">Class</Label>
         <Select value={state.characterClass} onValueChange={handleClassChange}>
-          <SelectTrigger>
+          <SelectTrigger id="char-class">
             <SelectValue placeholder="Choose a class" />
           </SelectTrigger>
           <SelectContent>
@@ -97,9 +97,9 @@ export function Step1_Identity({ state, dispatch, onNext }: Props) {
 
       {selectedClass && (
         <div className="space-y-2">
-          <Label>Subclass <span className="text-muted-foreground">(optional)</span></Label>
+          <Label htmlFor="char-subclass">Subclass <span className="text-muted-foreground">(optional)</span></Label>
           <Select value={state.subclass} onValueChange={(v) => set("subclass", v)}>
-            <SelectTrigger>
+            <SelectTrigger id="char-subclass">
               <SelectValue placeholder="Choose a subclass (optional)" />
             </SelectTrigger>
             <SelectContent>

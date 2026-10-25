@@ -37,7 +37,13 @@ export function WizardShell({ state, dispatch, children, onBack }: WizardShellPr
         <div>
           <div className="flex items-center gap-4 mb-3">
             {step > 1 && (
-              <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBack}
+                className="shrink-0"
+                aria-label="Back"
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
