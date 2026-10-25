@@ -13,6 +13,19 @@ const e2eEnv = existsSync(".env.e2e")
   : {};
 
 /**
+ * The unit and component layers touch no database, so they get placeholder
+ * Supabase settings and load NO .env file: `envDir` points at a directory
+ * without one. Before this, importing anything that imports lib/supabase
+ * read the developer's real .env -- production keys -- and in CI, which has
+ * no .env, crashed on an undefined URL.
+ */
+const OFFLINE_ENV_DIR = path.resolve(import.meta.dirname, "./src/test");
+const offlineEnv = {
+  VITE_SUPABASE_URL: "http://127.0.0.1:1",
+  VITE_SUPABASE_ANON_KEY: "unit-test-placeholder",
+};
+
+/**
  * Two projects so the fast layer stays fast.
  *
  *   unit       pure logic — rules maths, stat derivation. node env, no DOM.
@@ -32,22 +45,26 @@ export default defineConfig({
   test: {
     projects: [
       {
+        envDir: OFFLINE_ENV_DIR,
         resolve: {
           alias: { "@": path.resolve(import.meta.dirname, "./src/frontend") },
         },
         test: {
           name: "unit",
+          env: offlineEnv,
           environment: "node",
           include: ["src/frontend/**/*.test.ts"],
           exclude: ["**/*.component.test.ts?(x)"],
         },
       },
       {
+        envDir: OFFLINE_ENV_DIR,
         resolve: {
           alias: { "@": path.resolve(import.meta.dirname, "./src/frontend") },
         },
         test: {
           name: "component",
+          env: offlineEnv,
           environment: "jsdom",
           include: ["src/frontend/**/*.component.test.ts?(x)"],
           setupFiles: ["./src/test/setup.ts"],
