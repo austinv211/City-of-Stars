@@ -17,6 +17,7 @@ import { AnimatedStar, TitleBar } from "@/core/components/TitleBar";
 import { NavSections } from "@/core/components/nav/NavSections";
 import { MobileNav } from "@/core/components/nav/MobileNav";
 import { useBreakpoint } from "@/core/hooks/useBreakpoint";
+import { useMotionAttribute } from "@/core/hooks/useFeelPrefs";
 import { cn } from "@/lib/utils";
 import DiceRollOverlay from "./DiceRollOverlay";
 import { AccountDialog } from "./AccountDialog";
@@ -161,6 +162,7 @@ function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
 export default function AppShell() {
   const [accountOpen, setAccountOpen] = useState(false);
   const { signOut } = useAuth();
+  useMotionAttribute();
 
   const openAccount = () => {
     setAccountOpen(true);

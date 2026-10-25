@@ -1,3 +1,4 @@
+import { buzz, HAPTIC } from "@/core/lib/haptics";
 import { useDice, type PoolRollOptions } from "../../context/DiceContext";
 import type { ActionCategory, EncounterParticipant } from "../../types/encounter.types";
 
@@ -60,14 +61,17 @@ export function useCombatRolls({
     doRoll: (diceType, sides, modifier, rollType) =>
       roll({ ...base, diceType, sides, modifier, rollType }),
     rollD20: (modifier, rollType, opts) =>
-      rollPool({
-        ...base,
-        pool: [{ sides: 20, count: 1 }],
+      onNatural20(
         modifier,
-        advantage: opts?.advantage ?? false,
-        disadvantage: opts?.disadvantage ?? false,
-        rollType,
-      }),
+        rollPool({
+          ...base,
+          pool: [{ sides: 20, count: 1 }],
+          modifier,
+          advantage: opts?.advantage ?? false,
+          disadvantage: opts?.disadvantage ?? false,
+          rollType,
+        }),
+      ),
     rollPool: (args) => rollPool({ ...base, ...args }),
     spendAction(label, category, actionId) {
       announceAction({
@@ -86,4 +90,12 @@ export function useCombatRolls({
       if (actionId === "dodge") onSetTurnFlag("dodging", true);
     },
   };
+}
+
+/** A d20's total minus its modifier is the face that landed (adv/dis too). */
+function onNatural20(modifier: number, roll: Promise<number>): Promise<number> {
+  return roll.then((total) => {
+    if (total - modifier >= 20) buzz(HAPTIC.crit);
+    return total;
+  });
 }

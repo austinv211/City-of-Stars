@@ -6,6 +6,7 @@ import { StageFrame } from "../stage/StageFrame";
 import { WatchingStage } from "../stage/WatchingStage";
 import { useCombatRolls } from "../stage/useCombatRolls";
 import type { EncounterScreen } from "../../hooks/useEncounterScreen";
+import { useStageHaptics } from "../../hooks/useStageHaptics";
 import type { EncounterParticipant } from "../../types/encounter.types";
 
 /**
@@ -30,15 +31,10 @@ export function OwnStage({
   const activeId = screen.encounter?.current_participant_id ?? null;
   // "Show my full sheet" lasts for the turn it was asked for; the next turn
   // returns to the quiet view.
-  const turnKey = `${String(stage?.round)}:${String(activeId)}`;
+  const turnKey = turnKeyOf(screen);
   const [expandedFor, setExpandedFor] = useState<string | null>(null);
-  const rolls = useCombatRolls({
-    participant: own,
-    campaignId: screen.campaign?.id ?? "",
-    encounterId: screen.encounterId ?? "",
-    isDM: false,
-    onSetTurnFlag: (flag, v) => void screen.combat.setTurnFlag(own.id, flag, v),
-  });
+  const rolls = useOwnRolls(screen, own);
+  useStageHaptics(stage?.phase);
 
   if (!stage) return null;
   const { phase } = stage;
@@ -88,4 +84,19 @@ export function OwnStage({
       )}
     </StageFrame>
   );
+}
+
+function turnKeyOf(screen: EncounterScreen): string {
+  return `${String(screen.encounter?.round)}:${String(screen.encounter?.current_participant_id)}`;
+}
+
+/** Rolling and announcing as the viewer's own combatant. */
+function useOwnRolls(screen: EncounterScreen, own: EncounterParticipant) {
+  return useCombatRolls({
+    participant: own,
+    campaignId: screen.campaign?.id ?? "",
+    encounterId: screen.encounterId ?? "",
+    isDM: false,
+    onSetTurnFlag: (flag, v) => void screen.combat.setTurnFlag(own.id, flag, v),
+  });
 }

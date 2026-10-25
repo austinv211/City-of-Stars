@@ -137,6 +137,18 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     }
   }
 
+  // Reduced motion, from the OS or the in-app setting (useMotionAttribute).
+  // Durations near zero rather than `none`, so animationend/transitionend
+  // still fire for anything that waits on them.
+  [data-motion='reduce'] *,
+  [data-motion='reduce'] *::before,
+  [data-motion='reduce'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
   // iOS/Android momentum scrolling inside the app's scroll containers.
   [data-scroll-container] {
     -webkit-overflow-scrolling: touch;

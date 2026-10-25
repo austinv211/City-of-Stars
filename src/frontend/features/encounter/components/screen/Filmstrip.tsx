@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Crosshair } from "lucide-react";
-import { useBreakpoint } from "@/core/hooks/useBreakpoint";
+import { useReducedMotion } from "@/core/hooks/useFeelPrefs";
 import { cn } from "@/lib/utils";
 import type { EncounterParticipant } from "../../types/encounter.types";
 
@@ -28,7 +28,7 @@ export function Filmstrip({
   onSelect: (id: string) => void;
 }) {
   const activeRef = useRef<HTMLButtonElement | null>(null);
-  const { prefersReducedMotion } = useBreakpoint();
+  const prefersReducedMotion = useReducedMotion();
   useEffect(() => {
     activeRef.current?.scrollIntoView({
       block: "nearest",
