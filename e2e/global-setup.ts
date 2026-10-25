@@ -16,7 +16,10 @@ import { USERS, storageStatePath, type Role } from "./support/users";
  *    create and delete whole campaigns -- so the target must be provably
  *    local: loopback host, not the real project, not the production key, and
  *    carrying the _cos_test_marker table.
- * 2. (Re)create the deterministic users. Idempotent.
+ * 2. (Re)create the deterministic users and the browsable fixture campaign
+ *    they belong to. Both idempotent. The campaign matters: a DM with no
+ *    campaign membership renders an empty nav, so on a freshly reset
+ *    database -- CI's -- signing in never showed the shell.
  * 3. Sign each role in once through the real login form and keep the browser
  *    state, so specs start signed in instead of each paying for the form.
  *
@@ -28,10 +31,9 @@ export default async function globalSetup(config: FullConfig) {
   assertNotProduction(process.env);
   await assertTestMarker(process.env);
 
-  execFileSync(process.execPath, ["scripts/seed-test-users.mjs"], {
-    stdio: "inherit",
-    env: process.env,
-  });
+  for (const script of ["scripts/seed-test-users.mjs", "scripts/seed-fixtures.mjs"]) {
+    execFileSync(process.execPath, [script], { stdio: "inherit", env: process.env });
+  }
 
   const baseURL = config.projects[0]?.use.baseURL;
   if (!baseURL) throw new Error("global-setup: no baseURL in playwright.config.ts");
