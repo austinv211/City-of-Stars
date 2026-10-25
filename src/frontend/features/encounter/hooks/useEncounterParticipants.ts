@@ -26,6 +26,7 @@ function normalizeParticipant(raw: unknown): EncounterParticipant {
     ...p,
     actions: parseJsonArray<MonsterAction>(p.actions),
     special_abilities: parseJsonArray<MonsterSpecialAbility>(p.special_abilities),
+    legendary_actions: parseJsonArray<MonsterSpecialAbility>(p.legendary_actions),
   };
 }
 

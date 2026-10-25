@@ -267,8 +267,10 @@ CREATE POLICY "encounter_effects: dm or source delete" ON public.encounter_effec
   );
 
 -- ── Realtime ────────────────────────────────────────────────────────────────
--- FULL so a DELETE carries the effect's name: that is what the "Bless ended"
--- toast reads.
+-- FULL to match the project's realtime tables (20260521073830). Note it does
+-- NOT make a DELETE carry the effect's name to clients: with RLS enabled,
+-- Realtime sends only the primary key of a deleted row. The client keeps the
+-- names it already has (useEncounterEffects).
 ALTER TABLE public.encounter_effects REPLICA IDENTITY FULL;
 
 DO $$

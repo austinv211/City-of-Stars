@@ -20,7 +20,12 @@ import { ActionPanel } from "../components/ActionPanel";
 import { CharacterQuickRef } from "../components/CharacterQuickRef";
 import { InitiativeRollScreen } from "../components/InitiativeRollScreen";
 import { SpectatorRollPanel } from "../components/SpectatorRollPanel";
+import { TurnBar } from "../components/stage/TurnBar";
+import { EffectsTray } from "../components/stage/EffectsTray";
+import { AddEffectDialog } from "../components/stage/AddEffectDialog";
 import { useActiveEncounter } from "../hooks/useActiveEncounter";
+import { useEncounterEffects } from "../hooks/useEncounterEffects";
+import { deriveStage } from "../lib/encounterStage";
 import { useEncounterParticipants } from "../hooks/useEncounterParticipants";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useCharacter } from "@/features/characters/hooks/useCharacter";
@@ -195,6 +200,8 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
     activeEncounterId,
     campaign?.id,
   );
+  const { effects, addEffect, removeEffect } = useEncounterEffects(activeEncounterId);
+  const [addEffectOpen, setAddEffectOpen] = useState(false);
   const { characters, loading: charsLoading } = useCharacters();
   const { history: allHistory, roll } = useDice();
   const history = allHistory.filter((e) => e.encounterId === activeEncounterId);
@@ -310,9 +317,13 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
     );
   }
 
-  const activeParticipant = participants.find(
-    (p) => p.id === activeParticipantId,
-  );
+  const stage = deriveStage({
+    isDM,
+    encounter,
+    participants,
+    ownParticipantId: ownParticipant?.id ?? null,
+    effects,
+  });
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -340,15 +351,8 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
           </Badge>
         </div>
         {/* Zone 2 — flex-1, aligns with Action Panel column */}
-        <div className="flex-1 flex items-center px-4">
-          {activeParticipant && (
-            <span className="text-sm">
-              <span className="text-muted-foreground">Turn: </span>
-              <span className="font-semibold text-primary">
-                {activeParticipant.name}
-              </span>
-            </span>
-          )}
+        <div className="flex-1 flex items-center px-4 min-w-0">
+          <TurnBar stage={stage} />
         </div>
         {/* Zone 3 — w-64, aligns with Roll Log column */}
         <div className="w-64 shrink-0 flex items-center justify-end gap-2 px-3">
@@ -405,6 +409,20 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
           className={cn("flex-1 flex flex-col overflow-hidden min-w-0 bg-card")}
         >
           <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+            {(isDM || ownParticipant) && (
+              <div className="mb-3 border-b border-border/40 pb-3">
+                <EffectsTray
+                  effects={effects}
+                  participants={participants}
+                  own={stage.own}
+                  isDM={isDM}
+                  onRemove={(id) => void removeEffect(id)}
+                  onAdd={() => {
+                    setAddEffectOpen(true);
+                  }}
+                />
+              </div>
+            )}
             {(() => {
               // Spectators (no participant of their own) default to a personal
               // roll panel. Selecting someone in the tracker shows that
@@ -551,6 +569,17 @@ export default function EncounterPage({ playerMode = false }: { playerMode?: boo
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddEffectDialog
+        // Re-mount per target so the default target follows the selection.
+        key={panelParticipantId ?? "none"}
+        open={addEffectOpen}
+        onOpenChange={setAddEffectOpen}
+        participants={participants}
+        fixedSourceId={isDM ? null : (ownParticipant?.id ?? null)}
+        defaultTargetId={panelParticipantId}
+        onAdd={addEffect}
+      />
 
       <RulesLookup open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>
