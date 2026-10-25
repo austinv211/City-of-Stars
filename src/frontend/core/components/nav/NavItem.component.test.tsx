@@ -11,6 +11,7 @@ const entry: NavEntry = {
   to: "/encounter",
   label: "Encounter",
   shortLabel: "Combat",
+  description: "The live combat tracker",
   icon: Swords,
   requiresEncounter: true,
 };
@@ -98,5 +99,31 @@ describe("NavItem", () => {
   it("hides the live-encounter dot from assistive tech", () => {
     const { container } = renderItem({ showLiveDot: true });
     expect(container.querySelector("[aria-hidden='true']")).toBeInTheDocument();
+  });
+
+  describe("tile variant (phone More sheet)", () => {
+    it("shows the label and its description", () => {
+      renderItem({ variant: "tile" });
+      expect(screen.getByRole("link", { name: /encounter/i })).toHaveTextContent(
+        "The live combat tracker",
+      );
+    });
+
+    it("marks the active route with aria-current", () => {
+      renderItem({ variant: "tile" }, "/encounter");
+      expect(screen.getByRole("link")).toHaveAttribute("aria-current", "page");
+    });
+
+    // Touch has no hover, so the reason cannot live in a tooltip.
+    it("states why it is disabled inline, in place of the description", () => {
+      renderItem({
+        variant: "tile",
+        disabled: true,
+        disabledTip: "No active encounter",
+      });
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+      expect(screen.getByText("No active encounter")).toBeVisible();
+      expect(screen.queryByText("The live combat tracker")).not.toBeInTheDocument();
+    });
   });
 });

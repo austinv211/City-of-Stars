@@ -17,7 +17,7 @@ import {
  * These three arrays previously lived inline in AppShell, which was fine while
  * there was exactly one way to render them. There are now four — the desktop
  * sidebar, the tablet icon rail, the phone bottom tab bar, and the phone
- * overflow sheet — so they have to come from one place or they will drift.
+ * "More" sheet — so they have to come from one place or they will drift.
  */
 
 export interface NavEntry {
@@ -25,6 +25,11 @@ export interface NavEntry {
   label: string;
   /** Shorter label for the bottom tab bar, where ~68px is the budget. */
   shortLabel?: string;
+  /**
+   * One line of context for the phone "More" sheet, where a destination is a
+   * tile rather than a sidebar row and the label alone does not say enough.
+   */
+  description: string;
   icon: React.ComponentType<{ className?: string }>;
   /** Disabled, with a tooltip, until an encounter is live. */
   requiresEncounter?: boolean;
@@ -32,27 +37,80 @@ export interface NavEntry {
 
 /** Player-facing destinations. Also the phone bottom tab bar. */
 export const playerNav: NavEntry[] = [
-  { to: "/characters", label: "Characters", shortLabel: "Chars", icon: Users },
-  { to: "/campaigns", label: "Campaigns", shortLabel: "Campaign", icon: BookOpen },
+  {
+    to: "/characters",
+    label: "Characters",
+    shortLabel: "Chars",
+    description: "Your sheets and progress",
+    icon: Users,
+  },
+  {
+    to: "/campaigns",
+    label: "Campaigns",
+    shortLabel: "Campaign",
+    description: "Campaigns you belong to",
+    icon: BookOpen,
+  },
   {
     to: "/encounter",
     label: "Encounter",
     shortLabel: "Combat",
+    description: "The live combat tracker",
     icon: Swords,
     requiresEncounter: true,
   },
 ];
 
 export const dmNav: NavEntry[] = [
-  { to: "/dm/campaigns", label: "Campaigns", icon: BookMarked },
-  { to: "/dm/members", label: "Members", icon: UserCog },
-  { to: "/dm/characters", label: "Characters", icon: Users },
-  { to: "/dm/sessions", label: "Session Manager", icon: ScrollText },
-  { to: "/dm/encounters", label: "Encounters", icon: ListChecks },
-  { to: "/dm/monsters", label: "Monster Library", icon: Skull },
+  {
+    to: "/dm/campaigns",
+    label: "Campaigns",
+    description: "Create, run and switch campaigns",
+    icon: BookMarked,
+  },
+  {
+    to: "/dm/members",
+    label: "Members",
+    description: "Invite players and assign roles",
+    icon: UserCog,
+  },
+  {
+    to: "/dm/characters",
+    label: "Characters",
+    description: "Every party member's sheet",
+    icon: Users,
+  },
+  {
+    to: "/dm/sessions",
+    label: "Session Manager",
+    description: "Party and DM notes per session",
+    icon: ScrollText,
+  },
+  {
+    to: "/dm/encounters",
+    label: "Encounters",
+    description: "Build, run and review fights",
+    icon: ListChecks,
+  },
+  {
+    to: "/dm/monsters",
+    label: "Monster Library",
+    description: "Custom stat blocks",
+    icon: Skull,
+  },
 ];
 
 export const adminNav: NavEntry[] = [
-  { to: "/admin/whitelist", label: "Email Whitelist", icon: ShieldCheck },
-  { to: "/admin/campaigns", label: "All Campaigns", icon: Globe },
+  {
+    to: "/admin/whitelist",
+    label: "Email Whitelist",
+    description: "Who is allowed to sign up",
+    icon: ShieldCheck,
+  },
+  {
+    to: "/admin/campaigns",
+    label: "All Campaigns",
+    description: "Every campaign on the server",
+    icon: Globe,
+  },
 ];
