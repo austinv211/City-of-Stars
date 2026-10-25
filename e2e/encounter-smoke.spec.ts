@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures";
-import { admin, must } from "./support/admin";
+import { participantFor } from "./support/encounter";
 import { DmEncountersPage } from "./pages/DmEncountersPage";
 import { EncounterPage } from "./pages/EncounterPage";
 
@@ -28,18 +28,6 @@ test("the DM runs a template and a watching player is pulled in", async ({
   const mod = await encounter.initiativeModifier();
   await encounter.rollInitiative(17);
 
-  const row = must(
-    await admin()
-      .from("encounter_participants")
-      .select(
-        "initiative_score, has_rolled_initiative, encounters!inner(campaign_id, status)",
-      )
-      .eq("character_id", campaign.characters.player1.id)
-      .eq("encounters.campaign_id", campaign.id)
-      .eq("encounters.status", "active")
-      .single(),
-    "player1's participant",
-  );
-  expect(row.has_rolled_initiative).toBe(true);
+  const row = await participantFor(campaign.id, campaign.characters.player1.id);
   expect(row.initiative_score).toBe(17 + mod);
 });

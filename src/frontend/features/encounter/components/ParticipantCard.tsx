@@ -76,6 +76,7 @@ export function ParticipantCard({
       )}
       style={cardStyle}
       onClick={onClick}
+      data-testid={`enc-participant:${participant.id}`}
     >
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center gap-3">
@@ -87,7 +88,10 @@ export function ParticipantCard({
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             {isActive && (
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span
+                className="absolute -top-1 -right-1 flex h-2.5 w-2.5"
+                data-testid={`enc-participant-active:${participant.id}`}
+              >
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
               </span>
@@ -139,7 +143,11 @@ export function ParticipantCard({
         </div>
 
         {showHP ? (
-          <HPAdjuster current={participant.hp_current} max={participant.hp_max} />
+          <HPAdjuster
+            current={participant.hp_current}
+            max={participant.hp_max}
+            testId={`enc-participant-hp:${participant.id}`}
+          />
         ) : participant.hp_max > 0 && participant.hp_current * 2 <= participant.hp_max ? (
           <Badge
             variant="outline"
@@ -197,7 +205,11 @@ export function ParticipantCard({
         )}
 
         {isDownedPlayer && (
-          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs space-y-1.5" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs space-y-1.5"
+            onClick={(e) => e.stopPropagation()}
+            data-testid={`enc-participant-deathsaves:${participant.id}`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground font-semibold uppercase tracking-wide text-[10px]">Death Saves</span>
               {canEditHP && onRollDeathSave && (

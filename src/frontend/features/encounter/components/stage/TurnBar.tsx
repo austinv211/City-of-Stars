@@ -19,7 +19,10 @@ export function TurnBar({
   const isMe = (id: string | undefined) => !!own && id === own.id;
 
   return (
-    <div className={cn("flex min-w-0 items-center gap-2 text-sm", className)}>
+    <div
+      className={cn("flex min-w-0 items-center gap-2 text-sm", className)}
+      data-testid="enc-turn-bar"
+    >
       <span
         className="shrink-0 bg-primary/15 px-1.5 py-0.5 font-mono text-xs font-bold text-primary"
         title={`Round ${String(round)}`}

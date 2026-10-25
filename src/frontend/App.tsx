@@ -94,7 +94,8 @@ export default function App() {
         </Routes>
       </BrowserRouter>
       <Toaster position="bottom-right" />
-      {import.meta.env.DEV && <RealtimeDebugOverlay />}
+      {/* Not under the E2E suite (vite --mode e2e): it opens over the page. */}
+      {import.meta.env.DEV && import.meta.env.MODE !== "e2e" && <RealtimeDebugOverlay />}
     </AuthProvider>
   );
 }

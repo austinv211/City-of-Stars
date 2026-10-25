@@ -55,6 +55,7 @@ export function DamageHealControl({ participant, onApplyDamage, onHeal, onSetCon
             onChange={(e) => setAmount(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") apply(-1); }}
             placeholder="Amount"
+            aria-label="Amount"
             className="h-7 text-sm"
             autoFocus
           />

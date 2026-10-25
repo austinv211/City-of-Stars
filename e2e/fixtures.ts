@@ -162,6 +162,8 @@ async function openContext(
   });
   await context.addInitScript(
     ([key, value]) => {
+      // Init scripts also run in about:blank, where storage is off limits.
+      if (location.origin === "null") return;
       localStorage.setItem(key, value);
     },
     [SELECTED_CAMPAIGN_KEY, campaignId] as const,
