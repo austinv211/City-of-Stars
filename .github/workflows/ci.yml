@@ -60,6 +60,20 @@ jobs:
       - name: Baseline present and parseable
         run: node -e "JSON.parse(require('fs').readFileSync('docs/quality-baseline.json','utf8'))"
 
+  # ── Unit + component tests (§2.3-2.4) ───────────────────────────────────────
+  # No infrastructure: node for pure logic, jsdom + Testing Library for UI.
+  test:
+    name: Unit & component tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+
   # ── The schema must be reproducible from zero ───────────────────────────────
   # This is what §0.1 fixed: the duplicate-migration history made `db reset`
   # abort, so a local stack could not be stood up at all. Guarding it here stops
@@ -88,6 +102,37 @@ jobs:
 
       - name: Production-safety guard refuses non-local targets
         run: npm run guard
+
+      - name: Stop stack
+        if: always()
+        run: npx supabase stop --no-backup
+
+  # ── RLS, grants and triggers (§2.6) ─────────────────────────────────────────
+  # All authorisation in this app is row-level security, and the anon key ships
+  # in the bundle. These run real supabase-js requests as each role against a
+  # from-zero local stack. No secrets: .env.e2e holds only the demo keys, and
+  # the suite's global setup refuses any target that is not provably local.
+  test-db:
+    name: Database policy tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Start local Supabase stack
+        run: npx supabase start --exclude studio,imgproxy,inbucket,realtime,storage-api
+
+      - name: Reset schema and seeds
+        run: npx supabase db reset
+
+      - name: Create the deterministic test users
+        run: npm run e2e:users
+
+      - run: npm run test:db
 
       - name: Stop stack
         if: always()
@@ -159,8 +204,6 @@ jobs:
           echo ".env.e2e is loopback-only"
 
 # ── Deliberately not here yet ─────────────────────────────────────────────────
-# test-unit / test-component  need vitest + the fake Supabase client (§2.3-2.4)
-# test-db                     needs the RLS suite (§2.6)
 # test-e2e                    needs Playwright + seeds (§2.5)
 # format:check                needs the one-time `prettier --write` reformat
 # semgrep / CodeQL            need rule config (§2.8)
