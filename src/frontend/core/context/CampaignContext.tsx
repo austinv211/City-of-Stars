@@ -168,6 +168,12 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
               return;
             }
             const row = payload.new as { id: string; status: string };
+            // A pending row never changes which encounter is active. Encounters
+            // are created pending and then started, and the DM's client sets
+            // the new one active locally (setCampaignEncounter) before the
+            // realtime INSERT arrives -- treating that late "pending" as "no
+            // longer active" blanked the DM's encounter screen mid-start.
+            if (row.status === "pending") return;
             setCampaignEncounters((prev) => {
               if (row.status === "active") return { ...prev, [campaignId]: row.id };
               // UPDATE to non-active (e.g. completed) — clear if this was the tracked one
@@ -182,7 +188,6 @@ export function CampaignProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => { channels.forEach((ch) => supabase.removeChannel(ch)); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaignIdsKey]);
 
   // ── Subscribe to active campaign UPDATE (field changes only) ─────────────

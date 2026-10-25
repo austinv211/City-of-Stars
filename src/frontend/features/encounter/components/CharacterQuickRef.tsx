@@ -24,15 +24,14 @@ import {
 } from "@/features/characters/types/character.types";
 import { CLASSES } from "@/features/characters/data/dnd2024.constants";
 import { hasJackOfAllTrades, halfProficiencyBonus, CONDITION_EFFECTS, exhaustionD20Penalty, MASTERY_INFO } from "@/features/characters/data/rules2024";
-import type { CharacterResource, CharacterFeature } from "@/features/characters/types/character.types";
-import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
-import type {
+import type { CharacterResource, CharacterFeature,
   CharacterWithScores,
   CharacterSpell,
   CharacterAttack,
-  AbilityName,
-} from "@/features/characters/types/character.types";
+  AbilityName } from "@/features/characters/types/character.types";
+import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+
 import type { EncounterParticipant } from "../types/encounter.types";
 
 // ── Static lookup tables ─────────────────────────────────────────────────────

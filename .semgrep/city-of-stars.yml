@@ -1,0 +1,59 @@
+# Project-specific semgrep rules (plan §2.8). The community rulesets cover the
+# generic cases; these cover this codebase's actual hazards.
+#
+# Threat model: all authorisation is RLS, the anon key ships in the bundle, and
+# session notes are user-authored rich text rendered to every party member. So
+# the frontend's job is to never render user text as HTML, and never hold a
+# key that bypasses RLS.
+
+rules:
+  - id: cos-no-dangerously-set-inner-html
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      dangerouslySetInnerHTML renders a string as HTML. Session notes, character
+      backstories and monster descriptions are user-authored and shown to the
+      whole party -- render them as text or through react-markdown without raw
+      HTML.
+    pattern: <$EL dangerouslySetInnerHTML={...} />
+    paths:
+      include: [src/frontend]
+
+  - id: cos-no-rehype-raw
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      rehype-raw makes react-markdown render embedded HTML, which turns
+      user-authored markdown into an XSS vector.
+    pattern-either:
+      - pattern: import $X from "rehype-raw"
+      - pattern: import "rehype-raw"
+    paths:
+      include: [src/frontend]
+
+  - id: cos-no-interpolated-inner-html
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      Assigning an interpolated string to innerHTML/outerHTML parses runtime
+      data as markup. Write static markup, then set textContent.
+    pattern-either:
+      - pattern: $E.innerHTML = `...${$X}...`
+      - pattern: $E.outerHTML = `...${$X}...`
+      - pattern: $E.insertAdjacentHTML($P, `...${$X}...`)
+    paths:
+      include: [src/frontend]
+
+  - id: cos-no-service-role-in-frontend
+    languages: [typescript]
+    severity: ERROR
+    message: >-
+      The service-role key bypasses every RLS policy. It must never be read by
+      code that ships in the app bundle -- only by scripts/ and the local test
+      suite.
+    pattern-either:
+      - pattern: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+      - pattern: process.env.SUPABASE_SERVICE_ROLE_KEY
+      - pattern-regex: service_role
+    paths:
+      include: [src/frontend]

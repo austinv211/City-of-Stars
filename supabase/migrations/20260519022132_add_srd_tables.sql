@@ -47,21 +47,29 @@ ALTER TABLE srd_spells ENABLE ROW LEVEL SECURITY;
 ALTER TABLE srd_feats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE srd_rules ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "srd_class_features_read" ON srd_class_features;
 CREATE POLICY "srd_class_features_read" ON srd_class_features
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "srd_spells_read" ON srd_spells;
 CREATE POLICY "srd_spells_read" ON srd_spells
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "srd_feats_read" ON srd_feats;
 CREATE POLICY "srd_feats_read" ON srd_feats
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "srd_rules_read" ON srd_rules;
 CREATE POLICY "srd_rules_read" ON srd_rules
   FOR SELECT TO authenticated USING (true);
 
 -- Admin write access (using the is_app_admin() function defined in earlier migration)
+DROP POLICY IF EXISTS "srd_class_features_admin_write" ON srd_class_features;
 CREATE POLICY "srd_class_features_admin_write" ON srd_class_features
   FOR ALL TO authenticated USING (is_app_admin()) WITH CHECK (is_app_admin());
+DROP POLICY IF EXISTS "srd_spells_admin_write" ON srd_spells;
 CREATE POLICY "srd_spells_admin_write" ON srd_spells
   FOR ALL TO authenticated USING (is_app_admin()) WITH CHECK (is_app_admin());
+DROP POLICY IF EXISTS "srd_feats_admin_write" ON srd_feats;
 CREATE POLICY "srd_feats_admin_write" ON srd_feats
   FOR ALL TO authenticated USING (is_app_admin()) WITH CHECK (is_app_admin());
+DROP POLICY IF EXISTS "srd_rules_admin_write" ON srd_rules;
 CREATE POLICY "srd_rules_admin_write" ON srd_rules
   FOR ALL TO authenticated USING (is_app_admin()) WITH CHECK (is_app_admin());

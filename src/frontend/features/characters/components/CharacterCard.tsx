@@ -103,7 +103,7 @@ export function CharacterCard({
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-primary"
                 title="Set as active character"
-                onClick={() => onSetActive!(character)}
+                onClick={() => onSetActive(character)}
               >
                 <Star className="h-4 w-4" />
               </Button>
@@ -114,7 +114,7 @@ export function CharacterCard({
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 title="Delete character"
-                onClick={() => onDelete!(character)}
+                onClick={() => onDelete(character)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

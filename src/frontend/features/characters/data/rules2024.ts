@@ -93,11 +93,14 @@ export const CONDITION_EFFECTS: Record<string, ConditionRollEffect> = {
 };
 
 // ── Exhaustion (2024): each level −2 to all D20 Tests and −5 ft Speed; 6 = death ──
+// `|| 0` normalises the -0 that `-2 * 0` produces in JS. Arithmetically
+// identical, but -0 is distinguishable via Object.is, which makes it leak
+// into test assertions and memo/key comparisons for no benefit.
 export function exhaustionD20Penalty(level: number): number {
-  return -2 * clampExhaustion(level);
+  return -2 * clampExhaustion(level) || 0;
 }
 export function exhaustionSpeedPenalty(level: number): number {
-  return -5 * clampExhaustion(level);
+  return -5 * clampExhaustion(level) || 0;
 }
 function clampExhaustion(level: number): number {
   return Math.max(0, Math.min(6, level || 0));
@@ -286,7 +289,11 @@ export function aggregateConditions(conditions: string[]): AggregatedConditionEf
   let incap = false;
   const notes: { condition: string; note: string }[] = [];
 
-  for (const c of conditions) {
+  // `characters.conditions` is a text[] with no uniqueness constraint, and
+  // the participant/character dual-write can land the same value twice. The
+  // boolean flags are idempotent, but the notes list is not -- without this
+  // the effects panel shows the same line more than once.
+  for (const c of new Set(conditions)) {
     const e = CONDITION_EFFECTS[c];
     if (!e) continue;
     if (e.attackAdvantage) attackAdv = true;

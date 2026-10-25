@@ -1,5 +1,19 @@
 import type { Config } from "tailwindcss";
 import typography from "@tailwindcss/typography";
+import animate from "tailwindcss-animate";
+
+/**
+ * A theme colour that still honours Tailwind's opacity modifier.
+ *
+ * The tokens are complete `oklch(...)` values, so a bare `"var(--primary)"`
+ * gives Tailwind no channels to apply alpha to -- and Tailwind 3 then emits
+ * NOTHING for `bg-primary/10`, `border-border/40`, `hover:bg-accent/30` and the
+ * like. Not a fallback colour; the class silently does not exist. Mixing with
+ * `transparent` in OKLCH applies the alpha without needing the channels.
+ * `<alpha-value>` is 1 when no modifier is used, which yields the plain token.
+ */
+const token = (name: string) =>
+  `color-mix(in oklch, var(${name}) calc(<alpha-value> * 100%), transparent)`;
 
 export default {
   darkMode: ["class"],
@@ -7,42 +21,42 @@ export default {
   theme: {
     extend: {
       colors: {
-        border: "var(--border)",
-        input: "var(--input)",
-        ring: "var(--ring)",
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        border: token("--border"),
+        input: token("--input"),
+        ring: token("--ring"),
+        background: token("--background"),
+        foreground: token("--foreground"),
         primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
+          DEFAULT: token("--primary"),
+          foreground: token("--primary-foreground"),
         },
         secondary: {
-          DEFAULT: "var(--secondary)",
-          hover: "var(--secondary-hover)",
-          foreground: "var(--secondary-foreground)",
+          DEFAULT: token("--secondary"),
+          hover: token("--secondary-hover"),
+          foreground: token("--secondary-foreground"),
         },
         destructive: {
-          DEFAULT: "var(--destructive)",
-          foreground: "var(--destructive-foreground)",
+          DEFAULT: token("--destructive"),
+          foreground: token("--destructive-foreground"),
         },
         muted: {
-          DEFAULT: "var(--muted)",
-          foreground: "var(--muted-foreground)",
+          DEFAULT: token("--muted"),
+          foreground: token("--muted-foreground"),
         },
         accent: {
-          DEFAULT: "var(--accent)",
-          foreground: "var(--accent-foreground)",
+          DEFAULT: token("--accent"),
+          foreground: token("--accent-foreground"),
         },
         popover: {
-          DEFAULT: "var(--popover)",
-          foreground: "var(--popover-foreground)",
+          DEFAULT: token("--popover"),
+          foreground: token("--popover-foreground"),
         },
         card: {
-          DEFAULT: "var(--card)",
-          foreground: "var(--card-foreground)",
+          DEFAULT: token("--card"),
+          foreground: token("--card-foreground"),
         },
-        success: "var(--success)",
-        "accent-turn": "var(--accent-turn)",
+        success: token("--success"),
+        "accent-turn": token("--accent-turn"),
       },
       borderRadius: {
         // --radius: 0px — sharp corners everywhere
@@ -99,5 +113,5 @@ export default {
       },
     },
   },
-  plugins: [typography],
+  plugins: [typography, animate],
 } satisfies Config;

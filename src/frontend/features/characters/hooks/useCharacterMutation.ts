@@ -69,7 +69,11 @@ export function useCharacterMutation() {
 
       charId = char.id;
 
-      // 4. Insert ability scores (final = base + background bonuses)
+      // 4. Insert ability scores. HP and AC below are derived from the final
+      // scores (base + background bonuses), but ability_scores stores the BASE:
+      // every reader re-applies background_bonus_* via finalAbilityScores, and
+      // every other writer (sheet edits, level-up ASIs) subtracts it first.
+      // Storing final here counted the +2/+1 twice on every new character.
       const final = finalAbilityScores(
         state.baseAbilityScores,
         state.backgroundBonusPrimary,
@@ -107,7 +111,7 @@ export function useCharacterMutation() {
         .eq("id", charId!);
       const { error: scoresErr } = await supabase.from("ability_scores").insert({
         character_id: charId,
-        ...final,
+        ...state.baseAbilityScores,
         method: state.abilityScoreMethod,
         background_bonus_primary: state.backgroundBonusPrimary,
         background_bonus_secondary: state.backgroundBonusSecondary,
@@ -180,7 +184,7 @@ export function useCharacterMutation() {
       if (state.portraitFile && portraitUrl && charId) {
         try {
           const ext = state.portraitFile.name.split(".").pop();
-          const finalPath = `${user.id}/${charId!}/portrait.${ext}`;
+          const finalPath = `${user.id}/${charId}/portrait.${ext}`;
           const tmpPath = portraitUrl.split("/character-portraits/")[1];
           await supabase.storage.from("character-portraits").move(tmpPath, finalPath);
           const { data: newUrl } = supabase.storage

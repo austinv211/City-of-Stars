@@ -7,7 +7,7 @@ import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent } from "@/core/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
-import { Shield, Droplets, Brain } from "lucide-react";
+import { Shield, Droplets, Brain, Crosshair } from "lucide-react";
 import { HPAdjuster } from "./HPAdjuster";
 import { ConditionBadges } from "./ConditionBadges";
 import { DamageHealControl } from "./DamageHealControl";
@@ -30,6 +30,10 @@ interface Props {
   onSetCover?: (cover: string) => void;
   onClick?: () => void;
   selected?: boolean;
+  /** This combatant is the viewer's current target. */
+  isTarget?: boolean;
+  /** Toggle targeting. Absent for viewers who cannot attack (spectators). */
+  onTarget?: () => void;
 }
 
 export function ParticipantCard({
@@ -46,6 +50,8 @@ export function ParticipantCard({
   onSetCover,
   onClick,
   selected,
+  isTarget,
+  onTarget,
 }: Props) {
   const initials = participant.name.slice(0, 2).toUpperCase();
   const coverBonus = coverAcBonus(participant.cover);
@@ -54,13 +60,14 @@ export function ParticipantCard({
 
   const cardStyle: Record<string, string> = {};
   if (selected) {
-    cardStyle["background"] = "color-mix(in oklch, var(--accent-turn) 20%, transparent)";
+    cardStyle.background = "color-mix(in oklch, var(--accent-turn) 20%, transparent)";
   }
 
   return (
     <Card
       className={cn(
         "cursor-pointer transition-all duration-300",
+        isTarget && "ring-1 ring-destructive/70",
         selected
           ? "border-primary"
           : isActive
@@ -69,6 +76,7 @@ export function ParticipantCard({
       )}
       style={cardStyle}
       onClick={onClick}
+      data-testid={`enc-participant:${participant.id}`}
     >
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center gap-3">
@@ -80,7 +88,10 @@ export function ParticipantCard({
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             {isActive && (
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span
+                className="absolute -top-1 -right-1 flex h-2.5 w-2.5"
+                data-testid={`enc-participant-active:${participant.id}`}
+              >
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
               </span>
@@ -91,6 +102,27 @@ export function ParticipantCard({
               <span className="font-semibold text-sm truncate">{participant.name}</span>
               {!participant.is_player && (
                 <Badge variant="outline" className="text-xs">NPC</Badge>
+              )}
+              {onTarget && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "ml-auto h-7 w-7 shrink-0",
+                    isTarget ? "text-destructive" : "text-muted-foreground",
+                  )}
+                  aria-pressed={isTarget}
+                  aria-label={isTarget ? `Stop targeting ${participant.name}` : `Target ${participant.name}`}
+                  title={isTarget ? "Stop targeting" : "Target"}
+                  onClick={(e) => {
+                    // Targeting is not selecting: keep the panel where it is.
+                    e.stopPropagation();
+                    onTarget();
+                  }}
+                >
+                  <Crosshair className="h-4 w-4" />
+                </Button>
               )}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -111,7 +143,11 @@ export function ParticipantCard({
         </div>
 
         {showHP ? (
-          <HPAdjuster current={participant.hp_current} max={participant.hp_max} />
+          <HPAdjuster
+            current={participant.hp_current}
+            max={participant.hp_max}
+            testId={`enc-participant-hp:${participant.id}`}
+          />
         ) : participant.hp_max > 0 && participant.hp_current * 2 <= participant.hp_max ? (
           <Badge
             variant="outline"
@@ -169,7 +205,11 @@ export function ParticipantCard({
         )}
 
         {isDownedPlayer && (
-          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs space-y-1.5" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs space-y-1.5"
+            onClick={(e) => e.stopPropagation()}
+            data-testid={`enc-participant-deathsaves:${participant.id}`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground font-semibold uppercase tracking-wide text-[10px]">Death Saves</span>
               {canEditHP && onRollDeathSave && (

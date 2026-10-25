@@ -1,0 +1,7 @@
+{
+  "count": 2,
+  "results": [
+    { "index": "goblin", "name": "Goblin", "url": "/api/2014/monsters/goblin" },
+    { "index": "hobgoblin", "name": "Hobgoblin", "url": "/api/2014/monsters/hobgoblin" }
+  ]
+}

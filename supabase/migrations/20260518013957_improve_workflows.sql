@@ -45,6 +45,11 @@ as $$
   );
 $$;
 
+-- campaigns.current_session must exist before the function below, which
+-- selects it: Postgres validates SQL-language function bodies at creation
+-- time, so defining the function first aborts a from-zero replay.
+alter table public.campaigns add column if not exists current_session int not null default 1;
+
 -- Bypasses campaigns RLS when called from session_notes policies
 create or replace function public.get_campaign_current_session(_campaign_id uuid)
   returns int language sql security definer stable set search_path = public
@@ -95,12 +100,10 @@ create trigger campaigns_auto_add_dm
   for each row execute function public.add_campaign_creator_as_dm();
 
 -- ════════════════════════════════════════════════════════════════════════════
--- CAMPAIGNS: add current_session, replace creator write policy
+-- CAMPAIGNS: replace creator write policy
 -- ════════════════════════════════════════════════════════════════════════════
 
-alter table public.campaigns add column current_session int not null default 1;
-
-drop policy "campaigns: creator write" on public.campaigns;
+drop policy if exists "campaigns: creator write" on public.campaigns;
 
 -- Only users with an app-level dm or admin role can create campaigns
 create policy "campaigns: dm or admin create"

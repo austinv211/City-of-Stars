@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar
 import { CLASSES } from "../../data/dnd2024.constants";
 import { finalAbilityScores, deriveStats, passiveScore } from "../../types/character.types";
 import type { WizardState } from "../../types/character.types";
+import { abilityModifier, formatModifier } from "@/lib/abilityScore";
 
 const ABILITY_LABELS = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
 const ABILITIES = [
@@ -12,8 +13,7 @@ const ABILITIES = [
 ] as const;
 
 function mod(score: number) {
-  const m = Math.floor((score - 10) / 2);
-  return m >= 0 ? `+${m}` : `${m}`;
+  return formatModifier(abilityModifier(score));
 }
 
 interface Props {
@@ -75,7 +75,7 @@ export function Step6_Review({ state, onCommit, loading, error }: Props) {
         <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-muted-foreground">
           Ability Scores
         </h3>
-        <div className="grid grid-cols-6 gap-2 text-center">
+        <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
           {ABILITIES.map((ability, i) => (
             <div key={ability} className="rounded-lg border bg-card p-2">
               <div className="text-xs text-muted-foreground font-semibold">
@@ -161,7 +161,10 @@ export function Step6_Review({ state, onCommit, loading, error }: Props) {
       )}
 
       {error && (
-        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}

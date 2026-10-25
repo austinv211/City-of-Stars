@@ -7,7 +7,7 @@ import type { DiceRollBroadcast } from "../types/encounter.types";
 const DISMISS_MS = 2500;
 
 function parseSides(diceType: string): number {
-  const m = diceType.match(/d(\d+)/i);
+  const m = /d(\d+)/i.exec(diceType);
   return m ? parseInt(m[1]) : 20;
 }
 

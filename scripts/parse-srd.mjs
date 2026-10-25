@@ -211,7 +211,8 @@ function parseSpells(rawContent) {
     }
 
     const fields = {};
-    let descLines = [], inDesc = false;
+    const descLines = [];
+    let inDesc = false;
 
     for (let i = 2; i < lines.length; i++) {
       const line = lines[i];
@@ -318,7 +319,8 @@ function parseFeats(content) {
     if (!headerMatch) continue;
 
     const name = headerMatch[1].trim();
-    let category = currentCategory, prerequisite = null, descLines = [], inDesc = false;
+    const descLines = [];
+    let category = currentCategory, prerequisite = null, inDesc = false;
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];

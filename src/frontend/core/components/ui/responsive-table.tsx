@@ -1,0 +1,128 @@
+import * as React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/core/components/ui/table";
+import { Skeleton } from "@/core/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+
+/**
+ * A table that becomes a stack of labelled cards below `md`.
+ *
+ * The DM and admin tables pin column widths (`w-28`, `w-32`, a `w-56` action
+ * column) and carry five columns including an email address and a `Select`, so
+ * on a phone they guaranteed horizontal scrolling — `ui/table.tsx` only ever
+ * offered `overflow-auto`.
+ *
+ * One DOM tree, restructured by CSS (see `.responsive-table` in globals.scss),
+ * rather than rendering a table and a card list and hiding one. Duplicate DOM
+ * would mean two copies of every interactive control in a row — two Selects
+ * bound to the same state, two delete buttons, two matches for every
+ * accessible-name query in a test.
+ *
+ * The trade-off is that below `md` the rows stop being table semantics, which
+ * is the usual cost of this pattern. Each cell carries `data-label`, rendered
+ * as its heading in card mode, so the information is not lost.
+ */
+
+export interface Column<T> {
+  /** Stable key; also the React key for the cell. */
+  key: string;
+  /** Column heading. Empty string for an actions column. */
+  header: React.ReactNode;
+  cell: (row: T) => React.ReactNode;
+  /** Used as the card's title in stacked mode, and never given a label. */
+  primary?: boolean;
+  /** Right-aligned in table mode; becomes the card's footer row when stacked. */
+  actions?: boolean;
+  /** Extra classes for the <th>. Width utilities here are ignored when stacked. */
+  headClassName?: string;
+  cellClassName?: string;
+}
+
+interface Props<T> {
+  data: T[];
+  columns: Column<T>[];
+  getRowKey: (row: T) => string;
+  /** Shown instead of the table when `data` is empty and not loading. */
+  empty?: React.ReactNode;
+  /** Per-row classes, e.g. to highlight a selected row. */
+  rowClassName?: (row: T) => string | undefined;
+  /** Render placeholder rows instead of data. */
+  loading?: boolean;
+  /** How many placeholder rows while loading. */
+  skeletonRows?: number;
+  className?: string;
+}
+
+export function ResponsiveTable<T>({
+  data,
+  columns,
+  getRowKey,
+  empty,
+  rowClassName,
+  loading = false,
+  skeletonRows = 3,
+  className,
+}: Props<T>) {
+  if (!loading && data.length === 0 && empty) return <>{empty}</>;
+
+  return (
+    <div className={cn("responsive-table border border-border", className)}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((c) => (
+              <TableHead key={c.key} className={c.headClassName}>
+                {c.header}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading &&
+            Array.from({ length: skeletonRows }).map((_, i) => (
+              <TableRow key={`skeleton-${String(i)}`}>
+                {columns.map((c) => (
+                  <TableCell
+                    key={c.key}
+                    data-primary={c.primary ? "" : undefined}
+                    data-actions={c.actions ? "" : undefined}
+                  >
+                    <Skeleton className={c.primary ? "h-4 w-48" : "h-4 w-20"} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          {!loading &&
+            data.map((row) => (
+              <TableRow key={getRowKey(row)} className={rowClassName?.(row)}>
+                {columns.map((c) => (
+                  <TableCell
+                    key={c.key}
+                    // Rendered as the cell's heading once the row stacks.
+                    // No label on the title cell (it IS the title) or an
+                    // actions cell, where the buttons speak for themselves.
+                    data-label={
+                      typeof c.header === "string" && !c.primary && !c.actions
+                        ? c.header
+                        : undefined
+                    }
+                    data-primary={c.primary ? "" : undefined}
+                    data-actions={c.actions ? "" : undefined}
+                    className={c.cellClassName}
+                  >
+                    {c.cell(row)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}

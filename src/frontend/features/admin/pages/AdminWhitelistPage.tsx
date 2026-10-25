@@ -3,15 +3,7 @@ import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Badge } from "@/core/components/ui/badge";
-import { Skeleton } from "@/core/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/core/components/ui/table";
+import { ResponsiveTable } from "@/core/components/ui/responsive-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/core/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -159,79 +151,78 @@ export default function AdminWhitelistPage() {
         </Button>
       </div>
 
-      <div className="border border-border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead>Added</TableHead>
-              <TableHead className="w-28" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell />
-                </TableRow>
-              ))
-            ) : pageRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
-                  No entries yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              pageRows.map(([email, entries]) => (
-                <TableRow key={email}>
-                  <TableCell className="font-medium">{email}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {entries.map((entry) => (
-                        <Badge
-                          key={entry.id}
-                          variant="outline"
-                          className={`capitalize text-xs gap-1 pr-1 ${ROLE_COLORS[entry.app_role] ?? ""}`}
-                        >
-                          {ROLE_LABELS[entry.app_role]}
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(entry)}
-                            className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
-                            title={`Remove ${entry.app_role} role`}
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {new Date(entries[0].created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {missingRoles(email).length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => openAddForEmail(email)}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add Role
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <ResponsiveTable
+        data={pageRows}
+        loading={loading}
+        skeletonRows={PAGE_SIZE}
+        getRowKey={([email]) => email}
+        empty={
+          <div className="border border-border py-12 text-center text-muted-foreground">
+            No entries yet.
+          </div>
+        }
+        columns={[
+          {
+            key: "email",
+            header: "Email",
+            primary: true,
+            cell: ([email]) => email,
+          },
+          {
+            key: "roles",
+            header: "Roles",
+            cell: ([, entries]) => (
+              <div className="flex flex-wrap gap-1">
+                {entries.map((entry) => (
+                  <Badge
+                    key={entry.id}
+                    variant="outline"
+                    className={`gap-1 pr-1 text-xs capitalize ${ROLE_COLORS[entry.app_role] ?? ""}`}
+                  >
+                    {ROLE_LABELS[entry.app_role]}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteTarget(entry);
+                      }}
+                      className="ml-0.5 opacity-60 transition-opacity hover:opacity-100"
+                      aria-label={`Remove ${entry.app_role} role from ${entry.email}`}
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            ),
+          },
+          {
+            key: "added",
+            header: "Added",
+            cellClassName: "text-xs text-muted-foreground",
+            cell: ([, entries]) => new Date(entries[0].created_at).toLocaleDateString(),
+          },
+          {
+            key: "actions",
+            header: "",
+            actions: true,
+            headClassName: "w-28",
+            cell: ([email]) =>
+              missingRoles(email).length > 0 ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    openAddForEmail(email);
+                  }}
+                >
+                  <Plus className="mr-1 h-3 w-3" />
+                  Add Role
+                </Button>
+              ) : null,
+          },
+        ]}
+      />
 
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">

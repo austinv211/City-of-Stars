@@ -4,14 +4,7 @@ import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { Skeleton } from "@/core/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/core/components/ui/table";
+import { ResponsiveTable } from "@/core/components/ui/responsive-table";
 import {
   Select,
   SelectContent,
@@ -20,12 +13,12 @@ import {
   SelectValue,
 } from "@/core/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/core/components/ui/dialog";
+  ResponsiveDialog as Dialog,
+  ResponsiveDialogContent as DialogContent,
+  ResponsiveDialogHeader as DialogHeader,
+  ResponsiveDialogTitle as DialogTitle,
+  ResponsiveDialogFooter as DialogFooter,
+} from "@/core/components/ui/responsive-dialog";
 import { UserPlus, Trash2, Users, AlertTriangle, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -231,68 +224,79 @@ export default function DmMembersPage() {
           <p className="text-muted-foreground">No members yet.</p>
         </div>
       ) : (
-        <div className="border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Character</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((m) => {
+        <ResponsiveTable
+          data={members}
+          getRowKey={(m) => m.id}
+          columns={[
+            { key: "email", header: "Email", primary: true, cell: (m) => m.email },
+            {
+              key: "joined",
+              header: "Joined",
+              cellClassName: "text-xs text-muted-foreground",
+              cell: (m) => new Date(m.joined_at).toLocaleDateString(),
+            },
+            {
+              key: "role",
+              header: "Role",
+              cell: (m) => (
+                <Select
+                  value={m.role}
+                  onValueChange={(v) => {
+                    handleRoleChange(m, v as "player" | "dm");
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-24 text-xs" aria-label={`Role for ${m.email}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="player">Player</SelectItem>
+                    <SelectItem value="dm">DM</SelectItem>
+                  </SelectContent>
+                </Select>
+              ),
+            },
+            {
+              key: "character",
+              header: "Character",
+              cell: (m) => {
                 const activeCharId = activeCharacterByOwner.get(m.user_id);
                 return (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">{m.email}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {new Date(m.joined_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={m.role}
-                        onValueChange={(v) => handleRoleChange(m, v as "player" | "dm")}
-                      >
-                        <SelectTrigger className="h-7 w-24 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="player">Player</SelectItem>
-                          <SelectItem value="dm">DM</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        disabled={!activeCharId}
-                        onClick={() => activeCharId && navigate(`/dm/characters/${activeCharId}`)}
-                      >
-                        <User className="h-3 w-3 mr-1" />
-                        {activeCharId ? "View" : "None"}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => tryRemove(m)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={!activeCharId}
+                    onClick={() => {
+                      if (activeCharId) navigate(`/dm/characters/${activeCharId}`);
+                    }}
+                  >
+                    <User className="mr-1 h-3 w-3" />
+                    {activeCharId ? "View" : "None"}
+                  </Button>
                 );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+              },
+            },
+            {
+              key: "actions",
+              header: "",
+              actions: true,
+              headClassName: "w-10",
+              cell: (m) => (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => {
+                    tryRemove(m);
+                  }}
+                  aria-label={`Remove ${m.email}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* Add member dialog */}
@@ -302,7 +306,7 @@ export default function DmMembersPage() {
           if (!o) setAddOpen(false);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent widthClassName="md:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Member</DialogTitle>
           </DialogHeader>
@@ -355,7 +359,7 @@ export default function DmMembersPage() {
           if (!o) setRemoveTarget(null);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent widthClassName="md:max-w-md">
           <DialogHeader>
             <DialogTitle>Remove member?</DialogTitle>
           </DialogHeader>

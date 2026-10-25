@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import type { Encounter } from "../types/encounter.types";
@@ -15,8 +16,9 @@ export function useActiveEncounter() {
       return;
     }
 
-    async function load() {
-      setLoading(true);
+    async function load(background = false) {
+      // A resync must not flash the screen back to its loading state.
+      if (!background) setLoading(true);
       const { data } = await supabase
         .from("encounters")
         .select("*")
@@ -44,7 +46,12 @@ export function useActiveEncounter() {
           );
         }
       )
-      .subscribe();
+      // Load again once joined: a change made between the first load and the
+      // join is never delivered, and a turn advanced in that gap would
+      // show the wrong combatant acting. Also resyncs after a reconnect.
+      .subscribe((status) => {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) void load(true);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -62,7 +69,27 @@ export function useActiveEncounter() {
   async function advanceTurn() {
     if (!activeEncounterId) return;
     await supabase.rpc("advance_encounter_turn", { p_encounter_id: activeEncounterId });
+    // The server picks who is next, so this cannot be optimistic -- but the
+    // one who ended the turn should see it move now, not when the realtime
+    // echo arrives (under load, seconds later). The echo is idempotent.
+    const fresh = await supabase
+      .from("encounters")
+      .select("*")
+      .eq("id", activeEncounterId)
+      .maybeSingle();
+    if (fresh.data) setEncounter(fresh.data as Encounter);
   }
 
-  return { encounter, loading, endEncounter, advanceTurn };
+  /** The initiative count lair actions act on (conventionally 20); null = no lair. */
+  async function setLairInitiative(value: number | null) {
+    if (!activeEncounterId) return;
+    // Optimistic: a toggle that waits for the realtime round-trip looks broken.
+    setEncounter((prev) => (prev ? { ...prev, lair_action_initiative: value } : prev));
+    await supabase
+      .from("encounters")
+      .update({ lair_action_initiative: value })
+      .eq("id", activeEncounterId);
+  }
+
+  return { encounter, loading, endEncounter, advanceTurn, setLairInitiative };
 }

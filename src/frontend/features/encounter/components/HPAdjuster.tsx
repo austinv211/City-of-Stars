@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from "react";
 interface Props {
   current: number;
   max: number;
+  /** The readout's data-testid: HP is a number with no accessible name. */
+  testId?: string;
 }
 
 // Display-only HP bar. HP changes go through DamageHealControl (typed damage/heal).
-export function HPAdjuster({ current, max }: Props) {
+export function HPAdjuster({ current, max, testId }: Props) {
   const prevRef = useRef(current);
   const [flashClass, setFlashClass] = useState("");
 
@@ -26,7 +28,7 @@ export function HPAdjuster({ current, max }: Props) {
   return (
     <div className={`space-y-1.5 ${flashClass}`}>
       <div className="flex items-center justify-between text-sm">
-        <span className="font-semibold">{current} / {max} HP</span>
+        <span className="font-semibold" data-testid={testId}>{current} / {max} HP</span>
         <span className={`text-xs ${textColor}`}>{Math.round(pct)}%</span>
       </div>
       {/* Custom bar: a muted track with a colored fill — the track is always

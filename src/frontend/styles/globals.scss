@@ -57,6 +57,19 @@ $panel-highlight: rgb(255 255 255 / 0.06);
 
   --radius: 0px;                                    // sharp corners
 
+  // ── Safe areas ───────────────────────────────────────────────────────────
+  // Android notches and the gesture bar overlap the viewport once
+  // viewport-fit=cover is set (see index.html). env() resolves to 0px
+  // everywhere else, so these are inert on desktop and in the browser.
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  // Minimum comfortable hit target. 44px is the widely-used floor; the
+  // codebase routinely overrides buttons down to h-6/h-7 (24-28px).
+  --tap-min: 44px;
+
   // ── Shadow scale ─────────────────────────────────────────────────────────
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.65), 0 1px 2px rgba(0, 0, 0, 0.45);
 
@@ -102,15 +115,70 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     -moz-osx-font-smoothing: grayscale;
   }
 
+  // On a touch device, floor interactive controls at --tap-min. The codebase
+  // sets h-6/h-7 in many places for desktop density; this keeps those usable
+  // on a phone without auditing every call site. Opt out with .allow-dense
+  // where a control genuinely must stay small.
+  @media (pointer: coarse) {
+    button:not(.allow-dense),
+    [role='button']:not(.allow-dense),
+    [role='tab']:not(.allow-dense),
+    a[href]:not(.allow-dense),
+    summary:not(.allow-dense) {
+      min-height: var(--tap-min);
+      min-width: var(--tap-min);
+    }
+
+    // Inputs only need the vertical floor -- width is layout-driven.
+    input:not([type='checkbox']):not([type='radio']):not(.allow-dense),
+    select:not(.allow-dense),
+    textarea:not(.allow-dense) {
+      min-height: var(--tap-min);
+    }
+  }
+
+  // Reduced motion, from the OS or the in-app setting (useMotionAttribute).
+  // Durations near zero rather than `none`, so animationend/transitionend
+  // still fire for anything that waits on them.
+  [data-motion='reduce'] *,
+  [data-motion='reduce'] *::before,
+  [data-motion='reduce'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  // iOS/Android momentum scrolling inside the app's scroll containers.
+  [data-scroll-container] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
   // Slim, context-aware scrollbars
   * {
     scrollbar-width: thin;
     scrollbar-color: color-mix(in oklch, var(--muted-foreground) 25%, transparent) transparent;
   }
 
-  ::-webkit-scrollbar {
-    width: 3px;
-    height: 3px;
+  // 3px was effectively ungrabbable with a mouse and meaningless on a touch
+  // screen. Give pointer devices something draggable; let touch platforms
+  // draw their own overlay scrollbars.
+  @media (pointer: fine) {
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+  }
+
+  @media (pointer: coarse) {
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+    * {
+      scrollbar-width: none;
+    }
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -238,6 +306,76 @@ $panel-highlight: rgb(255 255 255 / 0.06);
 
   .glow-primary {
     box-shadow: var(--shadow-glow);
+  }
+
+  // ── Responsive table ───────────────────────────────────────────────────────
+  // Below md, each row becomes a labelled card. See ui/responsive-table.tsx for
+  // why this is CSS on one DOM tree rather than two rendered variants.
+  .responsive-table {
+    @media (max-width: 767px) {
+      border: 0;
+
+      table,
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      // Column headings are carried per-cell by data-label instead.
+      thead {
+        display: none;
+      }
+
+      tr {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-panel);
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0.75rem 0.5rem;
+      }
+
+      td {
+        border: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-height: var(--tap-min);
+        padding: 0.25rem 0;
+        text-align: left;
+      }
+
+      // Label on the left, value on the right -- a two-column mini layout.
+      td[data-label]::before {
+        content: attr(data-label);
+        color: var(--muted-foreground);
+        flex-shrink: 0;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      // The primary cell is the card's title: full width, larger, no label.
+      td[data-primary] {
+        border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        padding-bottom: 0.5rem;
+      }
+
+      // Action cells collect at the foot of the card, right-aligned.
+      td[data-actions] {
+        justify-content: flex-end;
+      }
+
+      // An empty cell (a spacer column in table mode) has nothing to show.
+      td:empty {
+        display: none;
+      }
+    }
   }
 
   // ── Encounter ──────────────────────────────────────────────────────────────

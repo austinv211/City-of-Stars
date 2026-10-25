@@ -6,22 +6,31 @@
 
 -- 1. allowed_emails: replace unique(email) with unique(email, app_role)
 alter table public.allowed_emails
-  drop constraint allowed_emails_email_key;
+  drop constraint if exists allowed_emails_email_key;
 
+alter table public.allowed_emails
+  drop constraint if exists allowed_emails_email_role_key;
 alter table public.allowed_emails
   add constraint allowed_emails_email_role_key unique (email, app_role);
 
 -- 2. campaign_members: replace unique(campaign_id, user_id) with
 --    unique(campaign_id, user_id, role)
 alter table public.campaign_members
-  drop constraint campaign_members_campaign_id_user_id_key;
+  drop constraint if exists campaign_members_campaign_id_user_id_key;
 
+alter table public.campaign_members
+  drop constraint if exists campaign_members_campaign_id_user_id_role_key;
 alter table public.campaign_members
   add constraint campaign_members_campaign_id_user_id_role_key
     unique (campaign_id, user_id, role);
 
 -- 3. Update get_campaign_members_with_email to include the row id so the
 --    frontend can delete or update a specific (user, role) row.
+-- The return type gains an `id` column here, and `create or replace` cannot
+-- change a function's OUT-parameter row type -- it must be dropped first, or
+-- a from-zero replay fails with SQLSTATE 42P13.
+drop function if exists public.get_campaign_members_with_email(uuid);
+
 create or replace function public.get_campaign_members_with_email(cid uuid)
 returns table(
   id         uuid,

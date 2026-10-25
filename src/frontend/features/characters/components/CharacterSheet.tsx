@@ -9,6 +9,8 @@ import { AbilityScoreBlock } from "./AbilityScoreBlock";
 import { DerivedStatsBar } from "./DerivedStatsBar";
 import { HPPanel } from "./HPPanel";
 import { SkillsPanel } from "./SkillsPanel";
+import { QuickRolls } from "./QuickRolls";
+import { checkModifiers } from "../lib/checkModifiers";
 import { InventoryPanel } from "./InventoryPanel";
 import { AttacksPanel } from "./AttacksPanel";
 import { SpellsPanel } from "./SpellsPanel";
@@ -177,7 +179,7 @@ export function CharacterSheet({
   // Spell stats
   const spellAbility = resolveSpellcastingAbility(character.class, character.spellcasting_ability);
   const spellAbilityMod = spellAbility
-    ? abilityModifier(final[spellAbility as keyof AbilityScores] ?? 10)
+    ? abilityModifier(final[spellAbility] ?? 10)
     : 0;
   const spellAttackMod = spellAbility ? derived.proficiencyBonus + spellAbilityMod : 0;
   const spellSaveDc = spellAbility ? 8 + derived.proficiencyBonus + spellAbilityMod : 0;
@@ -387,6 +389,22 @@ export function CharacterSheet({
         concentrationSpells={concentrationSpells}
         onRefresh={onRefreshCharacter}
       />
+
+      {/* ── Quick Rolls: the owner's checks and saves, out of combat ── */}
+      {isOwn && (
+        <QuickRolls
+          characterName={character.name}
+          campaignId={character.campaign_id}
+          checks={checkModifiers({
+            final,
+            proficiencyBonus: derived.proficiencyBonus,
+            savingThrowProficiencies: character.saving_throw_proficiencies,
+            proficiencies: character.proficiencies,
+            jackOfAllTrades: joat,
+            exhaustion: character.exhaustion,
+          })}
+        />
+      )}
 
       {/* ── Ability Scores ── */}
       <Card>

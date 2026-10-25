@@ -21,6 +21,7 @@ import {
   finalAbilityScores,
 } from "../../types/character.types";
 import type { WizardState, WizardAction, AbilityName, AbilityScores } from "../../types/character.types";
+import { abilityModifier, formatModifier } from "@/lib/abilityScore";
 
 const ABILITIES: AbilityName[] = [
   "strength",
@@ -41,8 +42,7 @@ const ABILITY_LABELS: Record<AbilityName, string> = {
 };
 
 function mod(score: number) {
-  const m = Math.floor((score - 10) / 2);
-  return m >= 0 ? `+${m}` : `${m}`;
+  return formatModifier(abilityModifier(score));
 }
 
 function pointBuySpent(scores: AbilityScores): number {
@@ -99,7 +99,10 @@ function StandardArrayTab({ state, dispatch }: Pick<Props, "state" | "dispatch">
                 value={STANDARD_ARRAY.includes(current) ? String(current) : ""}
                 onValueChange={(v) => handleAssign(ability, v)}
               >
-                <SelectTrigger className="flex-1">
+                <SelectTrigger
+                  className="flex-1"
+                  aria-label={`${ABILITY_LABELS[ability]} score`}
+                >
                   <SelectValue placeholder="—" />
                 </SelectTrigger>
                 <SelectContent>
@@ -269,7 +272,7 @@ function ScorePreview({ state }: { state: WizardState }) {
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
         Final scores (with background bonuses)
       </p>
-      <div className="grid grid-cols-6 gap-2 text-center">
+      <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
         {ABILITIES.map((a) => (
           <div key={a}>
             <div className="text-xs text-muted-foreground">{ABILITY_LABELS[a]}</div>

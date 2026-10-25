@@ -1,13 +1,15 @@
 // D&D 5e SRD API — https://www.dnd5eapi.co
 // The 2024 PHB endpoints are not yet populated; all data comes from the 2014 SRD
 // which shares the same monster/spell roster as the 2024 rules.
-const BASE = "https://www.dnd5eapi.co/api";
+// Versioned path: the unversioned /api/... now answers 301 to /api/2014/...,
+// an extra round trip on every lookup and an alias that may not last.
+const BASE = "https://www.dnd5eapi.co/api/2014";
 
 async function apiFetch<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BASE}${path}`);
     if (!res.ok) return null;
-    return res.json() as Promise<T>;
+    return (await res.json()) as T;
   } catch {
     return null;
   }
@@ -52,7 +54,7 @@ export interface DndMonster {
   alignment: string;
   hit_points: number;
   hit_dice: string;
-  armor_class: Array<{ value: number; type: string }>;
+  armor_class: { value: number; type: string }[];
   speed: { walk?: string; fly?: string; swim?: string; burrow?: string; climb?: string };
   strength: number;
   dexterity: number;
@@ -66,10 +68,10 @@ export interface DndMonster {
   languages: string;
   damage_resistances: string[];
   damage_immunities: string[];
-  condition_immunities: Array<{ name: string }>;
+  condition_immunities: { name: string }[];
   special_abilities?: DndMonsterSpecialAbility[];
   actions?: DndMonsterAction[];
-  legendary_actions?: Array<{ name: string; desc: string; attack_bonus?: number }>;
+  legendary_actions?: { name: string; desc: string; attack_bonus?: number }[];
 }
 
 export async function searchMonsters(query: string): Promise<DndMonsterSummary[]> {
@@ -84,17 +86,39 @@ export async function getMonster(index: string): Promise<DndMonster | null> {
   return apiFetch<DndMonster>(`/monsters/${index}`);
 }
 
-/** Derive minimal NPC encounter defaults from a monster entry */
+/**
+ * An SRD monster as an encounter combatant.
+ *
+ * Derived from monsterToDbForm so the two cannot drift. It used to build its
+ * own four-field object -- name, hp, ac, initiative -- so a monster added
+ * straight from the SRD search arrived with no ability scores, actions,
+ * traits, legendary actions or resistances.
+ */
 export function monsterToNpc(m: DndMonster) {
-  const ac = m.armor_class?.[0]?.value ?? 12;
-  const dexMod = Math.floor(((m.dexterity ?? 10) - 10) / 2);
-  return { name: m.name, hp: m.hit_points, ac, initiative: dexMod };
+  const f = monsterToDbForm(m);
+  return {
+    name: f.name,
+    hp: f.hp,
+    ac: f.ac,
+    initiative: f.default_initiative,
+    str_score: f.str_score,
+    dex_score: f.dex_score,
+    con_score: f.con_score,
+    int_score: f.int_score,
+    wis_score: f.wis_score,
+    cha_score: f.cha_score,
+    actions: f.actions,
+    special_abilities: f.special_abilities,
+    legendary_actions: f.legendary_actions,
+    damage_resistances: f.damage_resistances,
+    damage_immunities: f.damage_immunities,
+  };
 }
 
 /** Convert a full API monster to the custom_monsters DB row shape */
 export function monsterToDbForm(m: DndMonster) {
   const ac = m.armor_class?.[0]?.value ?? 12;
-  const dexMod = Math.floor(((m.dexterity ?? 10) - 10) / 2);
+  const dexMod = abilityModifier(m.dexterity ?? 10);
   const walkSpeed = parseInt(m.speed?.walk ?? "30") || 30;
 
   const actions = (m.actions ?? []).map((a) => ({
@@ -219,7 +243,7 @@ export interface DndSpell {
     damage_at_character_level?: Record<string, string>;
     damage_at_slot_level?: Record<string, string>;
   };
-  classes: Array<{ name: string }>;
+  classes: { name: string }[];
 }
 
 export async function searchSpells(query: string): Promise<DndSpellSummary[]> {
@@ -321,6 +345,7 @@ export async function getFeats(): Promise<{ index: string; name: string }[]> {
 // These are preferred over the external API when available.
 
 import { supabase } from "@/lib/supabase";
+import { abilityModifier } from "./abilityScore";
 
 export interface SrdClassFeatureRow {
   class_name: string;
@@ -550,7 +575,7 @@ export async function getFeatureDescription(
       .ilike("class_name", className)
       .ilike("feature_name", featureName)
       .maybeSingle();
-    return (data as { description: string } | null)?.description ?? null;
+    return data?.description ?? null;
   } catch {
     return null;
   }

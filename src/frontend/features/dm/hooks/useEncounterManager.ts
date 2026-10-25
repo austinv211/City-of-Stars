@@ -5,6 +5,7 @@ import { useAuth } from "@/core/context/AuthContext";
 import { finalAbilityScores } from "@/features/characters/types/character.types";
 import type { CharacterAbilityScores } from "@/features/characters/types/character.types";
 import type { Encounter, MonsterAction, MonsterSpecialAbility } from "@/features/encounter/types/encounter.types";
+import type { Database } from "@/types/database";
 
 export interface NpcDraft {
   name: string;
@@ -19,7 +20,48 @@ export interface NpcDraft {
   cha_score?: number;
   actions?: MonsterAction[];
   special_abilities?: MonsterSpecialAbility[];
+  legendary_actions?: MonsterSpecialAbility[];
+  damage_resistances?: string[];
+  damage_immunities?: string[];
+  damage_vulnerabilities?: string[];
   description?: string;
+}
+
+/** The 2024 default: three legendary actions per round, for any creature that has them. */
+const LEGENDARY_ACTIONS_PER_ROUND = 3;
+
+type ParticipantRow = Database["public"]["Tables"]["encounter_participants"]["Row"];
+
+/** A row's null is a draft's absent field, and a draft's absent field is a row's null. */
+const absent = <T>(v: T | null): T | undefined => v ?? undefined;
+const nullable = <T>(v: T | undefined): T | null => v ?? null;
+
+/**
+ * An NPC encounter_participants row back into draft form. The single reverse
+ * mapping, used both to edit a template and to run one -- runTemplate used to
+ * hand-copy its own subset of columns and silently dropped resistances,
+ * immunities and vulnerabilities.
+ */
+function rowToNpc(n: ParticipantRow): NpcDraft {
+  return {
+    name: n.name,
+    hp: n.hp_max,
+    ac: n.ac,
+    initiative: n.initiative_score,
+    str_score: absent(n.str_score),
+    dex_score: absent(n.dex_score),
+    con_score: absent(n.con_score),
+    int_score: absent(n.int_score),
+    wis_score: absent(n.wis_score),
+    cha_score: absent(n.cha_score),
+    actions: absent(n.actions) as MonsterAction[] | undefined,
+    special_abilities: absent(n.special_abilities) as MonsterSpecialAbility[] | undefined,
+    legendary_actions: absent(n.legendary_actions) as MonsterSpecialAbility[] | undefined,
+    damage_resistances: n.damage_resistances,
+    damage_immunities: n.damage_immunities,
+    damage_vulnerabilities: n.damage_vulnerabilities,
+    description: absent(n.description),
+  };
 }
 
 export interface PartyEntry {
@@ -65,6 +107,7 @@ export function useEncounterManager() {
 
   // Maps an NpcDraft to an encounter_participants insert row (is_player=false).
   function npcInsertRow(encounterId: string, npc: NpcDraft, idx: number) {
+    const legendaryBudget = npc.legendary_actions?.length ? LEGENDARY_ACTIONS_PER_ROUND : 0;
     return {
       encounter_id: encounterId,
       name: npc.name,
@@ -76,15 +119,21 @@ export function useEncounterManager() {
       initiative_order: idx,
       is_player: false,
       conditions: [],
-      str_score: npc.str_score ?? null,
-      dex_score: npc.dex_score ?? null,
-      con_score: npc.con_score ?? null,
-      int_score: npc.int_score ?? null,
-      wis_score: npc.wis_score ?? null,
-      cha_score: npc.cha_score ?? null,
-      actions: npc.actions ?? null,
-      special_abilities: npc.special_abilities ?? null,
-      description: npc.description ?? null,
+      str_score: nullable(npc.str_score),
+      dex_score: nullable(npc.dex_score),
+      con_score: nullable(npc.con_score),
+      int_score: nullable(npc.int_score),
+      wis_score: nullable(npc.wis_score),
+      cha_score: nullable(npc.cha_score),
+      actions: nullable(npc.actions),
+      special_abilities: nullable(npc.special_abilities),
+      legendary_actions: npc.legendary_actions?.length ? npc.legendary_actions : null,
+      legendary_actions_max: legendaryBudget,
+      legendary_actions_remaining: legendaryBudget,
+      damage_resistances: npc.damage_resistances ?? [],
+      damage_immunities: npc.damage_immunities ?? [],
+      damage_vulnerabilities: npc.damage_vulnerabilities ?? [],
+      description: nullable(npc.description),
     };
   }
 
@@ -127,21 +176,7 @@ export function useEncounterManager() {
       .eq("encounter_id", templateId)
       .eq("is_player", false)
       .order("initiative_order", { ascending: true });
-    return ((data ?? []) as Record<string, unknown>[]).map((n) => ({
-      name: n.name as string,
-      hp: (n.hp_max as number) ?? 10,
-      ac: (n.ac as number) ?? 12,
-      initiative: (n.initiative_score as number) ?? 0,
-      str_score: (n.str_score as number) ?? undefined,
-      dex_score: (n.dex_score as number) ?? undefined,
-      con_score: (n.con_score as number) ?? undefined,
-      int_score: (n.int_score as number) ?? undefined,
-      wis_score: (n.wis_score as number) ?? undefined,
-      cha_score: (n.cha_score as number) ?? undefined,
-      actions: (n.actions as MonsterAction[]) ?? undefined,
-      special_abilities: (n.special_abilities as MonsterSpecialAbility[]) ?? undefined,
-      description: (n.description as string) ?? undefined,
-    }));
+    return ((data ?? []) as ParticipantRow[]).map(rowToNpc);
   }
 
   // Updates a template's name and replaces its NPC roster.
@@ -273,27 +308,9 @@ export function useEncounterManager() {
 
     if (npcRows && npcRows.length > 0) {
       await supabase.from("encounter_participants").insert(
-        (npcRows as Record<string, unknown>[]).map((n, idx) => ({
-          encounter_id: run.id,
-          name: n.name as string,
-          hp_current: (n.hp_max as number) ?? 10,
-          hp_max: (n.hp_max as number) ?? 10,
-          hp_temp: 0,
-          ac: (n.ac as number) ?? 12,
-          initiative_score: (n.initiative_score as number) ?? 0,
-          initiative_order: idx,
-          is_player: false,
-          conditions: [],
-          str_score: (n.str_score as number) ?? null,
-          dex_score: (n.dex_score as number) ?? null,
-          con_score: (n.con_score as number) ?? null,
-          int_score: (n.int_score as number) ?? null,
-          wis_score: (n.wis_score as number) ?? null,
-          cha_score: (n.cha_score as number) ?? null,
-          actions: (n.actions as unknown) ?? null,
-          special_abilities: (n.special_abilities as unknown) ?? null,
-          description: (n.description as string) ?? null,
-        })),
+        (npcRows as ParticipantRow[]).map((n, idx) =>
+          npcInsertRow(run.id, rowToNpc(n), idx),
+        ),
       );
     }
 

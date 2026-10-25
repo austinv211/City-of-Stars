@@ -29,6 +29,7 @@ import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
 import { searchMonsters, getMonster, monsterToDbForm } from "@/lib/dnd5eApi";
 import type { DndMonsterSummary } from "@/lib/dnd5eApi";
 import type { MonsterAction, MonsterSpecialAbility } from "@/features/encounter/types/encounter.types";
+import { abilityModifier, formatScoreWithModifier } from "@/lib/abilityScore";
 
 const SIZES = ["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"];
 const TYPES = [
@@ -99,11 +100,10 @@ const BLANK_FORM: MonsterForm = {
 };
 
 function abilityMod(score: number) {
-  return Math.floor((score - 10) / 2);
+  return abilityModifier(score);
 }
 function modStr(score: number) {
-  const m = abilityMod(score);
-  return `${score} (${m >= 0 ? "+" : ""}${m})`;
+  return formatScoreWithModifier(score);
 }
 
 function dbRowToForm(row: Record<string, unknown>): MonsterRecord {
@@ -216,9 +216,9 @@ export default function DmMonstersPage() {
         int_score: db.int_score,
         wis_score: db.wis_score,
         cha_score: db.cha_score,
-        special_abilities: db.special_abilities as MonsterSpecialAbility[],
-        actions: db.actions as MonsterAction[],
-        legendary_actions: db.legendary_actions as LegendaryAction[],
+        special_abilities: db.special_abilities,
+        actions: db.actions,
+        legendary_actions: db.legendary_actions,
         damage_resistances: db.damage_resistances.join(", "),
         damage_immunities: db.damage_immunities.join(", "),
         condition_immunities: db.condition_immunities.join(", "),
@@ -552,6 +552,7 @@ export default function DmMonstersPage() {
                   value={importQuery}
                   onChange={(e) => setImportQuery(e.target.value)}
                   placeholder="Search monsters… (e.g. goblin, beholder)"
+                  aria-label="Search the SRD for a monster"
                 />
                 {importSearching && (
                   <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
@@ -650,7 +651,7 @@ export default function DmMonstersPage() {
             </div>
 
             {/* ── Basic stats ── */}
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               <div className="space-y-1">
                 <Label className="text-xs">HP</Label>
                 <Input type="number" min={1} value={form.hp}
@@ -695,7 +696,7 @@ export default function DmMonstersPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Ability Scores
               </p>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 <AbilityInput label="STR" scoreKey="str_score" />
                 <AbilityInput label="DEX" scoreKey="dex_score" />
                 <AbilityInput label="CON" scoreKey="con_score" />

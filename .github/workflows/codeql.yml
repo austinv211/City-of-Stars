@@ -1,0 +1,37 @@
+name: CodeQL
+
+# Plan §2.8. Separate from ci.yml because it is slow and its results land in
+# the repository's code-scanning tab rather than as a pass/fail gate.
+# Rust is included now, before Phase 4 adds real native code, so the first
+# #[tauri::command] is scanned from the day it lands.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '23 4 * * 1' # weekly, Monday 04:23 UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, rust, actions]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}

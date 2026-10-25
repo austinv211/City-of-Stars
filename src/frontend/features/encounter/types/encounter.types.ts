@@ -24,6 +24,12 @@ export interface Encounter {
   ended_at: string | null;
   current_participant_id: string | null;
   is_template: boolean;
+  /** Starts at 1; advance_encounter_turn increments it on each wrap. */
+  round: number;
+  /** Bumped on every advance. Effect expiry is measured against it. */
+  turn_seq: number;
+  /** Initiative count lair actions act on (conventionally 20); null = no lair. */
+  lair_action_initiative: number | null;
 }
 
 export interface EncounterParticipant {
@@ -68,6 +74,35 @@ export interface EncounterParticipant {
   // Dodge: until the start of your next turn, attacks against you have
   // disadvantage if you can see the attacker. Cleared on turn start too.
   dodging: boolean;
+  // Legendary actions: spent between other creatures' turns, refilled to
+  // _max at the start of this creature's own turn by advance_encounter_turn.
+  legendary_actions: MonsterSpecialAbility[] | null;
+  legendary_actions_max: number;
+  legendary_actions_remaining: number;
+}
+
+export type EffectExpiry =
+  | "start_of_source_next_turn"
+  | "end_of_source_next_turn"
+  | "end_of_target_next_turn"
+  | "rounds"
+  | "concentration"
+  | "manual";
+
+/** A tracked effect on a combatant; expiry is enforced server-side. */
+export interface EncounterEffect {
+  id: string;
+  encounter_id: string;
+  target_participant_id: string;
+  source_participant_id: string | null;
+  name: string;
+  description: string | null;
+  expiry: EffectExpiry;
+  rounds_remaining: number | null;
+  created_round: number;
+  created_turn_seq: number;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface DiceRoll {

@@ -1,15 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
-import { Skeleton } from "@/core/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/core/components/ui/table";
+import { ResponsiveTable } from "@/core/components/ui/responsive-table";
 import {
   Dialog,
   DialogContent,
@@ -44,7 +36,7 @@ interface MyMembership {
   role: "dm" | "player";
 }
 
-const ALL_ROLES: Array<"dm" | "player"> = ["dm", "player"];
+const ALL_ROLES: ("dm" | "player")[] = ["dm", "player"];
 const PAGE_SIZE = 10;
 
 const ROLE_COLORS: Record<string, string> = {
@@ -102,7 +94,7 @@ export default function AdminCampaignsPage() {
     return myMemberships.filter((m) => m.campaign_id === campaignId);
   }
 
-  function missingRoles(campaignId: string): Array<"dm" | "player"> {
+  function missingRoles(campaignId: string): ("dm" | "player")[] {
     const existing = myRoles(campaignId).map((m) => m.role);
     return ALL_ROLES.filter((r) => !existing.includes(r));
   }
@@ -161,100 +153,100 @@ export default function AdminCampaignsPage() {
         </p>
       </div>
 
-      <div className="border border-border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Session</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Your Roles</TableHead>
-              <TableHead className="w-32" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell />
-                </TableRow>
-              ))
-            ) : campaigns.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-16">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <BookOpen className="h-8 w-8 opacity-40" />
-                    <p>No campaigns found.</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              campaigns.map((c) => {
-                const roles = myRoles(c.id);
-                const missing = missingRoles(c.id);
-                return (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <p className="font-medium truncate max-w-xs">{c.name}</p>
-                      {c.description && (
-                        <p className="text-xs text-muted-foreground truncate max-w-xs mt-0.5">
-                          {c.description}
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{c.current_session}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {new Date(c.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {roles.length === 0 ? (
-                        <span className="text-xs text-muted-foreground italic">—</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {roles.map((mem) => (
-                            <Badge
-                              key={mem.id}
-                              variant="outline"
-                              className={`capitalize text-xs gap-1 pr-1 ${ROLE_COLORS[mem.role] ?? ""}`}
-                            >
-                              {mem.role === "dm" ? "DM" : "Player"}
-                              <button
-                                type="button"
-                                onClick={() => openLeave(mem, c.name)}
-                                className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
-                                title={`Remove ${mem.role} role`}
-                              >
-                                <X className="h-2.5 w-2.5" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {missing.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => openAddRole(c)}
-                        >
-                          <UserPlus className="h-3 w-3 mr-1" />
-                          Add Role
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <ResponsiveTable
+        data={campaigns}
+        loading={loading}
+        skeletonRows={PAGE_SIZE}
+        getRowKey={(c) => c.id}
+        empty={
+          <div className="flex flex-col items-center gap-2 border border-border py-16 text-muted-foreground">
+            <BookOpen className="h-8 w-8 opacity-40" />
+            <p>No campaigns found.</p>
+          </div>
+        }
+        columns={[
+          {
+            key: "name",
+            header: "Name",
+            primary: true,
+            cell: (c) => (
+              <div className="min-w-0">
+                <p className="truncate font-medium md:max-w-xs">{c.name}</p>
+                {c.description && (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground md:max-w-xs">
+                    {c.description}
+                  </p>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: "session",
+            header: "Session",
+            cellClassName: "text-muted-foreground",
+            cell: (c) => c.current_session,
+          },
+          {
+            key: "created",
+            header: "Created",
+            cellClassName: "text-xs text-muted-foreground",
+            cell: (c) => new Date(c.created_at).toLocaleDateString(),
+          },
+          {
+            key: "roles",
+            header: "Your Roles",
+            cell: (c) => {
+              const roles = myRoles(c.id);
+              if (roles.length === 0) {
+                return <span className="text-xs italic text-muted-foreground">—</span>;
+              }
+              return (
+                <div className="flex flex-wrap gap-1">
+                  {roles.map((mem) => (
+                    <Badge
+                      key={mem.id}
+                      variant="outline"
+                      className={`gap-1 pr-1 text-xs capitalize ${ROLE_COLORS[mem.role] ?? ""}`}
+                    >
+                      {mem.role === "dm" ? "DM" : "Player"}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openLeave(mem, c.name);
+                        }}
+                        className="ml-0.5 opacity-60 transition-opacity hover:opacity-100"
+                        aria-label={`Remove ${mem.role} role from ${c.name}`}
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              );
+            },
+          },
+          {
+            key: "actions",
+            header: "",
+            actions: true,
+            headClassName: "w-32",
+            cell: (c) =>
+              missingRoles(c.id).length > 0 ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    openAddRole(c);
+                  }}
+                >
+                  <UserPlus className="mr-1 h-3 w-3" />
+                  Add Role
+                </Button>
+              ) : null,
+          },
+        ]}
+      />
 
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">

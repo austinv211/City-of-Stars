@@ -1,39 +1,39 @@
 -- ── Extend custom_monsters with full D&D 5e stat block ───────────────────────
 ALTER TABLE public.custom_monsters
-  ADD COLUMN portrait_url         text,
-  ADD COLUMN size                 text    not null default 'Medium',
-  ADD COLUMN type                 text    not null default 'humanoid',
-  ADD COLUMN alignment            text,
-  ADD COLUMN speed                int     not null default 30,
-  ADD COLUMN cr                   text    not null default '0',
-  ADD COLUMN xp                   int     not null default 0,
-  ADD COLUMN str_score            int     not null default 10,
-  ADD COLUMN dex_score            int     not null default 10,
-  ADD COLUMN con_score            int     not null default 10,
-  ADD COLUMN int_score            int     not null default 10,
-  ADD COLUMN wis_score            int     not null default 10,
-  ADD COLUMN cha_score            int     not null default 10,
-  ADD COLUMN actions              jsonb   not null default '[]',
-  ADD COLUMN special_abilities    jsonb   not null default '[]',
-  ADD COLUMN legendary_actions    jsonb   not null default '[]',
-  ADD COLUMN damage_resistances   text[]  not null default '{}',
-  ADD COLUMN damage_immunities    text[]  not null default '{}',
-  ADD COLUMN condition_immunities text[]  not null default '{}',
-  ADD COLUMN senses               text,
-  ADD COLUMN languages            text;
+  ADD COLUMN IF NOT EXISTS portrait_url         text,
+  ADD COLUMN IF NOT EXISTS size                 text    not null default 'Medium',
+  ADD COLUMN IF NOT EXISTS type                 text    not null default 'humanoid',
+  ADD COLUMN IF NOT EXISTS alignment            text,
+  ADD COLUMN IF NOT EXISTS speed                int     not null default 30,
+  ADD COLUMN IF NOT EXISTS cr                   text    not null default '0',
+  ADD COLUMN IF NOT EXISTS xp                   int     not null default 0,
+  ADD COLUMN IF NOT EXISTS str_score            int     not null default 10,
+  ADD COLUMN IF NOT EXISTS dex_score            int     not null default 10,
+  ADD COLUMN IF NOT EXISTS con_score            int     not null default 10,
+  ADD COLUMN IF NOT EXISTS int_score            int     not null default 10,
+  ADD COLUMN IF NOT EXISTS wis_score            int     not null default 10,
+  ADD COLUMN IF NOT EXISTS cha_score            int     not null default 10,
+  ADD COLUMN IF NOT EXISTS actions              jsonb   not null default '[]',
+  ADD COLUMN IF NOT EXISTS special_abilities    jsonb   not null default '[]',
+  ADD COLUMN IF NOT EXISTS legendary_actions    jsonb   not null default '[]',
+  ADD COLUMN IF NOT EXISTS damage_resistances   text[]  not null default '{}',
+  ADD COLUMN IF NOT EXISTS damage_immunities    text[]  not null default '{}',
+  ADD COLUMN IF NOT EXISTS condition_immunities text[]  not null default '{}',
+  ADD COLUMN IF NOT EXISTS senses               text,
+  ADD COLUMN IF NOT EXISTS languages            text;
 
 -- ── Extend encounter_participants with per-participant scores and actions ──────
 -- Populated from the monster library when NPCs are added to an encounter so the
 -- DM can roll attacks using the correct ability modifiers during play.
 ALTER TABLE public.encounter_participants
-  ADD COLUMN str_score         int,
-  ADD COLUMN dex_score         int,
-  ADD COLUMN con_score         int,
-  ADD COLUMN int_score         int,
-  ADD COLUMN wis_score         int,
-  ADD COLUMN cha_score         int,
-  ADD COLUMN actions           jsonb,
-  ADD COLUMN special_abilities jsonb;
+  ADD COLUMN IF NOT EXISTS str_score         int,
+  ADD COLUMN IF NOT EXISTS dex_score         int,
+  ADD COLUMN IF NOT EXISTS con_score         int,
+  ADD COLUMN IF NOT EXISTS int_score         int,
+  ADD COLUMN IF NOT EXISTS wis_score         int,
+  ADD COLUMN IF NOT EXISTS cha_score         int,
+  ADD COLUMN IF NOT EXISTS actions           jsonb,
+  ADD COLUMN IF NOT EXISTS special_abilities jsonb;
 
 -- ── Monster portrait storage bucket ──────────────────────────────────────────
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -45,10 +45,12 @@ VALUES (
   array['image/jpeg', 'image/png', 'image/webp']
 ) ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "monster-portraits: public read" ON storage.objects;
 CREATE POLICY "monster-portraits: public read"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'monster-portraits');
 
+DROP POLICY IF EXISTS "monster-portraits: auth insert" ON storage.objects;
 CREATE POLICY "monster-portraits: auth insert"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -56,6 +58,7 @@ CREATE POLICY "monster-portraits: auth insert"
     AND auth.uid()::text = (string_to_array(name, '/'))[1]
   );
 
+DROP POLICY IF EXISTS "monster-portraits: auth update" ON storage.objects;
 CREATE POLICY "monster-portraits: auth update"
   ON storage.objects FOR UPDATE
   USING (
@@ -63,6 +66,7 @@ CREATE POLICY "monster-portraits: auth update"
     AND auth.uid()::text = (string_to_array(name, '/'))[1]
   );
 
+DROP POLICY IF EXISTS "monster-portraits: auth delete" ON storage.objects;
 CREATE POLICY "monster-portraits: auth delete"
   ON storage.objects FOR DELETE
   USING (

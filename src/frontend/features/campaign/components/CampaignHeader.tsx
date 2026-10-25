@@ -70,8 +70,11 @@ export function CampaignHeader({ campaign, isDM, memberCount, onEditDescription 
             <Button
               size="icon"
               variant="ghost"
-              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5"
+              // Revealed on hover -- and always shown on touch screens, which
+              // have no hover, and when focused from the keyboard.
+              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity mt-0.5"
               onClick={() => { setDraft(campaign.description ?? ""); setEditing(true); }}
+              aria-label="Edit description"
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>

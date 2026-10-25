@@ -5,8 +5,10 @@ import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
 import type { DiceRollBroadcast, ActionCategory } from "../types/encounter.types";
+import { DETERMINISTIC_DICE, deterministicDie } from "../lib/testDice";
 
 function cryptoRoll(sides: number): number {
+  if (DETERMINISTIC_DICE) return deterministicDie(sides);
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
   return (array[0] % sides) + 1;
@@ -79,10 +81,16 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<RollEntry[]>([]);
   const [animQueue, setAnimQueue] = useState<DiceRollBroadcast[]>([]);
   const [diceAnimating, setDiceAnimating] = useState(false);
+  // Physics rolls still settling. While any is, the table is theirs: see
+  // clearDiceAnimation.
+  const inFlightRef = useRef(0);
 
   // Lazy-init DiceBox on first roll. By then #dice-box-container is in the
   // DOM (rendered by DiceBoxOverlay, which mounts inside this provider).
   const getOrInitBox = useCallback((): Promise<InstanceType<typeof DiceBox>> => {
+    // E2E: no physics. Rejecting sends every roll down the fallback path,
+    // which draws from the deterministic source via cryptoRoll.
+    if (DETERMINISTIC_DICE) return Promise.reject(new Error("deterministic dice"));
     if (!initPromiseRef.current) {
       try {
         const box = new DiceBox({
@@ -102,7 +110,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
           throwForce: 4,
           startingHeight: 12,
           settleTimeout: 3000,
-        } as ConstructorParameters<typeof DiceBox>[0]);
+        });
         initPromiseRef.current = box
           .init()
           .then(() => { boxRef.current = box; })
@@ -177,13 +185,14 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     setDiceAnimating(true);
 
     // Parse count from diceType ("2d6" → 2, "d20" → 1).
-    const countMatch = opts.diceType.match(/^(\d+)/i);
+    const countMatch = /^(\d+)/i.exec(opts.diceType);
     const diceCount = countMatch ? parseInt(countMatch[1]) : 1;
     const notation = `${diceCount}d${opts.sides}`;
 
     // DiceBox is the authoritative RNG — its physics result is what the card shows.
     let individualRolls: number[];
     let result: number;
+    inFlightRef.current += 1;
     try {
       const box = await getOrInitBox();
       const rollResults = await box.roll(notation);
@@ -194,6 +203,8 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
     } catch {
       individualRolls = Array.from({ length: diceCount }, () => cryptoRoll(opts.sides));
       result = individualRolls.reduce((a, b) => a + b, 0);
+    } finally {
+      inFlightRef.current -= 1;
     }
 
     // Populate the queue after physics settles so the result card matches the die face.
@@ -265,6 +276,7 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         s + Array.from({ length: count }, () => cryptoRoll(sides)).reduce((a, b) => a + b, 0), 0);
     }
 
+    inFlightRef.current += 1;
     try {
       const box = await getOrInitBox();
 
@@ -315,6 +327,8 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
           allRolls.push(...rolls);
         }
       }
+    } finally {
+      inFlightRef.current -= 1;
     }
 
     const total = diceSum + opts.modifier;
@@ -392,6 +406,11 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearDiceAnimation = useCallback(() => {
+    // The previous result card's dismiss timer must not clear the table under
+    // a roll that is still settling: its dice would vanish mid-physics, never
+    // settle, and its promise would never resolve -- the roll silently lost.
+    // That roll's own card clears the box once it lands.
+    if (inFlightRef.current > 0) return;
     boxRef.current?.clear();
     setDiceAnimating(false);
   }, []);

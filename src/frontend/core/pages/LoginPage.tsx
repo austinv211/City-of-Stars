@@ -78,7 +78,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+    <div className="relative flex min-h-dvh items-center justify-center bg-background p-4">
       {/* Subtle radial glow behind the card */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -110,6 +110,8 @@ export default function LoginPage() {
 
           {/* Mode tabs */}
           <div
+            role="tablist"
+            aria-label="Sign in or sign up"
             className="mb-6 grid grid-cols-2 p-0.5 text-sm bg-input"
             style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.4)" }}
           >
@@ -117,6 +119,9 @@ export default function LoginPage() {
               <button
                 key={m}
                 type="button"
+                role="tab"
+                aria-selected={mode === m}
+                aria-controls="auth-form"
                 onClick={() => switchMode(m)}
                 className={
                   mode === m
@@ -137,7 +142,7 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form id="auth-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Email
@@ -174,6 +179,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -200,7 +206,7 @@ export default function LoginPage() {
 
             {/* Error */}
             {error && (
-              <div className="rounded-md px-4 py-3 text-sm bg-destructive/10 border border-destructive/30 text-destructive">
+              <div role="alert" className="rounded-md px-4 py-3 text-sm bg-destructive/10 border border-destructive/30 text-destructive">
                 {error}
               </div>
             )}

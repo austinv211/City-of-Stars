@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS public.character_spell_slots (
 ALTER TABLE public.character_spell_slots ENABLE ROW LEVEL SECURITY;
 
 -- Owner has full access
+DROP POLICY IF EXISTS "character_spell_slots_owner" ON public.character_spell_slots;
 CREATE POLICY "character_spell_slots_owner" ON public.character_spell_slots
   FOR ALL USING (
     EXISTS (
@@ -48,6 +49,7 @@ CREATE POLICY "character_spell_slots_owner" ON public.character_spell_slots
   );
 
 -- Campaign members can read spell slots for characters in their campaign
+DROP POLICY IF EXISTS "character_spell_slots_campaign_read" ON public.character_spell_slots;
 CREATE POLICY "character_spell_slots_campaign_read" ON public.character_spell_slots
   FOR SELECT USING (
     EXISTS (
@@ -71,10 +73,12 @@ CREATE TABLE IF NOT EXISTS public.character_audit_log (
 ALTER TABLE public.character_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Any user can insert for their own characters
+DROP POLICY IF EXISTS "character_audit_log_insert" ON public.character_audit_log;
 CREATE POLICY "character_audit_log_insert" ON public.character_audit_log
   FOR INSERT WITH CHECK (changed_by = auth.uid());
 
 -- Campaign DM can read all audit logs for characters in their campaign
+DROP POLICY IF EXISTS "character_audit_log_dm_read" ON public.character_audit_log;
 CREATE POLICY "character_audit_log_dm_read" ON public.character_audit_log
   FOR SELECT USING (
     EXISTS (
@@ -87,6 +91,7 @@ CREATE POLICY "character_audit_log_dm_read" ON public.character_audit_log
   );
 
 -- Owner can also read their own character's audit log
+DROP POLICY IF EXISTS "character_audit_log_owner_read" ON public.character_audit_log;
 CREATE POLICY "character_audit_log_owner_read" ON public.character_audit_log
   FOR SELECT USING (
     EXISTS (

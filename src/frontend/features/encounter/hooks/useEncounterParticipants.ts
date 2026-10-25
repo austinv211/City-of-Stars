@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
 import { applyDamageMitigation, concentrationDC, resolveDeathSave } from "@/features/characters/data/rules2024";
@@ -26,6 +27,7 @@ function normalizeParticipant(raw: unknown): EncounterParticipant {
     ...p,
     actions: parseJsonArray<MonsterAction>(p.actions),
     special_abilities: parseJsonArray<MonsterSpecialAbility>(p.special_abilities),
+    legendary_actions: parseJsonArray<MonsterSpecialAbility>(p.legendary_actions),
   };
 }
 
@@ -81,7 +83,12 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
           }
         }
       )
-      .subscribe();
+      // Load again once joined: a change made between the first load and the
+      // join is never delivered, and a player who rolled initiative in that
+      // gap stayed on the roll screen. Also resyncs after a reconnect.
+      .subscribe((status) => {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) void load();
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -186,6 +193,12 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
       failures = Math.min(3, failures + r.failuresDelta);
     }
     const update = { death_save_successes: successes, death_save_failures: failures, hp_current: hp };
+    // Optimistic: the roller sees their own result at once rather than when
+    // the realtime echo arrives -- under load that took seconds. The echo
+    // merges by id, so it lands as a no-op.
+    setParticipants((prev) =>
+      prev.map((x) => (x.id === participantId ? { ...x, ...update } : x)),
+    );
     await supabase.from("encounter_participants").update(update).eq("id", participantId);
     if (p.character_id) await supabase.from("characters").update(update).eq("id", p.character_id);
   }
@@ -238,7 +251,19 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
     }
   }
 
+  // Spend from a legendary creature's per-round budget (DM only, by RLS).
+  // advance_encounter_turn refills it at the start of the creature's turn.
+  async function spendLegendary(participantId: string, cost: number) {
+    const p = participants.find((x) => x.id === participantId);
+    if (!p || cost > p.legendary_actions_remaining) return;
+    await supabase
+      .from("encounter_participants")
+      .update({ legendary_actions_remaining: p.legendary_actions_remaining - cost })
+      .eq("id", participantId);
+  }
+
   return {
+    spendLegendary,
     participants, loading, updateHP, updateConditions,
     applyDamage, applyHealing, setDeathSaves, applyDeathSaveRoll, setConcentration, setCover,
     setHeroicInspiration, setTurnFlag,

@@ -1,0 +1,11 @@
+dist
+dist-e2e
+node_modules
+src/tauri/target
+src/tauri/gen
+public/assets
+package-lock.json
+lint-report.json
+docs/rules
+supabase/seed/90-test-seed.sql
+src/frontend/types/database.ts

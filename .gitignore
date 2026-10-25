@@ -32,3 +32,18 @@ progress_notes.md
 
 # SRD markdown source files — content is parsed into the database
 docs/rules/
+
+# ESLint JSON report (scratch output of `npm run lint:report`)
+lint-report.json
+
+# Local Supabase start log (scratch)
+supabase-start.log
+db-reset.log
+
+# Verification screenshots (regenerate with scripts/verify-responsive.mjs)
+artifacts/
+vite-e2e.log
+
+# Playwright: saved sessions and run output
+e2e/.auth/
+dist-e2e/

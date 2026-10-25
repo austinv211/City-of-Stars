@@ -1,4 +1,5 @@
 import { resolveSpellcastingAbility } from "../data/dnd2024.constants";
+import { abilityModifier } from "@/lib/abilityScore";
 
 export type CharacterStatus = "draft" | "active" | "backup";
 export type AbilityScoreMethod = "point_buy" | "standard_array" | "rolled";
@@ -188,9 +189,11 @@ export interface DerivedStats {
   modifiers: AbilityScores;
 }
 
-export function abilityModifier(score: number): number {
-  return Math.floor((score - 10) / 2);
-}
+// Canonical implementation lives in lib/abilityScore.ts (lib cannot import
+// features, and lib/dnd5eApi.ts needs it). Imported for local use below and
+// re-exported so the existing call sites across the sheet, encounter and
+// wizard keep working unchanged.
+export { abilityModifier };
 
 // Skill → governing ability (2024 SRD). Single source of truth for skill and
 // passive-score math across the sheet, encounter quick-ref, and creation wizard.
@@ -276,7 +279,13 @@ export function finalAbilityScores(
 ): AbilityScores {
   const result = { ...scores };
   if (primary) result[primary] = result[primary] + 2;
-  if (secondary) result[secondary] = result[secondary] + 1;
+  // The 2024 background rules give +2/+1 across two DIFFERENT abilities (or
+  // +1 to three). Nothing stopped a caller passing the same ability twice,
+  // which silently produced +3 -- and flowed straight into attack rolls,
+  // save DCs and AC via deriveStats.
+  if (secondary && secondary !== primary) {
+    result[secondary] = result[secondary] + 1;
+  }
   return result;
 }
 

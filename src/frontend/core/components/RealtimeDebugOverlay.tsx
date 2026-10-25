@@ -7,7 +7,7 @@ import {
   type DebugEvent,
 } from "@/lib/realtimeDebug";
 
-type ChannelInfo = { name: string; state: string };
+interface ChannelInfo { name: string; state: string }
 
 const STATE_COLORS: Record<string, string> = {
   SUBSCRIBED: "#22c55e",
