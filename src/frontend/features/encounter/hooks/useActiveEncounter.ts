@@ -69,6 +69,15 @@ export function useActiveEncounter() {
   async function advanceTurn() {
     if (!activeEncounterId) return;
     await supabase.rpc("advance_encounter_turn", { p_encounter_id: activeEncounterId });
+    // The server picks who is next, so this cannot be optimistic -- but the
+    // one who ended the turn should see it move now, not when the realtime
+    // echo arrives (under load, seconds later). The echo is idempotent.
+    const fresh = await supabase
+      .from("encounters")
+      .select("*")
+      .eq("id", activeEncounterId)
+      .maybeSingle();
+    if (fresh.data) setEncounter(fresh.data as Encounter);
   }
 
   /** The initiative count lair actions act on (conventionally 20); null = no lair. */

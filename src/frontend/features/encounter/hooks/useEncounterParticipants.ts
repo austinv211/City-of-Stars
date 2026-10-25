@@ -193,6 +193,12 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
       failures = Math.min(3, failures + r.failuresDelta);
     }
     const update = { death_save_successes: successes, death_save_failures: failures, hp_current: hp };
+    // Optimistic: the roller sees their own result at once rather than when
+    // the realtime echo arrives -- under load that took seconds. The echo
+    // merges by id, so it lands as a no-op.
+    setParticipants((prev) =>
+      prev.map((x) => (x.id === participantId ? { ...x, ...update } : x)),
+    );
     await supabase.from("encounter_participants").update(update).eq("id", participantId);
     if (p.character_id) await supabase.from("characters").update(update).eq("id", p.character_id);
   }

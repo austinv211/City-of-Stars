@@ -75,7 +75,11 @@ export default function DmEncountersPage() {
 
   // Start / run dialog
   const [startTarget, setStartTarget] = useState<Encounter | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // The start dialog records only what the DM changed -- who they left out,
+  // and HP/AC they overrode -- not a snapshot of the party taken on open. A
+  // snapshot taken before the campaign's characters had loaded was empty, and
+  // the encounter then ran with no party at all.
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [partyHp, setPartyHp] = useState<Record<string, number>>({});
   const [partyAc, setPartyAc] = useState<Record<string, number>>({});
   const [starting, setStarting] = useState(false);
@@ -182,31 +186,29 @@ export default function DmEncountersPage() {
   // ── Start / run helpers ─────────────────────────────────────────────────────
 
   function openStart(encounter: Encounter) {
-    const allIds = new Set(activeCharacters.map((c) => c.id));
-    const hpDefaults: Record<string, number> = {};
-    const acDefaults: Record<string, number> = {};
-    activeCharacters.forEach((c) => {
-      hpDefaults[c.id] = c.hp_current ?? c.hp_max ?? 10;
-      acDefaults[c.id] = c.ac ?? 10;
-    });
-    setSelectedIds(allIds);
-    setPartyHp(hpDefaults);
-    setPartyAc(acDefaults);
+    setExcludedIds(new Set());
+    setPartyHp({});
+    setPartyAc({});
     setStartTarget(encounter);
   }
+
+  type PartyMember = (typeof activeCharacters)[number];
+  const isInParty = (c: PartyMember) => !excludedIds.has(c.id);
+  const startHp = (c: PartyMember) => partyHp[c.id] ?? c.hp_current;
+  const startAc = (c: PartyMember) => partyAc[c.id] ?? c.ac;
 
   async function handleStart() {
     if (!startTarget) return;
     setStarting(true);
     const party: PartyEntry[] = activeCharacters
-      .filter((c) => selectedIds.has(c.id))
+      .filter(isInParty)
       .map((c) => ({
         characterId: c.id,
         name: c.name,
         ownerId: c.owner_id,
         portraitUrl: c.portrait_url,
-        hp: partyHp[c.id] ?? 10,
-        ac: partyAc[c.id] ?? 10,
+        hp: startHp(c),
+        ac: startAc(c),
       }));
 
     let runId: string | null = startTarget.id;
@@ -749,9 +751,10 @@ export default function DmEncountersPage() {
                 {activeCharacters.map((c) => (
                   <div key={c.id} className="grid grid-cols-[auto_1fr_70px_70px] gap-2 items-center">
                     <Checkbox
-                      checked={selectedIds.has(c.id)}
+                      aria-label={`Include ${c.name}`}
+                      checked={isInParty(c)}
                       onCheckedChange={() => {
-                        setSelectedIds((prev) => {
+                        setExcludedIds((prev) => {
                           const next = new Set(prev);
                           if (next.has(c.id)) next.delete(c.id);
                           else next.add(c.id);
@@ -766,17 +769,19 @@ export default function DmEncountersPage() {
                     <Input
                       type="number"
                       min={1}
-                      value={partyHp[c.id] ?? 10}
+                      aria-label={`${c.name} starting HP`}
+                      value={startHp(c)}
                       onChange={(e) => setPartyHp((prev) => ({ ...prev, [c.id]: parseInt(e.target.value) || 1 }))}
-                      disabled={!selectedIds.has(c.id)}
+                      disabled={!isInParty(c)}
                       className="text-center"
                     />
                     <Input
                       type="number"
                       min={1}
-                      value={partyAc[c.id] ?? 10}
+                      aria-label={`${c.name} AC`}
+                      value={startAc(c)}
                       onChange={(e) => setPartyAc((prev) => ({ ...prev, [c.id]: parseInt(e.target.value) || 1 }))}
-                      disabled={!selectedIds.has(c.id)}
+                      disabled={!isInParty(c)}
                       className="text-center"
                     />
                   </div>
