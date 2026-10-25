@@ -153,6 +153,7 @@ export default function DmSessionsPage() {
               size="icon"
               onClick={() => changeSession(-1)}
               disabled={advancing || currentSession <= 1}
+              aria-label="Previous session"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -164,6 +165,7 @@ export default function DmSessionsPage() {
               size="icon"
               onClick={() => changeSession(1)}
               disabled={advancing}
+              aria-label="Next session"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

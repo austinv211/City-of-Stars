@@ -245,7 +245,7 @@ export default function DmMembersPage() {
                     handleRoleChange(m, v as "player" | "dm");
                   }}
                 >
-                  <SelectTrigger className="h-7 w-24 text-xs">
+                  <SelectTrigger className="h-7 w-24 text-xs" aria-label={`Role for ${m.email}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

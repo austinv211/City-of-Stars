@@ -237,6 +237,7 @@ export default function DmCampaignsPage() {
                           size="icon"
                           className="h-7 w-7 text-muted-foreground hover:text-destructive"
                           onClick={() => setDeleteTarget(c)}
+                          aria-label={`Delete ${c.name}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

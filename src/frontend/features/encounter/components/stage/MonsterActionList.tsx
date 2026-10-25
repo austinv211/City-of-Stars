@@ -79,7 +79,11 @@ function MonsterActionCard({
   };
 
   return (
-    <div className="space-y-2 rounded-lg border bg-card/60 p-2.5">
+    <div
+      role="group"
+      aria-label={action.name}
+      className="space-y-2 rounded-lg border bg-card/60 p-2.5"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 flex-1 text-sm font-semibold">{action.name}</span>
         {action.damage_type && (
