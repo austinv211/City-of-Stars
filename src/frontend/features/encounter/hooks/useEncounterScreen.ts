@@ -92,6 +92,7 @@ export function useEncounterScreen(playerMode: boolean) {
     waitingForPlayerData: !isDM && (combat.loading || charsLoading),
     endEncounter: active.endEncounter,
     advanceTurn: active.advanceTurn,
+    setLairInitiative: active.setLairInitiative,
     combat,
     participants,
     effects,

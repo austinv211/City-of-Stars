@@ -4,6 +4,8 @@ import { ActionPanel } from "../ActionPanel";
 import { SpectatorRollPanel } from "../SpectatorRollPanel";
 import { EffectsTray } from "../stage/EffectsTray";
 import { TargetBar } from "../stage/TargetBar";
+import { LegendaryActionBar } from "../stage/LegendaryActionBar";
+import { useDice } from "../../context/DiceContext";
 import type { EncounterScreen } from "../../hooks/useEncounterScreen";
 import { OwnStage } from "./OwnStage";
 
@@ -34,6 +36,11 @@ export function StageRegion({
             onRemove={(id) => void screen.effects.removeEffect(id)}
             onAdd={onAddEffect}
           />
+        </div>
+      )}
+      {isDM && screen.encounter && (
+        <div className="mb-3">
+          <DmLegendary screen={screen} />
         </div>
       )}
       {screen.canTarget && (
@@ -139,5 +146,32 @@ function PanelArea({ screen }: { screen: EncounterScreen }) {
       )}
       {panel({ secondaryCollapsed: false })}
     </>
+  );
+}
+
+/** Legendary spends, announced to the table like any other action. */
+function DmLegendary({ screen }: { screen: EncounterScreen }) {
+  const { announceAction } = useDice();
+  const encounter = screen.encounter;
+  if (!encounter || !screen.campaign) return null;
+  const campaignId = screen.campaign.id;
+  return (
+    <LegendaryActionBar
+      participants={screen.participants}
+      activeId={encounter.current_participant_id}
+      turnSeq={encounter.turn_seq}
+      lairInit={encounter.lair_action_initiative}
+      onSetLair={(count) => void screen.setLairInitiative(count)}
+      onSpend={(creature, action, cost) => {
+        void screen.combat.spendLegendary(creature.id, cost);
+        announceAction({
+          campaignId,
+          encounterId: encounter.id,
+          characterName: creature.name,
+          actionText: `Legendary action: ${action.name}`,
+          actionCategory: "free",
+        });
+      }}
+    />
   );
 }

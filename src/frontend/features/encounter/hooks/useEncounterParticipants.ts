@@ -239,7 +239,19 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
     }
   }
 
+  // Spend from a legendary creature's per-round budget (DM only, by RLS).
+  // advance_encounter_turn refills it at the start of the creature's turn.
+  async function spendLegendary(participantId: string, cost: number) {
+    const p = participants.find((x) => x.id === participantId);
+    if (!p || cost > p.legendary_actions_remaining) return;
+    await supabase
+      .from("encounter_participants")
+      .update({ legendary_actions_remaining: p.legendary_actions_remaining - cost })
+      .eq("id", participantId);
+  }
+
   return {
+    spendLegendary,
     participants, loading, updateHP, updateConditions,
     applyDamage, applyHealing, setDeathSaves, applyDeathSaveRoll, setConcentration, setCover,
     setHeroicInspiration, setTurnFlag,

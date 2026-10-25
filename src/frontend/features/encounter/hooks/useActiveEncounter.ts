@@ -64,5 +64,16 @@ export function useActiveEncounter() {
     await supabase.rpc("advance_encounter_turn", { p_encounter_id: activeEncounterId });
   }
 
-  return { encounter, loading, endEncounter, advanceTurn };
+  /** The initiative count lair actions act on (conventionally 20); null = no lair. */
+  async function setLairInitiative(value: number | null) {
+    if (!activeEncounterId) return;
+    // Optimistic: a toggle that waits for the realtime round-trip looks broken.
+    setEncounter((prev) => (prev ? { ...prev, lair_action_initiative: value } : prev));
+    await supabase
+      .from("encounters")
+      .update({ lair_action_initiative: value })
+      .eq("id", activeEncounterId);
+  }
+
+  return { encounter, loading, endEncounter, advanceTurn, setLairInitiative };
 }
