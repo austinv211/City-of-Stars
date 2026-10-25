@@ -26,7 +26,11 @@ export function TurnBar({
       >
         R{round}
       </span>
-      {active ? (
+      {active && isMe(active.id) ? (
+        <span className="shrink-0 bg-primary px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground">
+          Your turn
+        </span>
+      ) : active ? (
         <span className="min-w-0 truncate">
           <span className="font-semibold text-primary">
             {isMe(active.id) ? "Your" : `${active.name}'s`}
@@ -39,11 +43,6 @@ export function TurnBar({
       {next && next.id !== active?.id && (
         <span className="hidden min-w-0 truncate text-muted-foreground sm:inline">
           · Next: {isMe(next.id) ? "you" : next.name}
-        </span>
-      )}
-      {phase === "my-turn" && (
-        <span className="shrink-0 bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
-          Your turn
         </span>
       )}
       {phase === "on-deck" && (

@@ -10,9 +10,12 @@ import type { TargetInfo } from "../../lib/attack";
  */
 export function TargetBar({
   target,
+  onChange,
   onClear,
 }: {
   target: TargetInfo;
+  /** Opens the target picker. */
+  onChange?: () => void;
   onClear: () => void;
 }) {
   const p = target.participant;
@@ -51,10 +54,20 @@ export function TargetBar({
           </span>
         )
       )}
+      {onChange && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto h-7 shrink-0 px-2 text-xs"
+          onClick={onChange}
+        >
+          Change
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon"
-        className="ml-auto h-7 w-7 shrink-0"
+        className={cn("h-7 w-7 shrink-0", !onChange && "ml-auto")}
         onClick={onClear}
         aria-label="Clear target"
       >

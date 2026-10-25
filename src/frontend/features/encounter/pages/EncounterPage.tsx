@@ -1,621 +1,165 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useState } from "react";
+import { Swords } from "lucide-react";
 import { Button } from "@/core/components/ui/button";
-import { Badge } from "@/core/components/ui/badge";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/core/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/core/components/ui/dialog";
-import { InitiativeTracker } from "../components/InitiativeTracker";
-import { ActionPanel } from "../components/ActionPanel";
-import { CharacterQuickRef } from "../components/CharacterQuickRef";
-import { InitiativeRollScreen } from "../components/InitiativeRollScreen";
-import { SpectatorRollPanel } from "../components/SpectatorRollPanel";
-import { TurnBar } from "../components/stage/TurnBar";
-import { EffectsTray } from "../components/stage/EffectsTray";
-import { AddEffectDialog } from "../components/stage/AddEffectDialog";
-import { TargetBar } from "../components/stage/TargetBar";
-import { targetInfo } from "../lib/attack";
-import { useActiveEncounter } from "../hooks/useActiveEncounter";
-import { useEncounterEffects } from "../hooks/useEncounterEffects";
-import { deriveStage } from "../lib/encounterStage";
-import { useEncounterParticipants } from "../hooks/useEncounterParticipants";
-import { useCampaign } from "@/core/context/CampaignContext";
-import { useCharacter } from "@/features/characters/hooks/useCharacter";
-import { useCharacters } from "@/features/characters/hooks/useCharacters";
-import { useAuth } from "@/core/context/AuthContext";
-import { useDice } from "../context/DiceContext";
-import { supabase } from "@/lib/supabase";
-import { Swords, SkipForward, Dices, User, BookOpen, Zap, ChevronLeft } from "lucide-react";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/core/components/ui/responsive-dialog";
+import { useBreakpoint } from "@/core/hooks/useBreakpoint";
 import { RulesLookup } from "@/features/rules/components/RulesLookup";
-import type { CharacterAttack } from "@/features/characters/types/character.types";
-import type { RollEntry } from "../context/DiceContext";
-import { cn } from "@/lib/utils";
+import { InitiativeRollScreen } from "../components/InitiativeRollScreen";
+import { AddEffectDialog } from "../components/stage/AddEffectDialog";
+import {
+  EncounterDesktop,
+  EncounterPhone,
+  EncounterTablet,
+  type LayoutProps,
+} from "../components/screen/EncounterLayouts";
+import { TargetPicker } from "../components/screen/TargetPicker";
+import { useEncounterScreen } from "../hooks/useEncounterScreen";
 
-const ACTION_CATEGORY_STYLE = {
-  action: {
-    bg: "bg-primary/10",
-    label: "Action",
-    labelClass: "text-primary",
-  },
-  bonus: {
-    bg: "bg-secondary/10",
-    label: "Bonus",
-    labelClass: "text-secondary",
-  },
-  reaction: {
-    bg: "bg-accent/20",
-    label: "Reaction",
-    labelClass: "text-accent-foreground",
-  },
-  free: {
-    bg: "bg-muted/20",
-    label: "Free",
-    labelClass: "text-muted-foreground",
-  },
-} as const;
-
-function RollLog({ entries }: { entries: RollEntry[] }) {
-  const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
-
-  if (entries.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-32 gap-2 text-muted-foreground">
-        <Dices className="h-8 w-8 opacity-30" />
-        <p className="text-xs">No rolls yet</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-1">
-      {entries.map((entry) => {
-        if (entry.kind === "action") {
-          const cat = entry.actionCategory ?? "action";
-          const style = ACTION_CATEGORY_STYLE[cat];
-          return (
-            <div
-              key={entry.id}
-              className={cn(
-                "rounded-md px-3 py-2 text-xs flex items-start gap-2",
-                style.bg,
-              )}
-            >
-              <Zap
-                className={cn("h-3 w-3 mt-0.5 shrink-0", style.labelClass)}
-              />
-              <div className="min-w-0">
-                <span className="font-medium">{entry.rolledByDm ? `DM — ${entry.characterName}` : entry.characterName}</span>
-                <span className="text-muted-foreground"> · </span>
-                <span
-                  className={cn(
-                    "font-semibold text-[10px] uppercase tracking-wide",
-                    style.labelClass,
-                  )}
-                >
-                  {style.label}
-                </span>
-                <p className="text-muted-foreground mt-0.5">
-                  {entry.actionText}
-                </p>
-              </div>
-            </div>
-          );
-        }
-
-        const isD20 = entry.diceType === "d20" || entry.diceType === "1d20";
-        const isCrit = isD20 && entry.result === 20;
-        const isFumble = isD20 && entry.result === 1;
-        return (
-          <div
-            key={entry.id}
-            className={cn(
-              "rounded-md px-3 py-2 text-xs",
-              isCrit && "bg-secondary/10",
-              isFumble && "bg-destructive/10",
-              entry.advantage && !isCrit && !isFumble && "bg-success/10",
-              entry.disadvantage && !isCrit && !isFumble && "bg-destructive/8",
-              !isCrit &&
-                !isFumble &&
-                !entry.advantage &&
-                !entry.disadvantage &&
-                "bg-muted/40",
-            )}
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="font-medium truncate">
-                {entry.rolledByDm ? `DM — ${entry.characterName}` : entry.characterName}
-              </span>
-              <span
-                className={cn(
-                  "text-base font-black shrink-0",
-                  isCrit && "text-secondary",
-                  isFumble && "text-destructive",
-                  entry.advantage && !isCrit && !isFumble && "text-success",
-                  entry.disadvantage && !isCrit && !isFumble && "text-destructive",
-                  !isCrit &&
-                    !isFumble &&
-                    !entry.advantage &&
-                    !entry.disadvantage &&
-                    "text-foreground",
-                )}
-              >
-                {entry.total}
-              </span>
-            </div>
-            <div className="text-muted-foreground mt-0.5">
-              {entry.rollType} · {entry.diceType}
-              {entry.modifier !== 0 && (
-                <span className="ml-1">
-                  ({entry.result}
-                  {sign(entry.modifier)})
-                </span>
-              )}
-              {entry.discardedRoll != null && (
-                <span className="ml-1 opacity-60">
-                  [kept {entry.result}, dropped {entry.discardedRoll}]
-                </span>
-              )}
-              {isCrit && (
-                <span className="ml-1 text-secondary font-semibold">
-                  CRIT!
-                </span>
-              )}
-              {isFumble && (
-                <span className="ml-1 text-destructive font-semibold">FAIL</span>
-              )}
-              {entry.advantage && !isCrit && (
-                <span className="ml-1 text-success font-semibold">ADV</span>
-              )}
-              {entry.disadvantage && !isFumble && (
-                <span className="ml-1 text-destructive font-semibold">DIS</span>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export default function EncounterPage({ playerMode = false }: { playerMode?: boolean }) {
-  const navigate = useNavigate();
-  const { user, displayName } = useAuth();
-  const { campaign, isDM: contextIsDM, activeEncounterId } = useCampaign();
-  // playerMode forces player behaviour regardless of campaign role (used at /encounter)
-  const isDM = playerMode ? false : contextIsDM;
-  const { encounter, loading: encounterLoading, endEncounter, advanceTurn } = useActiveEncounter();
-  const {
-    participants, loading: participantsLoading, updateConditions,
-    applyDamage, applyHealing, applyDeathSaveRoll, setConcentration, setCover, setHeroicInspiration,
-    setTurnFlag,
-  } = useEncounterParticipants(
-    activeEncounterId,
-    campaign?.id,
-  );
-  const { effects, addEffect, removeEffect } = useEncounterEffects(activeEncounterId);
-  const [addEffectOpen, setAddEffectOpen] = useState(false);
-  const { characters, loading: charsLoading } = useCharacters();
-  const { history: allHistory, roll } = useDice();
-  const history = allHistory.filter((e) => e.encounterId === activeEncounterId);
-
-  // Death saves roll through the dice system so the 3D die + result card show
-  // (and broadcast/record), then the d20 face resolves the save.
-  async function rollDeathSave(participantId: string) {
-    if (!campaign) return;
-    const p = participants.find((x) => x.id === participantId);
-    const total = await roll({
-      campaignId: campaign.id,
-      encounterId: activeEncounterId,
-      characterName: p?.name ?? "Unknown",
-      rolledByDm: isDM,
-      diceType: "1d20",
-      sides: 20,
-      modifier: 0,
-      rollType: "Death Save",
-    });
-    await applyDeathSaveRoll(participantId, total);
-  }
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Client-only: who the viewer's attacks are aimed at. Not the same as
-  // selectedId, which is whose panel is showing.
-  const [targetId, setTargetId] = useState<string | null>(null);
+/**
+ * The encounter screen: data wiring, the pre-combat gates, the dialogs, and
+ * which of the three layouts to show.
+ *
+ * Layout is chosen with useBreakpoint rather than CSS alone because the
+ * layouts arrange stateful regions differently (the action panel holds its own
+ * realtime subscriptions); rendering every arrangement and hiding all but one
+ * would mount those subscriptions three times.
+ */
+export default function EncounterPage({
+  playerMode = false,
+}: {
+  playerMode?: boolean;
+}) {
+  const screen = useEncounterScreen(playerMode);
+  const { isPhone, isTablet } = useBreakpoint();
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [attacks, setAttacks] = useState<CharacterAttack[]>([]);
+  const [addEffectOpen, setAddEffectOpen] = useState(false);
+  const [targetPickerOpen, setTargetPickerOpen] = useState(false);
 
-  const ownCharacter = characters.find(
-    (c) => c.owner_id === user?.id && c.status === "active",
-  );
-  const ownParticipant = participants.find(
-    (p) => p.character_id === ownCharacter?.id,
-  );
+  if (screen.loading || screen.waitingForPlayerData) return <Spinner />;
 
-  // A non-DM with no participant of their own watches as a spectator: they can
-  // still see the encounter and make basic rolls, but control no character.
-  const isSpectator = !isDM && !ownParticipant;
-  // Name to attribute spectator rolls to — their character if they have one,
-  // otherwise their chosen account display name.
-  const spectatorName = ownCharacter?.name ?? displayName;
-
-  const activeParticipantId = encounter?.current_participant_id ?? null;
-  const isMyTurn =
-    !!ownParticipant && ownParticipant.id === activeParticipantId;
-
-  const panelParticipantId = selectedId ?? ownParticipant?.id ?? null;
-  const panelParticipant = participants.find(
-    (p) => p.id === panelParticipantId,
-  );
-
-  const isPanelMyTurn = isMyTurn && panelParticipant?.id === ownParticipant?.id;
-  // DMs control any participant; players control only their own character's panel
-  const canControlPanel = isDM || panelParticipant?.id === ownParticipant?.id;
-
-  const { character: panelCharacter } = useCharacter(
-    panelParticipant?.character_id ?? undefined,
-  );
-  // Load own character with full scores for the quick reference panel
-  const { character: ownCharacterFull } = useCharacter(
-    !isDM ? ownCharacter?.id : undefined,
-  );
-
-  useEffect(() => {
-    async function load() {
-      if (!panelParticipant?.character_id) {
-        setAttacks([]);
-        return;
-      }
-      const { data } = await supabase
-        .from("character_attacks")
-        .select("*")
-        .eq("character_id", panelParticipant.character_id);
-      setAttacks((data as CharacterAttack[]) ?? []);
-    }
-    load();
-  }, [panelParticipant?.character_id]);
-
-  // Show spinner while the encounter row itself is loading.
-  if (encounterLoading) {
+  if (!screen.encounter || !screen.encounterId) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
-      </div>
-    );
-  }
-
-  if (!encounter || !activeEncounterId) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
         <Swords className="h-16 w-16 text-muted-foreground opacity-40" />
         <p className="text-muted-foreground">No active encounter</p>
       </div>
     );
   }
 
-  // For players: wait for participant and character data before deciding which screen to show.
-  if (!isDM && (participantsLoading || charsLoading)) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
-      </div>
-    );
-  }
-
-  // Players who haven't rolled initiative yet see the waiting-room roll screen.
-  if (!isDM && ownParticipant && !ownParticipant.has_rolled_initiative && campaign) {
+  // Players who have not rolled initiative yet see the waiting-room roll screen.
+  const own = screen.ownParticipant;
+  if (!screen.isDM && own && !own.has_rolled_initiative && screen.campaign) {
     return (
       <InitiativeRollScreen
-        encounterId={activeEncounterId}
-        campaignId={campaign.id}
-        participants={participants}
-        ownParticipant={ownParticipant}
+        encounterId={screen.encounterId}
+        campaignId={screen.campaign.id}
+        participants={screen.participants}
+        ownParticipant={own}
       />
     );
   }
 
-  const targetParticipant = participants.find((p) => p.id === targetId);
-  const target = targetParticipant ? targetInfo(isDM, targetParticipant) : null;
-  const canTarget = isDM || !!ownParticipant;
-
-  const stage = deriveStage({
-    isDM,
-    encounter,
-    participants,
-    ownParticipantId: ownParticipant?.id ?? null,
-    effects,
-  });
+  const layout: LayoutProps = {
+    screen,
+    onRules: () => {
+      setRulesOpen(true);
+    },
+    onEnd: () => {
+      setConfirmEnd(true);
+    },
+    onAddEffect: () => {
+      setAddEffectOpen(true);
+    },
+    onChooseTarget: () => {
+      setTargetPickerOpen(true);
+    },
+  };
+  const panelId = screen.panelParticipant?.id ?? null;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* ── Header — 3 zones aligned with columns below ── */}
-      <div className="bg-card h-12 flex items-center shrink-0 border-b border-border/40">
-        {/* Zone 1 — w-64, aligns with Initiative column */}
-        <div className="w-64 shrink-0 flex items-center gap-2 px-3">
-          {!playerMode && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => navigate("/dm/encounters")}
-              title="Back to Encounters"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          )}
-          <Swords className="h-4 w-4 text-primary shrink-0" />
-          <h1 className="font-bold text-sm truncate">
-            {encounter.name ?? "Encounter"}
-          </h1>
-          <Badge className="shrink-0 text-[10px] h-5 bg-success/20 text-success border-success/40">
-            Active
-          </Badge>
-        </div>
-        {/* Zone 2 — flex-1, aligns with Action Panel column */}
-        <div className="flex-1 flex items-center px-4 min-w-0">
-          <TurnBar stage={stage} />
-        </div>
-        {/* Zone 3 — w-64, aligns with Roll Log column */}
-        <div className="w-64 shrink-0 flex items-center justify-end gap-2 px-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setRulesOpen(true)}
-            title="Rules Reference"
-          >
-            <BookOpen className="h-4 w-4" />
-          </Button>
-          {isDM && (
-            <Button variant="outline" size="sm" onClick={advanceTurn}>
-              <SkipForward className="h-4 w-4 mr-1" />
-              Next Turn
-            </Button>
-          )}
-          {isDM && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setConfirmEnd(true)}
-            >
-              End Encounter
-            </Button>
-          )}
-        </div>
-      </div>
+    <>
+      {isPhone ? (
+        <EncounterPhone {...layout} />
+      ) : isTablet ? (
+        <EncounterTablet {...layout} />
+      ) : (
+        <EncounterDesktop {...layout} />
+      )}
 
-      {/* ── Three-column body ── */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Col 1 — Initiative Tracker */}
-        <div className="w-64 shrink-0 flex flex-col bg-card border-r border-border/40">
-          <div className="flex-1 overflow-y-auto p-2 pt-2">
-            <InitiativeTracker
-              participants={participants}
-              activeParticipantId={activeParticipantId}
-              isDM={isDM}
-              ownCharacterId={ownCharacter?.id ?? null}
-              onUpdateConditions={updateConditions}
-              onApplyDamage={applyDamage}
-              onHeal={applyHealing}
-              onRollDeathSave={rollDeathSave}
-              onSetConcentration={setConcentration}
-              onSetCover={setCover}
-              onSelect={setSelectedId}
-              selectedId={selectedId}
-              targetId={targetId}
-              onTarget={
-                canTarget
-                  ? (id) => {
-                      setTargetId((cur) => (cur === id ? null : id));
-                    }
-                  : undefined
-              }
-            />
-          </div>
-        </div>
-
-        {/* Col 2 — Action Panel */}
-        <div
-          className={cn("flex-1 flex flex-col overflow-hidden min-w-0 bg-card")}
-        >
-          <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
-            {(isDM || ownParticipant) && (
-              <div className="mb-3 border-b border-border/40 pb-3">
-                <EffectsTray
-                  effects={effects}
-                  participants={participants}
-                  own={stage.own}
-                  isDM={isDM}
-                  onRemove={(id) => void removeEffect(id)}
-                  onAdd={() => {
-                    setAddEffectOpen(true);
-                  }}
-                />
-              </div>
-            )}
-            {target && (
-              <div className="mb-3">
-                <TargetBar
-                  target={target}
-                  onClear={() => {
-                    setTargetId(null);
-                  }}
-                />
-              </div>
-            )}
-            {(() => {
-              // Spectators (no participant of their own) default to a personal
-              // roll panel. Selecting someone in the tracker shows that
-              // participant's panel read-only, with a way back to their rolls.
-              if (isSpectator && !selectedId && campaign) {
-                return (
-                  <SpectatorRollPanel
-                    campaignId={campaign.id}
-                    encounterId={activeEncounterId}
-                    spectatorName={spectatorName}
-                    isDM={false}
-                  />
-                );
-              }
-              if (panelParticipant && campaign) {
-                return (
-                  <>
-                    {isSpectator && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mb-3 -ml-1"
-                        onClick={() => setSelectedId(null)}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Back to my rolls
-                      </Button>
-                    )}
-                    <ActionPanel
-                      participant={panelParticipant}
-                      character={panelCharacter}
-                      attacks={attacks}
-                      campaignId={campaign.id}
-                      encounterId={activeEncounterId}
-                      isMyTurn={isPanelMyTurn}
-                      isDM={isDM}
-                      canControl={canControlPanel}
-                      onSetConcentration={(spell) => setConcentration(panelParticipant.id, spell)}
-                      onSetHeroicInspiration={(v) => setHeroicInspiration(panelParticipant.id, v)}
-                      onSetCover={(cover) => setCover(panelParticipant.id, cover)}
-                      onSetTurnFlag={(flag, v) => setTurnFlag(panelParticipant.id, flag, v)}
-                      target={target}
-                      onApplyDamage={
-                        isDM && target
-                          ? (amount, type, crit) =>
-                              applyDamage(target.participant.id, amount, type, { crit })
-                          : undefined
-                      }
-                    />
-                  </>
-                );
-              }
-              return (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  {participants.length > 0
-                    ? "Select a participant to see actions"
-                    : "Waiting for participants…"}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* Col 3 — Roll Log / Character Sheet */}
-        <div className="w-64 shrink-0 flex flex-col bg-card overflow-hidden border-l border-border/40">
-          {(() => {
-            const showCharTab =
-              (!isDM && !!ownCharacterFull && !!ownParticipant) ||
-              (isDM && !!panelCharacter && !!panelParticipant?.character_id);
-            const charTabCharacter = isDM ? panelCharacter : ownCharacterFull;
-            const charTabParticipant = isDM ? panelParticipant : ownParticipant;
-            const charTabLabel = isDM
-              ? (panelCharacter?.name ?? "Character")
-              : "My Character";
-
-            if (showCharTab && charTabCharacter && charTabParticipant) {
-              return (
-                <Tabs defaultValue="rolls" className="flex flex-col h-full">
-                  <TabsList className="shrink-0 mx-3 mt-2 h-11 text-xs">
-                    <TabsTrigger
-                      value="rolls"
-                      className="text-xs h-9 w-full flex items-center gap-1"
-                    >
-                      <Dices className="h-3 w-3" />
-                      Rolls
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="character"
-                      className="text-xs h-9 w-full flex items-center gap-1"
-                    >
-                      <User className="h-3 w-3" />
-                      {charTabLabel}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent
-                    value="rolls"
-                    className="flex-1 overflow-y-auto p-3 mt-0"
-                  >
-                    <RollLog entries={history} />
-                  </TabsContent>
-                  <TabsContent
-                    value="character"
-                    className="flex-1 overflow-y-auto p-3 mt-0"
-                  >
-                    <CharacterQuickRef
-                      character={charTabCharacter}
-                      participant={charTabParticipant}
-                      onApplyDamage={(amount, type, opts) => applyDamage(charTabParticipant.id, amount, type, opts)}
-                      onHeal={(amount) => applyHealing(charTabParticipant.id, amount)}
-                      onSetConcentration={(spell) => setConcentration(charTabParticipant.id, spell)}
-                    />
-                  </TabsContent>
-                </Tabs>
-              );
-            }
-
-            return (
-              <div className="flex flex-col h-full">
-                <div className="flex-1 min-h-0 overflow-y-auto p-3 pt-2">
-                  <RollLog entries={history} />
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* ── End Encounter dialog ── */}
-      <Dialog open={confirmEnd} onOpenChange={setConfirmEnd}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>End Encounter?</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={confirmEnd} onOpenChange={setConfirmEnd}>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>End Encounter?</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will mark the encounter as completed and unlock the encounter
-            page for all players.
+            This will mark the encounter as completed and unlock the encounter page for
+            all players.
           </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmEnd(false)}>
+          <ResponsiveDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmEnd(false);
+              }}
+            >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={async () => {
-                await endEncounter();
-                setConfirmEnd(false);
-              }}
+              onClick={() =>
+                void screen.endEncounter().then(() => {
+                  setConfirmEnd(false);
+                })
+              }
             >
               End Encounter
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <AddEffectDialog
-        // Re-mount per target so the default target follows the selection.
-        key={panelParticipantId ?? "none"}
+        // Re-mount per selection so the default target follows it.
+        key={panelId ?? "none"}
         open={addEffectOpen}
         onOpenChange={setAddEffectOpen}
-        participants={participants}
-        fixedSourceId={isDM ? null : (ownParticipant?.id ?? null)}
-        defaultTargetId={panelParticipantId}
-        onAdd={addEffect}
+        participants={screen.participants}
+        fixedSourceId={screen.isDM ? null : (own?.id ?? null)}
+        defaultTargetId={panelId}
+        onAdd={screen.effects.addEffect}
       />
 
-      <RulesLookup open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <TargetPicker
+        open={targetPickerOpen}
+        onOpenChange={setTargetPickerOpen}
+        participants={screen.participants}
+        isDM={screen.isDM}
+        ownId={own?.id ?? null}
+        currentId={screen.targetId}
+        onPick={screen.setTargetId}
+      />
+
+      <RulesLookup
+        open={rulesOpen}
+        onClose={() => {
+          setRulesOpen(false);
+        }}
+      />
+    </>
+  );
+}
+
+function Spinner() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
     </div>
   );
 }
