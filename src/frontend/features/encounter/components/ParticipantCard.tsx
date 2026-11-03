@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar";
 import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent } from "@/core/components/ui/card";
@@ -13,6 +12,7 @@ import { COVER_OPTIONS, coverAcBonus } from "@/features/characters/data/rules202
 import type { EncounterParticipant } from "../types/encounter.types";
 import type { DamageResult } from "../hooks/useEncounterParticipants";
 import { woundState } from "../lib/attack";
+import { CombatantThumb } from "./CombatantArt";
 
 interface Props {
   participant: EncounterParticipant;
@@ -109,10 +109,7 @@ function CardHeader({ participant: p, isActive, showAC, isTarget, onTarget, onEd
   return (
     <div className="flex items-center gap-3">
       <div className="relative shrink-0">
-        <Avatar className="h-10 w-10">
-          {p.portrait_url && <AvatarImage src={p.portrait_url} alt={p.name} />}
-          <AvatarFallback className="text-xs">{p.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <CombatantThumb participant={p} className="h-10 w-10 rounded-full text-xs" />
         {isActive && (
           <span
             className="absolute -top-1 -right-1 flex h-2.5 w-2.5"

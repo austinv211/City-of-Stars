@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { Crosshair } from "lucide-react";
 import { useReducedMotion } from "@/core/hooks/useFeelPrefs";
 import { cn } from "@/lib/utils";
+import { hpFraction } from "../../lib/attack";
+import { CombatantThumb } from "../CombatantArt";
 import type { EncounterParticipant } from "../../types/encounter.types";
 
 /**
@@ -48,8 +50,7 @@ export function Filmstrip({
         const viewing = p.id === selectedId;
         // Same visibility rule as the initiative cards: monster HP is the DM's.
         const showHp = isDM || p.is_player;
-        const pct =
-          p.hp_max > 0 ? Math.max(0, Math.min(1, p.hp_current / p.hp_max)) : 0;
+        const pct = hpFraction(p);
         return (
           <button
             key={p.id}
@@ -67,17 +68,14 @@ export function Filmstrip({
               viewing ? "border-primary" : "border-border/40",
             )}
           >
-            <span
+            <CombatantThumb
+              participant={p}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-semibold",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground",
-                p.hp_current <= 0 && "opacity-50",
+                "h-8 w-8 rounded-full text-[11px]",
+                active && "ring-2 ring-primary",
+                p.hp_current <= 0 && "opacity-50 grayscale",
               )}
-            >
-              {p.name.slice(0, 2).toUpperCase()}
-            </span>
+            />
             <span className="w-full truncate text-center text-[11px] leading-tight">
               {p.id === ownId ? "You" : p.name}
             </span>
