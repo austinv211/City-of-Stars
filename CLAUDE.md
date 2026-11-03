@@ -94,3 +94,23 @@ Use `dev.ps1` instead of `make`. It mirrors all the same targets:
 ```
 
 If PowerShell blocks the script, run once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+## Releasing & auto-update
+
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`. It builds every
+platform and publishes a GitHub Release that includes a `latest.json` manifest.
+
+- Windows and Linux AppImage installs update themselves through
+  `tauri-plugin-updater`, which reads
+  `releases/latest/download/latest.json`. Android and .deb installs can't, so
+  the app compares against the GitHub latest-release API and links to the new
+  APK or .deb instead. The logic lives in `src/frontend/core/lib/updates.ts`
+  and `core/hooks/useUpdateCheck.ts`.
+- Updater artifacts are signed. CI needs the `TAURI_SIGNING_PRIVATE_KEY` and
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` secrets. The matching public key is
+  `plugins.updater.pubkey` in `tauri.conf.json`. Losing the private key means
+  installed copies can't accept updates.
+- Signing is switched on only in CI, through `src/tauri/tauri.updater.conf.json`
+  (`--config`), so local `tauri build` works without the key.
+- Prerelease tags (`v1.2.3-beta`) never become "latest", so they don't reach
+  players.
