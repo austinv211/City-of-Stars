@@ -16,8 +16,8 @@ export class DmEncountersPage {
     return this.page.getByRole("row").filter({ hasText: name });
   }
 
-  /** Run a template with the whole active party, as the dialog defaults. */
-  async runTemplate(name: string) {
+  /** Open a template's Run dialog, once its party has loaded. */
+  async openRunDialog(name: string) {
     await this.templateRow(name).getByRole("button", { name: "Run" }).click();
     const dialog = this.page.getByRole("dialog", { name: `Run: ${name}` });
     await expect(dialog).toBeVisible();
@@ -25,6 +25,12 @@ export class DmEncountersPage {
     await expect(
       dialog.getByRole("checkbox", { name: /^Include / }).first(),
     ).toBeChecked();
+    return dialog;
+  }
+
+  /** Run a template with the whole active party, as the dialog defaults. */
+  async runTemplate(name: string) {
+    const dialog = await this.openRunDialog(name);
     await dialog.getByRole("button", { name: "Run Encounter" }).click();
     await this.page.waitForURL("**/dm/encounters/active");
   }

@@ -27,7 +27,13 @@ export class EncounterPage {
     return (this.page.viewportSize()?.width ?? 1440) < 768;
   }
 
-  private async showTab(name: "Turn" | "Party") {
+  /** 768-1279px: the log lives in a side sheet. */
+  private get isTablet() {
+    const width = this.page.viewportSize()?.width ?? 1440;
+    return width >= 768 && width < 1280;
+  }
+
+  private async showTab(name: "Turn" | "Party" | "Log") {
     if (!this.isPhone) return;
     const tab = this.page.getByRole("tab", { name, exact: true });
     if ((await tab.getAttribute("aria-selected")) !== "true") await tab.click();
@@ -188,6 +194,49 @@ export class EncounterPage {
   /** The concentration prompt the damage raised, on the DM's card. */
   async concentrationPrompt(participantId: string): Promise<Locator> {
     return (await this.combatant(participantId)).getByText(/^Concentration save/);
+  }
+
+  // ── Who is on screen ────────────────────────────────────────────────────
+
+  /** "Viewing Isolde · Back to turn": shown while peeking at another card. */
+  get viewingChip() {
+    return this.page.getByRole("status", { name: /^Viewing / });
+  }
+
+  async backToDefault() {
+    await this.viewingChip.getByRole("button", { name: /^Back to/ }).click();
+    await expect(this.viewingChip).toBeHidden();
+  }
+
+  // ── The log ─────────────────────────────────────────────────────────────
+
+  /** The combat log, opened wherever this layout keeps it. */
+  async log(): Promise<Locator> {
+    if (this.isPhone) {
+      await this.showTab("Log");
+    } else if (this.isTablet) {
+      const log = this.page.getByRole("list", { name: "Combat log" });
+      if (!(await log.isVisible())) {
+        await this.page.getByRole("button", { name: "Rolls & character" }).click();
+      }
+    }
+    return this.page.getByRole("list", { name: "Combat log" });
+  }
+
+  /** Close the tablet's side sheet, if the log opened it. */
+  async closeLog() {
+    if (this.isTablet) await this.page.keyboard.press("Escape");
+  }
+
+  // ── DM-only controls ────────────────────────────────────────────────────
+
+  get endButton() {
+    return this.page.getByRole("button", { name: /^End( Encounter)?$/ });
+  }
+
+  async editAppearanceButton(participantId: string, name: string): Promise<Locator> {
+    const card = await this.combatant(participantId);
+    return card.getByRole("button", { name: `Edit appearance of ${name}` });
   }
 
   async endEncounter() {
