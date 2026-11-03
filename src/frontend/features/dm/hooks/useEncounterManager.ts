@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
-import { finalAbilityScores } from "@/features/characters/types/character.types";
 import type { CharacterAbilityScores } from "@/features/characters/types/character.types";
+import { NO_SNAPSHOT, SNAPSHOT_COLUMNS, scoreColumns, type CombatSnapshot } from "../lib/participantRows";
 import type { Encounter, MonsterAction, MonsterSpecialAbility } from "@/features/encounter/types/encounter.types";
 import type { Database } from "@/types/database";
 
@@ -69,7 +69,13 @@ export interface PartyEntry {
   name: string;
   ownerId: string;
   portraitUrl: string | null;
+  /** HP entering the fight, already clamped to hpMax. */
   hp: number;
+  /** The sheet's max: the participant's max, not the starting HP. */
+  hpMax: number;
+  hpTemp: number;
+  /** The sheet's current HP, to tell whether the DM changed it. */
+  sheetHp: number | null;
   ac: number;
 }
 
@@ -223,49 +229,39 @@ export function useEncounterManager() {
       // from the character sheet onto the participant. The trigger keeps it current.
       const { data: condRows } = await supabase
         .from("characters")
-        .select("id, conditions, damage_resistances, damage_immunities, damage_vulnerabilities, concentrating_on, death_save_successes, death_save_failures, exhaustion")
+        .select(`id, ${SNAPSHOT_COLUMNS.join(", ")}`)
         .in("id", charIds);
       const charMap = new Map(
-        (condRows ?? []).map((c) => [c.id as string, c as Record<string, unknown>]),
+        ((condRows ?? []) as unknown as ({ id: string } & CombatSnapshot)[]).map(({ id, ...snap }) => [id, snap]),
       );
 
       await supabase.from("encounter_participants").insert(
-        party.map((p, idx) => {
-          const s = scoreMap.get(p.characterId);
-          const finalScores = s
-            ? finalAbilityScores(s, s.background_bonus_primary, s.background_bonus_secondary)
-            : null;
-          return {
-            encounter_id: encounterId,
-            character_id: p.characterId,
-            name: p.name,
-            portrait_url: p.portraitUrl,
-            hp_current: p.hp,
-            hp_max: p.hp,
-            hp_temp: 0,
-            ac: p.ac,
-            initiative_score: 0,
-            initiative_order: 100 + idx,
-            is_player: true,
-            owner_id: p.ownerId,
-            conditions: (charMap.get(p.characterId)?.conditions as string[]) ?? [],
-            damage_resistances: (charMap.get(p.characterId)?.damage_resistances as string[]) ?? [],
-            damage_immunities: (charMap.get(p.characterId)?.damage_immunities as string[]) ?? [],
-            damage_vulnerabilities: (charMap.get(p.characterId)?.damage_vulnerabilities as string[]) ?? [],
-            concentrating_on: (charMap.get(p.characterId)?.concentrating_on as string | null) ?? null,
-            death_save_successes: (charMap.get(p.characterId)?.death_save_successes as number) ?? 0,
-            death_save_failures: (charMap.get(p.characterId)?.death_save_failures as number) ?? 0,
-            exhaustion: (charMap.get(p.characterId)?.exhaustion as number) ?? 0,
-            str_score: finalScores?.strength ?? null,
-            dex_score: finalScores?.dexterity ?? null,
-            con_score: finalScores?.constitution ?? null,
-            int_score: finalScores?.intelligence ?? null,
-            wis_score: finalScores?.wisdom ?? null,
-            cha_score: finalScores?.charisma ?? null,
-          };
-        })
+        party.map((p, idx) => ({
+          encounter_id: encounterId,
+          character_id: p.characterId,
+          name: p.name,
+          portrait_url: p.portraitUrl,
+          hp_current: p.hp,
+          hp_max: p.hpMax,
+          hp_temp: p.hpTemp,
+          ac: p.ac,
+          initiative_score: 0,
+          initiative_order: 100 + idx,
+          is_player: true,
+          owner_id: p.ownerId,
+          ...(charMap.get(p.characterId) ?? NO_SNAPSHOT),
+          ...scoreColumns(scoreMap.get(p.characterId)),
+        })),
       );
     }
+
+    // A starting HP the DM changed goes onto the sheet too; otherwise the sync
+    // trigger would copy the old value back over it on the next HP change.
+    await Promise.all(
+      party
+        .filter((p) => p.hp !== p.sheetHp)
+        .map((p) => supabase.from("characters").update({ hp_current: p.hp }).eq("id", p.characterId)),
+    );
 
     await supabase
       .from("encounters")

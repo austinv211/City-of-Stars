@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/c
 import { Badge } from "@/core/components/ui/badge";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
-import { Checkbox } from "@/core/components/ui/checkbox";
 import { Separator } from "@/core/components/ui/separator";
 import { ResponsiveTable } from "@/core/components/ui/responsive-table";
 import {
@@ -23,6 +22,7 @@ import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { supabase } from "@/lib/supabase";
 import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
+import { StartEncounterDialog } from "@/features/dm/components/StartEncounterDialog";
 import { MonsterPicker } from "@/features/encounter/components/MonsterPicker";
 import type { CustomMonster } from "@/features/encounter/components/MonsterPicker";
 import type { NpcDraft, PartyEntry } from "@/features/dm/hooks/useEncounterManager";
@@ -75,14 +75,6 @@ export default function DmEncountersPage() {
 
   // Start / run dialog
   const [startTarget, setStartTarget] = useState<Encounter | null>(null);
-  // The start dialog records only what the DM changed -- who they left out,
-  // and HP/AC they overrode -- not a snapshot of the party taken on open. A
-  // snapshot taken before the campaign's characters had loaded was empty, and
-  // the encounter then ran with no party at all.
-  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
-  const [partyHp, setPartyHp] = useState<Record<string, number>>({});
-  const [partyAc, setPartyAc] = useState<Record<string, number>>({});
-  const [starting, setStarting] = useState(false);
 
   // History side panel
   const [historyEncounter, setHistoryEncounter] = useState<Encounter | null>(null);
@@ -185,42 +177,13 @@ export default function DmEncountersPage() {
 
   // ── Start / run helpers ─────────────────────────────────────────────────────
 
-  function openStart(encounter: Encounter) {
-    setExcludedIds(new Set());
-    setPartyHp({});
-    setPartyAc({});
-    setStartTarget(encounter);
-  }
-
-  type PartyMember = (typeof activeCharacters)[number];
-  const isInParty = (c: PartyMember) => !excludedIds.has(c.id);
-  const startHp = (c: PartyMember) => partyHp[c.id] ?? c.hp_current;
-  const startAc = (c: PartyMember) => partyAc[c.id] ?? c.ac;
-
-  async function handleStart() {
-    if (!startTarget) return;
-    setStarting(true);
-    const party: PartyEntry[] = activeCharacters
-      .filter(isInParty)
-      .map((c) => ({
-        characterId: c.id,
-        name: c.name,
-        ownerId: c.owner_id,
-        portraitUrl: c.portrait_url,
-        hp: startHp(c),
-        ac: startAc(c),
-      }));
-
-    let runId: string | null = startTarget.id;
-    if (startTarget.is_template) {
-      runId = await runTemplate(startTarget, party);
-    } else {
-      await startEncounter(startTarget.id, party);
-    }
+  async function handleStart(encounter: Encounter, party: PartyEntry[]) {
+    const runId = encounter.is_template
+      ? await runTemplate(encounter, party)
+      : (await startEncounter(encounter.id, party), encounter.id);
     if (runId) {
       await supabase.rpc("advance_encounter_turn", { p_encounter_id: runId });
     }
-    setStarting(false);
     setStartTarget(null);
     navigate("/dm/encounters/active");
   }
@@ -389,7 +352,7 @@ export default function DmEncountersPage() {
                           <Button
                             size="sm"
                             onClick={() => {
-                              openStart(tpl);
+                              setStartTarget(tpl);
                             }}
                           >
                             <Play className="mr-1.5 h-3 w-3" />
@@ -494,7 +457,7 @@ export default function DmEncountersPage() {
                             <Button
                               size="sm"
                               onClick={() => {
-                                openStart(enc);
+                                setStartTarget(enc);
                               }}
                             >
                               <Play className="mr-1.5 h-3 w-3" />
@@ -725,81 +688,15 @@ export default function DmEncountersPage() {
       </Dialog>
 
       {/* ── Start / Run Dialog ─────────────────────────────────────────────── */}
-      <Dialog open={!!startTarget} onOpenChange={(open) => !open && setStartTarget(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {startTarget?.is_template ? "Run" : "Start"}: {startTarget?.name}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Select party members and set their starting HP and AC.
-            </p>
-
-            {activeCharacters.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No active characters in this campaign.</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="grid grid-cols-[auto_1fr_70px_70px] gap-2 items-center px-1">
-                  <span />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Character</span>
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">HP</span>
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">AC</span>
-                </div>
-                {activeCharacters.map((c) => (
-                  <div key={c.id} className="grid grid-cols-[auto_1fr_70px_70px] gap-2 items-center">
-                    <Checkbox
-                      aria-label={`Include ${c.name}`}
-                      checked={isInParty(c)}
-                      onCheckedChange={() => {
-                        setExcludedIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(c.id)) next.delete(c.id);
-                          else next.add(c.id);
-                          return next;
-                        });
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{c.class} {c.level}</p>
-                    </div>
-                    <Input
-                      type="number"
-                      min={1}
-                      aria-label={`${c.name} starting HP`}
-                      value={startHp(c)}
-                      onChange={(e) => setPartyHp((prev) => ({ ...prev, [c.id]: parseInt(e.target.value) || 1 }))}
-                      disabled={!isInParty(c)}
-                      className="text-center"
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      aria-label={`${c.name} AC`}
-                      value={startAc(c)}
-                      onChange={(e) => setPartyAc((prev) => ({ ...prev, [c.id]: parseInt(e.target.value) || 1 }))}
-                      disabled={!isInParty(c)}
-                      className="text-center"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStartTarget(null)}>Cancel</Button>
-            <Button onClick={handleStart} disabled={starting}>
-              {starting
-                ? (startTarget?.is_template ? "Running…" : "Starting…")
-                : (startTarget?.is_template ? "Run Encounter" : "Start Encounter")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <StartEncounterDialog
+        key={startTarget?.id ?? "closed"}
+        encounter={startTarget}
+        characters={activeCharacters}
+        onClose={() => {
+          setStartTarget(null);
+        }}
+        onStart={(party) => (startTarget ? handleStart(startTarget, party) : Promise.resolve())}
+      />
     </div>
   );
 }
