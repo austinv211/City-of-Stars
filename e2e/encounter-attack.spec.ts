@@ -23,8 +23,9 @@ test("a goblin's attack is judged against its target's AC and applied", async ({
   const goblin = (await participants(campaign.id)).find((p) => p.name === "Goblin");
   if (!goblin) throw new Error("no goblin in the run");
 
-  await dm.target(target.id, isolde);
+  // Targets belong to the acting combatant: open the goblin, then aim it.
   await dm.select(goblin.id, "Goblin");
+  await dm.target(target.id, isolde);
   const scimitar = dm.monsterAction("Scimitar");
 
   await test.step("a natural 1 misses whatever the total", async () => {

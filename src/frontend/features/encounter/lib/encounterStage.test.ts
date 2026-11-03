@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { deriveStage, type StageInput } from "./encounterStage";
+import {
+  deriveStage,
+  peekReleaseKey,
+  resolvePanelId,
+  type StageInput,
+} from "./encounterStage";
 import type { EncounterEffect, EncounterParticipant } from "../types/encounter.types";
 
 function combatant(
@@ -186,5 +191,40 @@ describe("deriveStage: effects and round", () => {
 
   it("passes the round through", () => {
     expect(stage().round).toBe(2);
+  });
+});
+
+describe("resolvePanelId", () => {
+  const base = { ownId: "me", activeId: "goblin", peekId: null };
+
+  it("follows the turn for the DM and shows a player their own combatant", () => {
+    expect(resolvePanelId({ ...base, isDM: true })).toBe("goblin");
+    expect(resolvePanelId({ ...base, isDM: false })).toBe("me");
+  });
+
+  it("shows a peeked card for either role", () => {
+    expect(resolvePanelId({ ...base, isDM: true, peekId: "fighter" })).toBe("fighter");
+    expect(resolvePanelId({ ...base, isDM: false, peekId: "fighter" })).toBe("fighter");
+  });
+});
+
+describe("peekReleaseKey", () => {
+  it("ends a DM's peek when the turn moves on", () => {
+    expect(peekReleaseKey(true, "dm-running", "goblin")).not.toBe(
+      peekReleaseKey(true, "dm-running", "fighter"),
+    );
+  });
+
+  it("keeps a player's peek while watching, whoever is acting", () => {
+    expect(peekReleaseKey(false, "watching", "goblin")).toBe(
+      peekReleaseKey(false, "watching", "fighter"),
+    );
+  });
+
+  it("ends a player's peek when they go on deck, take their turn, and finish it", () => {
+    const keys = (["watching", "on-deck", "my-turn", "watching"] as const).map((p) =>
+      peekReleaseKey(false, p, null),
+    );
+    for (let i = 1; i < keys.length; i++) expect(keys[i]).not.toBe(keys[i - 1]);
   });
 });

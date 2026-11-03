@@ -112,7 +112,7 @@ export default function EncounterPage({
         onOpenChange={setTargetPickerOpen}
         participants={screen.participants}
         isDM={screen.isDM}
-        ownId={own?.id ?? null}
+        actor={screen.actor}
         currentId={screen.targetId}
         onPick={screen.setTargetId}
       />

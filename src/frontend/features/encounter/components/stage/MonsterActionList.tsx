@@ -62,7 +62,7 @@ function MonsterActionCard({
 }) {
   const { rolls, stats, locked } = view;
   const { attackOpts, exhaustPenalty } = stats;
-  const outcome = useAttackOutcome();
+  const outcome = useAttackOutcome(view.target);
   const dice = action.damage_dice ? parseDamageDice(action.damage_dice) : null;
   const attackBonus = action.attack_bonus;
   const damage = (count: number, label: string, crit: boolean) => () => {
@@ -147,7 +147,6 @@ function MonsterActionCard({
       )}
       <AttackOutcome
         outcome={outcome}
-        target={view.target}
         damageType={action.damage_type ?? ""}
         onApplyDamage={view.onApplyDamage}
       />

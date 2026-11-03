@@ -106,7 +106,7 @@ export function EncounterPhone(props: LayoutProps) {
   const { screen } = props;
   const [tab, setTab] = useState<PhoneTab>("turn");
   const showOnTurn = (id: string) => {
-    screen.setSelectedId(id);
+    screen.selectParticipant(id);
     setTab("turn");
   };
 

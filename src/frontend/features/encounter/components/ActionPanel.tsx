@@ -7,7 +7,6 @@ import type {
   CharacterAttack,
 } from "@/features/characters/types/character.types";
 import type { EncounterParticipant } from "../types/encounter.types";
-import type { DamageResult } from "../hooks/useEncounterParticipants";
 import type { TargetInfo } from "../lib/attack";
 import { DicePoolBuilder } from "./DicePoolBuilder";
 import { AttackCardList } from "./stage/AttackCardList";
@@ -19,7 +18,7 @@ import { MonsterActionList, MonsterTraits } from "./stage/MonsterActionList";
 import { NpcProfile } from "./stage/NpcProfile";
 import { UnarmedStrike } from "./stage/UnarmedStrike";
 import { combatantStats } from "./stage/combatantStats";
-import type { CombatantView } from "./stage/combatantView";
+import type { ApplyDamage, CombatantView } from "./stage/combatantView";
 import { useCombatRolls, type TurnFlag } from "./stage/useCombatRolls";
 
 interface Props {
@@ -36,11 +35,7 @@ interface Props {
   onSetTurnFlag: (flag: TurnFlag, value: boolean) => void;
   target: TargetInfo | null;
   /** DM only; see CombatantView.onApplyDamage. */
-  onApplyDamage?: (
-    amount: number,
-    type: string | null,
-    crit: boolean,
-  ) => Promise<DamageResult>;
+  onApplyDamage?: ApplyDamage;
   /**
    * On a player's own turn: lead with the economy and attacks, and fold the
    * dice pool, saves and checks behind "More".

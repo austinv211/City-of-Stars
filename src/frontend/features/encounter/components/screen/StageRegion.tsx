@@ -1,4 +1,4 @@
-import { ChevronLeft, Crosshair } from "lucide-react";
+import { Crosshair } from "lucide-react";
 import { Button } from "@/core/components/ui/button";
 import { ActionPanel } from "../ActionPanel";
 import { SpectatorRollPanel } from "../SpectatorRollPanel";
@@ -8,6 +8,7 @@ import { LegendaryActionBar } from "../stage/LegendaryActionBar";
 import { useDice } from "../../context/DiceContext";
 import type { EncounterScreen } from "../../hooks/useEncounterScreen";
 import { OwnStage } from "./OwnStage";
+import { ViewingChip } from "./ViewingChip";
 
 /**
  * The centre of the screen: effects, the current target, and the action
@@ -26,6 +27,7 @@ export function StageRegion({
 
   return (
     <>
+      <ViewingChip screen={screen} />
       {(isDM || ownParticipant) && (
         <div className="mb-3 border-b border-border/40 pb-3">
           <EffectsTray
@@ -48,6 +50,7 @@ export function StageRegion({
           {target ? (
             <TargetBar
               target={target}
+              actorName={isDM ? screen.actor?.name : undefined}
               onChange={onChooseTarget}
               onClear={() => {
                 screen.setTargetId(null);
@@ -77,7 +80,7 @@ function PanelArea({ screen }: { screen: EncounterScreen }) {
 
   // Spectators default to a personal roll panel. Selecting someone shows
   // that combatant's panel read-only, with a way back.
-  if (isSpectator && !screen.selectedId) {
+  if (isSpectator && !screen.peekId) {
     return (
       <SpectatorRollPanel
         campaignId={campaign.id}
@@ -114,9 +117,9 @@ function PanelArea({ screen }: { screen: EncounterScreen }) {
       onSetTurnFlag={(flag, v) => void combat.setTurnFlag(id, flag, v)}
       target={target}
       onApplyDamage={
-        isDM && target
-          ? (amount, type, crit) =>
-              combat.applyDamage(target.participant.id, amount, type, { crit })
+        isDM
+          ? (targetId, amount, type, crit) =>
+              combat.applyDamage(targetId, amount, type, { crit })
           : undefined
       }
       secondaryCollapsed={secondaryCollapsed}
@@ -129,24 +132,7 @@ function PanelArea({ screen }: { screen: EncounterScreen }) {
     return <OwnStage screen={screen} own={own} panel={panel} />;
   }
 
-  return (
-    <>
-      {isSpectator && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-1 mb-3"
-          onClick={() => {
-            screen.setSelectedId(null);
-          }}
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Back to my rolls
-        </Button>
-      )}
-      {panel({ secondaryCollapsed: false })}
-    </>
-  );
+  return panel({ secondaryCollapsed: false });
 }
 
 /** Legendary spends, announced to the table like any other action. */

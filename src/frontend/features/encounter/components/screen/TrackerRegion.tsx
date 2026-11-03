@@ -7,7 +7,7 @@ export function TrackerRegion({
   onSelect,
 }: {
   screen: EncounterScreen;
-  /** Defaults to selecting the combatant's panel. */
+  /** Defaults to showing the combatant's panel. */
   onSelect?: (id: string) => void;
 }) {
   const { combat } = screen;
@@ -23,8 +23,8 @@ export function TrackerRegion({
       onRollDeathSave={screen.rollDeathSave}
       onSetConcentration={combat.setConcentration}
       onSetCover={combat.setCover}
-      onSelect={onSelect ?? screen.setSelectedId}
-      selectedId={screen.selectedId}
+      onSelect={onSelect ?? screen.selectParticipant}
+      selectedId={screen.panelParticipant?.id ?? null}
       targetId={screen.targetId}
       onTarget={screen.canTarget ? screen.toggleTarget : undefined}
     />

@@ -16,12 +16,15 @@ export interface CombatantView {
   /** Who this combatant's attacks are aimed at, as far as the viewer may know. */
   target: TargetInfo | null;
   /**
-   * Apply rolled damage to the target. DM only: a player cannot write to a
+   * Apply rolled damage to a combatant. DM only: a player cannot write to a
    * monster's row, so for them attack cards report and the DM applies.
    */
-  onApplyDamage?: (
-    amount: number,
-    type: string | null,
-    crit: boolean,
-  ) => Promise<DamageResult>;
+  onApplyDamage?: ApplyDamage;
 }
+
+export type ApplyDamage = (
+  targetId: string,
+  amount: number,
+  type: string | null,
+  crit: boolean,
+) => Promise<DamageResult>;

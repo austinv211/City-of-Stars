@@ -11,7 +11,7 @@ export function UnarmedStrike({ view }: { view: CombatantView }) {
   const strength = stats.mods.strength;
   const toHit = strength + stats.profBonus + stats.exhaustPenalty;
   const noAction = locked || participant.action_used;
-  const outcome = useAttackOutcome();
+  const outcome = useAttackOutcome(view.target);
 
   return (
     <>
@@ -25,7 +25,7 @@ export function UnarmedStrike({ view }: { view: CombatantView }) {
           damageType="bludgeoning"
           description="Deal 1 + STR modifier bludgeoning, or instead Grapple or Shove (the target makes a save vs your DC)."
           attackMod={toHit}
-          damageLabel={`${1 + strength}`}
+          damageLabel={String(1 + strength)}
           disabled={locked}
           adjust={stats.condEffects.attackAdjust}
           onAttack={() => {
@@ -40,7 +40,6 @@ export function UnarmedStrike({ view }: { view: CombatantView }) {
           outcome={
             <AttackOutcome
               outcome={outcome}
-              target={view.target}
               damageType="bludgeoning"
               onApplyDamage={view.onApplyDamage}
             />

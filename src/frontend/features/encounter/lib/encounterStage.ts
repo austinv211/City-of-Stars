@@ -114,6 +114,33 @@ function derivePhase(
   return "watching";
 }
 
+/**
+ * Whose panel shows. The DM follows the turn and players see their own
+ * combatant, unless they are peeking at someone else's card.
+ */
+export function resolvePanelId(input: {
+  isDM: boolean;
+  ownId: string | null;
+  activeId: string | null;
+  peekId: string | null;
+}): string | null {
+  return input.peekId ?? (input.isDM ? input.activeId : input.ownId);
+}
+
+/**
+ * A peek lasts while this key holds. The DM's ends when the turn moves on; a
+ * player's ends when their turn comes up (on deck, then acting) and again
+ * when it passes, so their own stage is back when it matters.
+ */
+export function peekReleaseKey(
+  isDM: boolean,
+  phase: StagePhase | undefined,
+  activeId: string | null,
+): string {
+  if (isDM) return `turn:${activeId ?? ""}`;
+  return phase === "my-turn" || phase === "on-deck" ? `focus:${phase}` : "free";
+}
+
 export function deriveStage(input: StageInput): StageState {
   const ordered = [...input.participants].sort(byInitiative);
   const activeId = input.encounter.current_participant_id;
