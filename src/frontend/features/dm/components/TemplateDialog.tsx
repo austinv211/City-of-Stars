@@ -178,7 +178,7 @@ function MonsterList({
                 }}
                 onDuplicate={() => {
                   // A copy of the stat block, without the copy's identity.
-                  const { nickname: _n, portrait_url: _p, ...stats } = npc;
+                  const { nickname: _n, portrait_url: _p, art_url: _a, ...stats } = npc;
                   setNpcs((prev) => [...prev.slice(0, idx + 1), stats, ...prev.slice(idx + 1)]);
                 }}
                 onRemove={() => {
@@ -194,6 +194,7 @@ const toAppearance = (npc: NpcDraft): MonsterAppearance => ({
   nickname: npc.nickname ?? null,
   description: npc.description ?? null,
   portrait_url: npc.portrait_url ?? null,
+  art_url: npc.art_url ?? null,
 });
 
 /** A draft's absent field is the appearance form's null. */

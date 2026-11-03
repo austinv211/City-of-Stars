@@ -13,6 +13,7 @@ export function combatant(
     name: id,
     nickname: null,
     portrait_url: null,
+    art_url: null,
     initiative_order: order,
     initiative_score: 10,
     hp_current: 10,

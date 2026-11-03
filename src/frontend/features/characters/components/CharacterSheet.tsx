@@ -23,6 +23,7 @@ import { FeaturesPanel } from "./FeaturesPanel";
 import { VoidPanel } from "./VoidPanel";
 import { LevelUpWizard } from "./LevelUpWizard";
 import { PortraitUpload } from "./PortraitUpload";
+import { ArtUpload } from "./ArtUpload";
 import { Avatar, AvatarImage, AvatarFallback } from "@/core/components/ui/avatar";
 import { LevelBadge } from "./LevelBadge";
 import { finalAbilityScores, deriveStats, abilityModifier, passiveScore } from "../types/character.types";
@@ -137,6 +138,7 @@ export function CharacterSheet({
   }
 
   const [portraitUrl, setPortraitUrl] = useState(character.portrait_url);
+  const [artUrl, setArtUrl] = useState(character.art_url);
   const [currency, setCurrency] = useState(character.currency_dollars);
   const [editingCurrency, setEditingCurrency] = useState(false);
   const [currencyDraft, setCurrencyDraft] = useState(String(character.currency_dollars));
@@ -243,6 +245,13 @@ export function CharacterSheet({
 
   return (
     <div className="space-y-6">
+      <ArtUpload
+        characterId={character.id}
+        artUrl={artUrl}
+        name={character.name}
+        canEdit={canEdit}
+        onUpdated={setArtUrl}
+      />
       {/* ── Header ── */}
       <div className="flex items-start gap-6">
         <div className="relative pb-10">

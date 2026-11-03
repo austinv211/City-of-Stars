@@ -33,7 +33,10 @@ export interface Encounter {
 }
 
 /** What players see of a monster, set by the DM. */
-export type MonsterAppearance = Pick<EncounterParticipant, "nickname" | "description" | "portrait_url">;
+export type MonsterAppearance = Pick<
+  EncounterParticipant,
+  "nickname" | "description" | "portrait_url" | "art_url"
+>;
 
 export interface EncounterParticipant {
   id: string;
@@ -44,6 +47,8 @@ export interface EncounterParticipant {
   /** What the table calls it, e.g. "Grizzle"; shown to players instead of name. */
   nickname: string | null;
   portrait_url: string | null;
+  /** Full art: shown big on the encounter screen, over the portrait. */
+  art_url: string | null;
   initiative_order: number;
   initiative_score: number;
   hp_current: number;

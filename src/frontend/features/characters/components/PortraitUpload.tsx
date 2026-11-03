@@ -15,7 +15,7 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 
 export function PortraitUpload({ characterId, portraitUrl, name, onUpdated }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { updatePortrait } = useCharacterMutation();
+  const { updateImage } = useCharacterMutation();
   const [uploading, setUploading] = useState(false);
 
   const initials = name
@@ -30,7 +30,7 @@ export function PortraitUpload({ characterId, portraitUrl, name, onUpdated }: Pr
     if (!file || !ACCEPTED.includes(file.type)) return;
     setUploading(true);
     try {
-      const url = await updatePortrait(characterId, file);
+      const url = await updateImage(characterId, "portrait", file);
       onUpdated(url);
     } finally {
       setUploading(false);
@@ -58,7 +58,7 @@ export function PortraitUpload({ characterId, portraitUrl, name, onUpdated }: Pr
         type="file"
         accept={ACCEPTED.join(",")}
         className="hidden"
-        onChange={handleChange}
+        onChange={(e) => void handleChange(e)}
       />
       {uploading && (
         <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/60">

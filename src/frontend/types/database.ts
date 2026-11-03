@@ -615,6 +615,7 @@ export type Database = {
           ac: number | null
           alignment: string | null
           armor_proficiencies: string[]
+          art_url: string | null
           background: string
           backstory: string | null
           blindsight: number | null
@@ -675,6 +676,7 @@ export type Database = {
           ac?: number | null
           alignment?: string | null
           armor_proficiencies?: string[]
+          art_url?: string | null
           background: string
           backstory?: string | null
           blindsight?: number | null
@@ -735,6 +737,7 @@ export type Database = {
           ac?: number | null
           alignment?: string | null
           armor_proficiencies?: string[]
+          art_url?: string | null
           background?: string
           backstory?: string | null
           blindsight?: number | null
@@ -1094,6 +1097,7 @@ export type Database = {
           ac: number
           action_used: boolean
           actions: Json | null
+          art_url: string | null
           bonus_used: boolean
           cha_score: number | null
           character_id: string | null
@@ -1137,6 +1141,7 @@ export type Database = {
           ac?: number
           action_used?: boolean
           actions?: Json | null
+          art_url?: string | null
           bonus_used?: boolean
           cha_score?: number | null
           character_id?: string | null
@@ -1180,6 +1185,7 @@ export type Database = {
           ac?: number
           action_used?: boolean
           actions?: Json | null
+          art_url?: string | null
           bonus_used?: boolean
           cha_score?: number | null
           character_id?: string | null
