@@ -8,6 +8,10 @@ import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { AnimatedStar } from "@/core/components/TitleBar";
 
+/** Where email confirmation links land; must be in Supabase's redirect allow-list. */
+const AUTH_LANDING_URL =
+  import.meta.env.VITE_AUTH_LANDING_URL ?? "https://austinv211.github.io/City-of-Stars/";
+
 type Mode = "signin" | "signup";
 
 export default function LoginPage() {
@@ -63,7 +67,13 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        // The app has no web origin to return to, so the confirmation link
+        // lands on a small static page that says what to do next.
+        options: { emailRedirectTo: AUTH_LANDING_URL },
+      });
       if (error) {
         setError(error.message);
       } else {

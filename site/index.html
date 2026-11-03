@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>City of Stars</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root {
+        --bg: #faf9f7;
+        --fg: #1c1b1f;
+        --muted: #5f5c66;
+        --accent: #6366f1;
+        --ok: #15803d;
+        --err: #b91c1c;
+        --border: #e4e2e8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #121117;
+          --fg: #ecebf0;
+          --muted: #a19fab;
+          --accent: #8b8ef5;
+          --ok: #4ade80;
+          --err: #f87171;
+          --border: #2a2832;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main {
+        width: 100%;
+        max-width: 28rem;
+        border: 1px solid var(--border);
+        padding: 2rem 1.5rem;
+        text-align: center;
+      }
+      .star { font-size: 2rem; color: var(--accent); }
+      h1 { margin: 0.5rem 0; font-size: 1.4rem; }
+      p { margin: 0.5rem 0; color: var(--muted); }
+      .ok { color: var(--ok); }
+      .err { color: var(--err); }
+      a.button {
+        display: inline-block;
+        margin-top: 1.25rem;
+        padding: 0.6rem 1.1rem;
+        background: var(--accent);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      [hidden] { display: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="star" aria-hidden="true">✦</div>
+
+      <section id="confirmed" hidden>
+        <h1 class="ok">Your email is confirmed</h1>
+        <p>You're all set. Go back to City of Stars and sign in with your email and password.</p>
+      </section>
+
+      <section id="failed" hidden>
+        <h1 class="err">That link didn't work</h1>
+        <p id="failed-reason">The confirmation link may have expired or already been used.</p>
+        <p>Sign in to the app; if your email still isn't confirmed, sign up again to get a fresh link.</p>
+      </section>
+
+      <section id="default">
+        <h1>City of Stars</h1>
+        <p>The companion app for our campaign.</p>
+      </section>
+
+      <a class="button" href="https://github.com/austinv211/City-of-Stars/releases/latest">
+        Don't have the app? Download it
+      </a>
+    </main>
+
+    <script>
+      // Supabase verifies the link before redirecting here, and reports the
+      // outcome in the URL: tokens on success, error_description on failure.
+      // The tokens are not used (the app signs in on its own) and are cleared
+      // from the address bar.
+      const params = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+      const show = (id) => {
+        document.getElementById("default").hidden = true;
+        document.getElementById(id).hidden = false;
+      };
+      if (params.get("error") || params.get("error_description")) {
+        show("failed");
+        const reason = params.get("error_description");
+        if (reason) document.getElementById("failed-reason").textContent = reason.replace(/\+/g, " ");
+      } else if (params.get("access_token") || params.get("type") === "signup" || params.get("code")) {
+        show("confirmed");
+      }
+      if (location.hash || location.search) history.replaceState(null, "", location.pathname);
+    </script>
+  </body>
+</html>
