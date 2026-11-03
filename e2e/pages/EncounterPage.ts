@@ -174,6 +174,14 @@ export class EncounterPage {
     await expect(
       card.getByRole("button", { name: `Stop targeting ${name}` }),
     ).toBeVisible();
+    // A phone aimed from the Party tab; the attack cards are on Turn.
+    await this.showTab("Turn");
+  }
+
+  /** The combatant whose turn the bar shows, e.g. "Grizzle". */
+  async activeName(): Promise<string> {
+    const m = /^R\d+(.+?)'s turn/.exec((await this.turnBar.textContent()) ?? "");
+    return m?.[1] ?? "";
   }
 
   /** One of the staged monster's actions: its To Hit, damage, and outcome. */
@@ -223,9 +231,15 @@ export class EncounterPage {
     return this.page.getByRole("list", { name: "Combat log" });
   }
 
-  /** Close the tablet's side sheet, if the log opened it. */
+  /**
+   * Close the tablet's side sheet, if the log opened it, with its own close
+   * button: Escape goes to whichever layer has focus.
+   */
   async closeLog() {
-    if (this.isTablet) await this.page.keyboard.press("Escape");
+    if (!this.isTablet) return;
+    const sheet = this.page.getByRole("dialog", { name: "Rolls and character" });
+    if (await sheet.isVisible()) await sheet.getByRole("button", { name: "Close" }).click();
+    await expect(sheet).toBeHidden();
   }
 
   // ── DM-only controls ────────────────────────────────────────────────────

@@ -157,7 +157,7 @@ test("each role sees and controls only what it should", async ({ openAs, campaig
     await expect(playerLog).not.toContainText("(14+4)");
 
     await playerLog.getByRole("button", { name: "Scimitar" }).first().click();
-    const card = p1Page.getByRole("dialog").filter({ hasText: "Scimitar" });
+    const card = p1Page.getByRole("dialog", { name: "About Scimitar" });
     await expect(card).toContainText("Hit: slashing");
     await expect(card).not.toContainText("+4 to hit");
     await expect(card).toContainText("A one-eared goblin with a grudge.");
@@ -181,7 +181,14 @@ test("each role sees and controls only what it should", async ({ openAs, campaig
     // Off-turn first, so the peek starts while watching.
     if ((await dm.turnBar.textContent())?.includes(`${isolde}'s turn`)) {
       await dm.nextTurnButton.click();
+      await expect(dm.turnBar).not.toContainText(`${isolde}'s turn`);
     }
+    // Wait for the turn to reach the player too: a turn change landing after
+    // the peek would (rightly) end it.
+    // The DM's label adds the stat block, "Grizzle (Goblin)"; players see "Grizzle".
+    const acting = (await dm.activeName()).replace(/ \(.+\)$/, "");
+    if (acting === isolde) throw new Error("expected someone else's turn");
+    await p1.expectTurnOf(acting);
     await p1.select(corinRow.id, corin);
     await expect(p1.viewingChip).toContainText(corin);
     await dm.advanceTo(isolde);
@@ -215,7 +222,9 @@ test("starting HP can't exceed a character's max", async ({ openAs, campaign }) 
   await list.goto();
 
   const dialog = await list.openRunDialog("Goblin Ambush");
-  const hp = dialog.getByLabel(`${campaign.characters.player1.name} starting HP`);
+  const hp = dialog.getByRole("spinbutton", {
+    name: `${campaign.characters.player1.name} starting HP`,
+  });
   await hp.fill("99");
   await expect(hp).toHaveValue("28");
   await dialog.getByRole("button", { name: "Run Encounter" }).click();

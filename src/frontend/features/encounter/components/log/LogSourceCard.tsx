@@ -49,6 +49,7 @@ export function LogSourceCard({
         {children}
       </PopoverTrigger>
       <PopoverContent
+        aria-label={`About ${source.name}`}
         className="w-72 space-y-2 p-3 text-xs"
         side="left"
         align="start"
