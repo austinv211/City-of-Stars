@@ -50,6 +50,8 @@ export default tseslint.config(
       "src/frontend/types/database.ts",
       "node_modules/**",
       "src/tauri/**",
+      // Rust build output (the workspace target dir), incl. embedded assets.
+      "target/**",
       "supabase/**",
       "public/assets/**",
       "coverage/**",
