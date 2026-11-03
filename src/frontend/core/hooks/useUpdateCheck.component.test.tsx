@@ -19,7 +19,12 @@ vi.mock("@/core/hooks/usePlatform", () => ({
 }));
 
 interface ToastOptions {
-  action: { onClick: () => void };
+  action: { onClick: (event: { preventDefault: () => void }) => void };
+}
+
+/** A stand-in for the click sonner passes to an action. */
+function clickEvent() {
+  return { preventDefault: vi.fn() };
 }
 
 /** The options passed to the most recent plain `toast(...)` call. */
@@ -60,8 +65,11 @@ describe("useUpdateCheck", () => {
     await waitFor(() => {
       expect(toast).toHaveBeenCalledWith("Version 9.0.0 is available", expect.anything());
     });
-    lastToastOptions().action.onClick();
+    const event = clickEvent();
+    lastToastOptions().action.onClick(event);
     expect(installUpdate).toHaveBeenCalledWith(update, expect.any(Function));
+    // Otherwise sonner deletes the toast and the download progress with it.
+    expect(event.preventDefault).toHaveBeenCalled();
   });
 
   it("links to the download when the install can't update itself", async () => {
@@ -72,7 +80,7 @@ describe("useUpdateCheck", () => {
     await waitFor(() => {
       expect(toast).toHaveBeenCalled();
     });
-    lastToastOptions().action.onClick();
+    lastToastOptions().action.onClick(clickEvent());
     expect(openDownload).toHaveBeenCalledWith("https://dl/apk");
   });
 

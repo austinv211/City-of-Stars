@@ -55,7 +55,10 @@ export function notifyUpdate(result: UpdateCheck, { force = false } = {}): boole
     duration: Infinity,
     action: {
       label: "Update now",
-      onClick: () => {
+      onClick: (event) => {
+        // Sonner deletes the toast after an action unless prevented, which
+        // would take the progress toast that reuses this id down with it.
+        event.preventDefault();
         toast.loading(`Downloading ${version}…`, { id: TOAST_ID, duration: Infinity });
         installUpdate(update, (percent) => {
           const progress = percent === null ? "" : ` ${String(percent)}%`;

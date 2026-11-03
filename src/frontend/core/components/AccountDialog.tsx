@@ -74,7 +74,11 @@ export function AccountDialog({ open, onOpenChange }: Props) {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DevicePrefs />
-          <AppVersion />
+          <AppVersion
+            onUpdateShown={() => {
+              onOpenChange(false);
+            }}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -87,8 +91,12 @@ export function AccountDialog({ open, onOpenChange }: Props) {
   );
 }
 
-/** The installed version and a manual update check. Hidden in the browser, which has no version. */
-function AppVersion() {
+/**
+ * The installed version and a manual update check. Hidden in the browser,
+ * which has no version. `onUpdateShown` closes the dialog: the update toast
+ * sits outside it, where the modal blocks clicks.
+ */
+function AppVersion({ onUpdateShown }: { onUpdateShown: () => void }) {
   const { platform, isTauri } = usePlatform();
   const [version, setVersion] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "checking" | "current" | "failed">("idle");
@@ -107,7 +115,12 @@ function AppVersion() {
     try {
       const result = await checkForUpdate(platform);
       // Forced: someone who asked should see the notice even if they dismissed it earlier.
-      setStatus(notifyUpdate(result, { force: true }) ? "idle" : "current");
+      if (notifyUpdate(result, { force: true })) {
+        setStatus("idle");
+        onUpdateShown();
+      } else {
+        setStatus("current");
+      }
     } catch (err) {
       console.warn("[updater] manual check failed", err);
       setStatus("failed");
