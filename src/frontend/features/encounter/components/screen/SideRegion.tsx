@@ -23,7 +23,7 @@ export function SideRegion({ screen }: { screen: EncounterScreen }) {
   if (!showCharacter && !isDM) {
     return (
       <div className="h-full min-h-0 overflow-y-auto p-3 pt-2">
-        <RollLog entries={screen.history} />
+        <RollLog entries={screen.history} participants={screen.participants} viewerIsDM={isDM} />
       </div>
     );
   }
@@ -49,7 +49,7 @@ export function SideRegion({ screen }: { screen: EncounterScreen }) {
         )}
       </TabsList>
       <TabsContent value="rolls" className={content}>
-        <RollLog entries={screen.history} />
+        <RollLog entries={screen.history} participants={screen.participants} viewerIsDM={isDM} />
       </TabsContent>
       {isDM && (
         <TabsContent value="history" className={content}>

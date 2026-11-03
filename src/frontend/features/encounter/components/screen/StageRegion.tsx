@@ -153,9 +153,15 @@ function DmLegendary({ screen }: { screen: EncounterScreen }) {
         announceAction({
           campaignId,
           encounterId: encounter.id,
-          characterName: creature.name,
+          characterName: creature.nickname ?? creature.name,
+          rolledByDm: true,
           actionText: `Legendary action: ${action.name}`,
           actionCategory: "free",
+          context: {
+            kind: "action",
+            actorId: creature.id,
+            source: { type: "legendary", name: action.name },
+          },
         });
       }}
     />

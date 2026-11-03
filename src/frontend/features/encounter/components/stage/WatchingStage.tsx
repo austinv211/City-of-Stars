@@ -93,7 +93,7 @@ export function WatchingStage({
                 key={r.id}
                 size="sm"
                 onClick={() => {
-                  rolls.spendAction(r.label, "reaction", r.id);
+                  rolls.spendAction(r.label, "reaction", r.id, { type: "standard_action", name: r.label });
                 }}
               >
                 {r.label}

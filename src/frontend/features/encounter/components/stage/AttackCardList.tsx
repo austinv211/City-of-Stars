@@ -85,10 +85,14 @@ function WeaponAttack({
   // modifier (a negative modifier still applies, per 2024).
   const noPosMod = Math.min(0, damageMod);
   const versatile = atk.versatile_sides;
+  const source = { type: atk.is_spell ? "spell" : "weapon", name: atk.name } as const;
   const damage =
     (diceExpr: string, sides: number, mod: number, label: string, crit = false) =>
     () => {
-      outcome.deal(rolls.doRoll(diceExpr, sides, mod, `${atk.name} ${label}`), crit);
+      outcome.deal(
+        rolls.doRoll(diceExpr, sides, mod, `${atk.name} ${label}`, { kind: "damage", source, crit }),
+        crit,
+      );
     };
 
   return (
@@ -105,7 +109,7 @@ function WeaponAttack({
       versatileLabel={versatile ? `d${String(versatile)}` : undefined}
       onAttack={() => {
         outcome.aim(
-          rolls.rollD20(toHit, `${atk.name} Attack`, stats.attackOpts),
+          rolls.rollD20(toHit, `${atk.name} Attack`, stats.attackOpts, { kind: "attack", source }),
           toHit,
         );
       }}
@@ -156,6 +160,7 @@ function DamageSpell({
 }) {
   const { participant, character, rolls, stats, locked } = view;
   const outcome = useAttackOutcome(view.target);
+  const source = { type: "spell", name: spell.name } as const;
   const { count, sides, mod } = parseDamageDice(spell.damage_dice ?? "");
   // Cantrips (level 0) scale their dice with character level.
   const dmgCount = spell.level === 0 && character ? count * stats.cantripMult : count;
@@ -173,19 +178,23 @@ function DamageSpell({
       adjust={stats.condEffects.attackAdjust}
       onAttack={() => {
         outcome.aim(
-          rolls.rollD20(toHit, `${spell.name} Attack`, stats.attackOpts),
+          rolls.rollD20(toHit, `${spell.name} Attack`, stats.attackOpts, { kind: "attack", source }),
           toHit,
         );
       }}
       onDamage={() => {
         outcome.deal(
-          rolls.doRoll(dice(dmgCount, sides), sides, mod, `${spell.name} Dmg`),
+          rolls.doRoll(dice(dmgCount, sides), sides, mod, `${spell.name} Dmg`, { kind: "damage", source }),
           false,
         );
       }}
       onCritDamage={() => {
         outcome.deal(
-          rolls.doRoll(dice(dmgCount * 2, sides), sides, mod, `${spell.name} Crit`),
+          rolls.doRoll(dice(dmgCount * 2, sides), sides, mod, `${spell.name} Crit`, {
+            kind: "damage",
+            source,
+            crit: true,
+          }),
           true,
         );
       }}

@@ -153,6 +153,8 @@ export default function DmEncountersPage() {
         .from("dice_rolls")
         .select("*")
         .eq("encounter_id", enc.id)
+        // Rolls only: announced actions are stored too, with no dice.
+        .neq("dice_type", "")
         .order("rolled_at", { ascending: false }),
       supabase
         .from("encounter_participants")

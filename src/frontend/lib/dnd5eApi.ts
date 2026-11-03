@@ -631,3 +631,14 @@ export async function getRulesGlossaryByCategory(category?: string): Promise<Srd
     return [];
   }
 }
+
+/** The rules glossary entry with exactly this title (any case), e.g. "Dodge". */
+export async function getRuleByTitle(title: string): Promise<SrdRule | null> {
+  const { data } = await supabase
+    .from("srd_rules")
+    .select("id, category, title, content")
+    .ilike("title", title.trim())
+    .limit(1)
+    .maybeSingle();
+  return data;
+}

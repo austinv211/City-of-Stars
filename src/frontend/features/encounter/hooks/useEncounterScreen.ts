@@ -127,12 +127,13 @@ function useDeathSaveRoll(
     const total = await roll({
       campaignId: campaign.id,
       encounterId: activeEncounterId,
-      characterName: p?.name ?? "Unknown",
+      characterName: p?.nickname ?? p?.name ?? "Unknown",
       rolledByDm: isDM,
       diceType: "1d20",
       sides: 20,
       modifier: 0,
       rollType: "Death Save",
+      context: { kind: "death_save", actorId: participantId },
     });
     await applyRoll(participantId, total);
   };

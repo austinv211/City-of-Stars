@@ -71,6 +71,7 @@ export function ActionPanel({
     campaignId,
     encounterId,
     isDM,
+    targetId: target?.participant.id ?? null,
     onSetTurnFlag,
   });
 

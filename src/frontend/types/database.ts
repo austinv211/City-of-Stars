@@ -913,6 +913,7 @@ export type Database = {
           campaign_id: string
           character_id: string | null
           character_name: string | null
+          context: Json | null
           dice_type: string
           encounter_id: string | null
           id: string
@@ -928,6 +929,7 @@ export type Database = {
           campaign_id: string
           character_id?: string | null
           character_name?: string | null
+          context?: Json | null
           dice_type: string
           encounter_id?: string | null
           id?: string
@@ -943,6 +945,7 @@ export type Database = {
           campaign_id?: string
           character_id?: string | null
           character_name?: string | null
+          context?: Json | null
           dice_type?: string
           encounter_id?: string | null
           id?: string

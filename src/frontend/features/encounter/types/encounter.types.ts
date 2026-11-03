@@ -127,6 +127,36 @@ export interface DiceRoll {
 
 export type ActionCategory = "action" | "bonus" | "reaction" | "free";
 
+export type RollKind =
+  | "attack"
+  | "damage"
+  | "save"
+  | "check"
+  | "initiative"
+  | "death_save"
+  | "action"
+  | "other";
+
+/** The weapon, spell or ability a roll was made with. */
+export interface RollSource {
+  type: "weapon" | "spell" | "monster_action" | "legendary" | "standard_action" | "unarmed";
+  name: string;
+}
+
+/**
+ * What a roll was for, so the log can say "Grizzle → Isolde · Scimitar ·
+ * Attack 18". Ids and names only: anything secret (a monster's AC) is looked
+ * up when rendering, by those allowed to see it.
+ */
+export interface RollContext {
+  kind: RollKind;
+  actorId?: string | null;
+  targetId?: string | null;
+  source?: RollSource;
+  /** Damage rolled as a critical hit. */
+  crit?: boolean;
+}
+
 export interface DiceRollBroadcast {
   characterName: string;
   rolledByDm?: boolean;
@@ -140,6 +170,7 @@ export interface DiceRollBroadcast {
   disadvantage?: boolean;
   discardedRoll?: number;
   rolls?: number[];
+  context?: RollContext;
   // Action announcement fields (kind === "action" means no dice were rolled)
   kind?: "action";
   actionText?: string;

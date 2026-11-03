@@ -49,8 +49,9 @@ export function InitiativeRollScreen({ encounterId, campaignId, participants, ow
       const total = await rollPool({
         campaignId,
         encounterId,
-        characterName: ownParticipant.name,
+        characterName: ownParticipant.nickname ?? ownParticipant.name,
         rolledByDm: false,
+        context: { kind: "initiative", actorId: ownParticipant.id },
         pool: [{ sides: 20, count: 1 }],
         modifier: initMod,
         advantage: false,

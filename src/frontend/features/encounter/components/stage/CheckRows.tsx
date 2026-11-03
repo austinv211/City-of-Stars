@@ -32,7 +32,7 @@ export function SaveRow({ view }: { view: CombatantView }) {
               className="h-8 text-xs"
               disabled={locked}
               onClick={() =>
-                void rolls.rollD20(mod, `${label} Save`, { disadvantage: dexDis })
+                void rolls.rollD20(mod, `${label} Save`, { disadvantage: dexDis }, { kind: "save" })
               }
               title={
                 autoFail
@@ -77,7 +77,7 @@ export function SkillRow({ view }: { view: CombatantView }) {
                 className="h-7 text-xs"
                 disabled={locked}
                 onClick={() =>
-                  void rolls.rollD20(mod, `${prof.skill} Check`, { disadvantage: dis })
+                  void rolls.rollD20(mod, `${prof.skill} Check`, { disadvantage: dis }, { kind: "check" })
                 }
               >
                 {prof.skill} {sign(mod)}
@@ -112,7 +112,7 @@ export function AbilityCheckRow({ view }: { view: CombatantView }) {
               className="h-8 text-xs"
               disabled={locked}
               onClick={() =>
-                void rolls.rollD20(mod, `${label} Check`, { disadvantage: dis })
+                void rolls.rollD20(mod, `${label} Check`, { disadvantage: dis }, { kind: "check" })
               }
             >
               {label} {sign(mod)}
