@@ -12,7 +12,7 @@ import { COVER_OPTIONS, coverAcBonus } from "@/features/characters/data/rules202
 import type { EncounterParticipant } from "../types/encounter.types";
 import type { DamageResult } from "../hooks/useEncounterParticipants";
 import { woundState } from "../lib/attack";
-import { CombatantThumb } from "./CombatantArt";
+import { QuickThumb } from "./quickview/QuickThumb";
 
 interface Props {
   participant: EncounterParticipant;
@@ -109,7 +109,7 @@ function CardHeader({ participant: p, isActive, showAC, isTarget, onTarget, onEd
   return (
     <div className="flex items-center gap-3">
       <div className="relative shrink-0">
-        <CombatantThumb participant={p} className="h-10 w-10 rounded-full text-xs" />
+        <QuickThumb participant={p} />
         {isActive && (
           <span
             className="absolute -top-1 -right-1 flex h-2.5 w-2.5"

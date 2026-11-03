@@ -145,7 +145,7 @@ export function ActionPanel({
           </>
         )}
 
-        <MonsterTraits traits={participant.special_abilities ?? []} />
+        <MonsterTraits traits={participant.special_abilities ?? []} actorId={participant.id} />
         <MonsterActionList view={view} />
         <AttackCardList view={view} attacks={attacks} />
         {participant.is_player && <UnarmedStrike view={view} />}

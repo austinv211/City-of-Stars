@@ -237,8 +237,12 @@ export class EncounterPage {
    */
   async closeLog() {
     if (!this.isTablet) return;
-    const sheet = this.page.getByRole("dialog", { name: "Rolls and character" });
-    if (await sheet.isVisible()) await sheet.getByRole("button", { name: "Close" }).click();
+    // includeHidden: while a quick view on top is closing, the sheet is still
+    // aria-hidden, and a plain role lookup would call it gone.
+    const sheet = this.page.getByRole("dialog", { name: "Rolls and character", includeHidden: true });
+    if (await sheet.isVisible()) {
+      await sheet.getByRole("button", { name: "Close", includeHidden: true }).click();
+    }
     await expect(sheet).toBeHidden();
   }
 

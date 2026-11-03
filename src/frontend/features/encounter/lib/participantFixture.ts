@@ -1,3 +1,4 @@
+import type { RollEntry } from "../context/DiceContext";
 import type { EncounterParticipant } from "../types/encounter.types";
 
 /** A full participant row for tests, overridable per field. */
@@ -51,4 +52,27 @@ export function combatant(
     legendary_actions_remaining: 0,
     ...over,
   } satisfies EncounterParticipant;
+}
+
+/** Grizzle (actor "g1") attacking Isolde with a Scimitar: 14 + 4 = 18. */
+export function scimitarAttack(over: Partial<RollEntry> = {}): RollEntry {
+  return {
+    id: "r1",
+    ts: 0,
+    encounterId: "e",
+    characterName: "Grizzle",
+    rolledByDm: true,
+    diceType: "1d20",
+    result: 14,
+    modifier: 4,
+    total: 18,
+    rollType: "Scimitar Attack",
+    context: {
+      kind: "attack",
+      actorId: "g1",
+      targetId: "isolde",
+      source: { type: "monster_action", name: "Scimitar" },
+    },
+    ...over,
+  };
 }

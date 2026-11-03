@@ -27,6 +27,7 @@ export function UnarmedStrike({ view }: { view: CombatantView }) {
           typeLabel="Melee"
           damageType="bludgeoning"
           description="Deal 1 + STR modifier bludgeoning, or instead Grapple or Shove (the target makes a save vs your DC)."
+          about={{ kind: "ability", source: UNARMED, actorId: view.participant.id }}
           attackMod={toHit}
           damageLabel={String(1 + strength)}
           disabled={locked}

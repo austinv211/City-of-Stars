@@ -45,6 +45,7 @@ test("each role sees and controls only what it should", async ({ openAs, campaig
         nickname: "Grizzle",
         description: "A one-eared goblin with a grudge.",
         portrait_url: "https://example.invalid/grizzle.png",
+        art_url: "https://example.invalid/grizzle-art.png",
         is_player: false,
         hp_current: 7,
         hp_max: 7,
@@ -108,6 +109,8 @@ test("each role sees and controls only what it should", async ({ openAs, campaig
     await p1.select(grizzleRow.id, "Grizzle");
     await expect(p1.viewingChip).toContainText("Grizzle");
     await expect(p1Page.getByText("A one-eared goblin with a grudge.").first()).toBeVisible();
+    // Its full art, big, rather than the small portrait.
+    await expect(p1Page.getByRole("img", { name: "Grizzle, full art" }).first()).toBeVisible();
     await expect(p1Page.getByRole("group", { name: "Scimitar" })).toHaveCount(0);
     await p1.backToDefault();
   });
@@ -157,12 +160,32 @@ test("each role sees and controls only what it should", async ({ openAs, campaig
     await expect(playerLog).not.toContainText("(14+4)");
 
     await playerLog.getByRole("button", { name: "Scimitar" }).first().click();
-    const card = p1Page.getByRole("dialog", { name: "About Scimitar" });
+    const card = p1Page.getByRole("dialog", { name: "Scimitar" });
     await expect(card).toContainText("Hit: slashing");
     await expect(card).not.toContainText("+4 to hit");
     await expect(card).toContainText("A one-eared goblin with a grudge.");
     await p1Page.keyboard.press("Escape");
     await p1.closeLog();
+  });
+
+  await test.step("a combatant's quick view keeps a monster's numbers from players", async () => {
+    const about = async (page: typeof p1Page, enc: EncounterPage) => {
+      await (await enc.combatant(grizzleRow.id)).getByRole("button", { name: /^About Grizzle/ }).click();
+      const view = page.getByRole("dialog", { name: /^Grizzle/ });
+      await expect(view).toBeVisible();
+      return view;
+    };
+    const playerView = await about(p1Page, p1);
+    await expect(playerView.getByText("HP").locator("xpath=following-sibling::dd")).toHaveText("?");
+    await expect(playerView.getByText("AC").locator("xpath=following-sibling::dd")).toHaveText("?");
+    // What it did, one tap from what that was.
+    await expect(playerView.getByRole("region", { name: "Recent actions" })).toContainText("Scimitar");
+    await p1Page.keyboard.press("Escape");
+
+    const dmView = await about(dmPage, dm);
+    await expect(dmView.getByText("HP").locator("xpath=following-sibling::dd")).toHaveText("7/7");
+    await expect(dmView.getByText("AC").locator("xpath=following-sibling::dd")).toHaveText("15");
+    await dmPage.keyboard.press("Escape");
   });
 
   await test.step("the DM's view follows the turn", async () => {

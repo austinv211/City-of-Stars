@@ -47,16 +47,16 @@ async function fetchText(actor: EncounterParticipant | null, source: RollSource)
 }
 
 /**
- * What an ability in the log does, for its hover card. Monster text is read
- * from the stat block already loaded (and scrubbed of numbers for players);
- * spells, rules and weapon notes are fetched once the card opens.
+ * What an ability does, for the quick view. Monster text is read from the
+ * stat block already loaded (and scrubbed of numbers for players); spells,
+ * rules and weapon notes are fetched once the view opens.
  */
 export function useSourceDescription(
   actor: EncounterParticipant | null,
   source: RollSource | undefined,
   viewerIsDM: boolean,
   open: boolean,
-): string | null {
+): { text: string | null; loading: boolean } {
   const [fetched, setFetched] = useState<{ key: string; text: string | null } | null>(null);
   const local = source ? localText(actor, source) : null;
   const key = source ? `${actor?.id ?? ""}:${source.type}:${source.name}` : "";
@@ -72,11 +72,13 @@ export function useSourceDescription(
     };
   }, [open, key, local, fetched?.key, actor, source]);
 
-  if (!source) return null;
+  if (!source) return { text: null, loading: false };
   if (local !== undefined) {
-    return local && !viewerIsDM && actor && !actor.is_player ? publicActionText(local) : local;
+    const scrub = !!local && !viewerIsDM && !!actor && !actor.is_player;
+    return { text: scrub ? publicActionText(local) : local, loading: false };
   }
-  return fetched?.key === key ? fetched.text : null;
+  const done = fetched?.key === key;
+  return { text: done ? fetched.text : null, loading: open && !done };
 }
 
 /** Text known without a fetch; undefined when one is needed. */

@@ -21,8 +21,6 @@ export interface LogLine {
   /** Announced actions. */
   category?: ActionCategory;
   actionText?: string;
-  /** For the source card: whose ability, and what kind. */
-  actorParticipant: EncounterParticipant | null;
 }
 
 const KIND_LABEL: Partial<Record<RollKind, string>> = {
@@ -74,7 +72,7 @@ function kindLabel(e: RollEntry): string | null {
 }
 
 /** An announced action: what was done, no dice. */
-function actionLine(e: RollEntry, who: Omit<ReturnType<typeof people>, "targetP">): LogLine {
+function actionLine(e: RollEntry, who: Pick<LogLine, "actor" | "target">): LogLine {
   return {
     ...who,
     title: e.actionText ?? e.context?.source?.name ?? "Action",
@@ -93,11 +91,11 @@ export function describeRoll(
   participants: EncounterParticipant[],
   viewerIsDM: boolean,
 ): LogLine {
-  const { targetP, ...who } = people(e, participants);
+  const { targetP, actorParticipant, ...who } = people(e, participants);
   if (e.kind === "action") return actionLine(e, who);
 
   // A DM roll for a monster or NPC: players see what happened, not its numbers.
-  const secret = !viewerIsDM && !!e.rolledByDm && !who.actorParticipant?.is_player;
+  const secret = !viewerIsDM && !!e.rolledByDm && !actorParticipant?.is_player;
   const d20 = /^1?d20$/.test(e.diceType) && e.context?.kind !== "damage";
   return {
     ...who,
