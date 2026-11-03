@@ -11,6 +11,9 @@ import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { useAuth } from "@/core/context/AuthContext";
 import { setFeelPrefs, useFeelPrefs } from "@/core/hooks/useFeelPrefs";
+import { usePlatform } from "@/core/hooks/usePlatform";
+import { notifyUpdate } from "@/core/hooks/useUpdateCheck";
+import { checkForUpdate, getAppVersion } from "@/core/lib/updates";
 
 interface Props {
   open: boolean;
@@ -71,6 +74,7 @@ export function AccountDialog({ open, onOpenChange }: Props) {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DevicePrefs />
+          <AppVersion />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -80,6 +84,54 @@ export function AccountDialog({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The installed version and a manual update check. Hidden in the browser, which has no version. */
+function AppVersion() {
+  const { platform, isTauri } = usePlatform();
+  const [version, setVersion] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "checking" | "current" | "failed">("idle");
+
+  useEffect(() => {
+    if (!isTauri) return;
+    getAppVersion().then(setVersion).catch(() => {
+      setVersion(null);
+    });
+  }, [isTauri]);
+
+  if (!isTauri) return null;
+
+  async function handleCheck() {
+    setStatus("checking");
+    try {
+      const result = await checkForUpdate(platform);
+      // Forced: someone who asked should see the notice even if they dismissed it earlier.
+      setStatus(notifyUpdate(result, { force: true }) ? "idle" : "current");
+    } catch (err) {
+      console.warn("[updater] manual check failed", err);
+      setStatus("failed");
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3 text-sm">
+      <span className="text-muted-foreground">
+        Version {version ?? "…"}
+        {status === "current" && " · You're up to date"}
+        {status === "failed" && " · Couldn't check for updates"}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={status === "checking"}
+        onClick={() => {
+          void handleCheck();
+        }}
+      >
+        {status === "checking" ? "Checking…" : "Check for updates"}
+      </Button>
+    </div>
   );
 }
 
