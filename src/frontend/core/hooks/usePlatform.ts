@@ -2,7 +2,7 @@
  * Which shell is the app running in?
  *
  * Deliberately build-time, not runtime. `vite.config.ts` already sets
- * `envPrefix: ["VITE_", "TAURI_ENV_*"]`, and `lib/supabase.ts` already gates
+ * `envPrefix: ["VITE_", "TAURI_ENV_"]`, and `lib/supabase.ts` already gates
  * `autoRefreshToken` on `TAURI_ENV_PLATFORM === "windows"` — this extends that
  * same mechanism rather than inventing a second one. The variable is simply
  * undefined under a plain `vite dev` server, which is exactly the "browser"

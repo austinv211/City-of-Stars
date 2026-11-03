@@ -17,7 +17,9 @@ export default defineConfig({
       ignored: ["**/src/tauri/**"],
     },
   },
-  envPrefix: ["VITE_", "TAURI_ENV_*"],
+  // Plain string prefixes, matched with startsWith: not globs. "TAURI_ENV_*"
+  // matched nothing, so packaged builds thought they were in a browser.
+  envPrefix: ["VITE_", "TAURI_ENV_"],
   build: {
     target: "chrome105",
     minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
