@@ -29,6 +29,8 @@ interface ImportMetaEnv {
    * Target OS, injected by the Tauri CLI. Undefined in a browser build —
    * which is how usePlatform() detects "browser". See src/frontend/core/hooks/usePlatform.ts.
    */
+  /** Where email confirmation links land. Defaults to the GitHub Pages site. */
+  readonly VITE_AUTH_LANDING_URL?: string;
   readonly TAURI_ENV_PLATFORM?:
     | "windows"
     | "linux"

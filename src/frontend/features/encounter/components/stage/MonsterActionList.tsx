@@ -62,18 +62,18 @@ function MonsterActionCard({
 }) {
   const { rolls, stats, locked } = view;
   const { attackOpts, exhaustPenalty } = stats;
-  const outcome = useAttackOutcome();
+  const outcome = useAttackOutcome(view.target);
   const dice = action.damage_dice ? parseDamageDice(action.damage_dice) : null;
   const attackBonus = action.attack_bonus;
+  const source = { type: "monster_action", name: action.name } as const;
   const damage = (count: number, label: string, crit: boolean) => () => {
     if (!dice) return;
     outcome.deal(
-      rolls.doRoll(
-        `${String(count)}d${String(dice.sides)}`,
-        dice.sides,
-        dice.mod,
-        `${action.name} ${label}`,
-      ),
+      rolls.doRoll(`${String(count)}d${String(dice.sides)}`, dice.sides, dice.mod, `${action.name} ${label}`, {
+        kind: "damage",
+        source,
+        crit,
+      }),
       crit,
     );
   };
@@ -108,7 +108,7 @@ function MonsterActionCard({
               onClick={() => {
                 const toHit = attackBonus + exhaustPenalty;
                 outcome.aim(
-                  rolls.rollD20(toHit, `${action.name} Attack`, attackOpts),
+                  rolls.rollD20(toHit, `${action.name} Attack`, attackOpts, { kind: "attack", source }),
                   toHit,
                 );
               }}
@@ -147,7 +147,6 @@ function MonsterActionCard({
       )}
       <AttackOutcome
         outcome={outcome}
-        target={view.target}
         damageType={action.damage_type ?? ""}
         onApplyDamage={view.onApplyDamage}
       />

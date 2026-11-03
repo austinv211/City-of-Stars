@@ -114,3 +114,21 @@ platform and publishes a GitHub Release that includes a `latest.json` manifest.
   (`--config`), so local `tauri build` works without the key.
 - Prerelease tags (`v1.2.3-beta`) never become "latest", so they don't reach
   players.
+
+## Email confirmation landing page
+
+Sign-up passes `emailRedirectTo` (default
+`https://austinv211.github.io/City-of-Stars/`, override with
+`VITE_AUTH_LANDING_URL`), so confirmation links land on the static page in
+`site/`, deployed by `.github/workflows/pages.yml`. One-time setup:
+
+- GitHub repo Settings → Pages → Source: **GitHub Actions**.
+- Supabase dashboard → Authentication → URL Configuration: set **Site URL**
+  to that address and add it to **Redirect URLs**.
+
+The page's "Open City of Stars" button is a `cityofstars://` link. The app
+registers that scheme with `tauri-plugin-deep-link` (config in
+`tauri.conf.json`), and `tauri-plugin-single-instance` hands it to a window
+that's already open. `core/hooks/useDeepLinks.ts` reacts to it. A scheme
+registers only for an installed build (or at runtime on Windows/Linux), so
+`vite dev` in a browser never receives one.

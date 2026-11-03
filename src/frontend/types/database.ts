@@ -913,6 +913,7 @@ export type Database = {
           campaign_id: string
           character_id: string | null
           character_name: string | null
+          context: Json | null
           dice_type: string
           encounter_id: string | null
           id: string
@@ -928,6 +929,7 @@ export type Database = {
           campaign_id: string
           character_id?: string | null
           character_name?: string | null
+          context?: Json | null
           dice_type: string
           encounter_id?: string | null
           id?: string
@@ -943,6 +945,7 @@ export type Database = {
           campaign_id?: string
           character_id?: string | null
           character_name?: string | null
+          context?: Json | null
           dice_type?: string
           encounter_id?: string | null
           id?: string
@@ -1122,6 +1125,7 @@ export type Database = {
           legendary_actions_max: number
           legendary_actions_remaining: number
           name: string
+          nickname: string | null
           owner_id: string | null
           portrait_url: string | null
           reaction_used: boolean
@@ -1164,6 +1168,7 @@ export type Database = {
           legendary_actions_max?: number
           legendary_actions_remaining?: number
           name: string
+          nickname?: string | null
           owner_id?: string | null
           portrait_url?: string | null
           reaction_used?: boolean
@@ -1206,6 +1211,7 @@ export type Database = {
           legendary_actions_max?: number
           legendary_actions_remaining?: number
           name?: string
+          nickname?: string | null
           owner_id?: string | null
           portrait_url?: string | null
           reaction_used?: boolean

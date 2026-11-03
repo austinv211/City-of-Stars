@@ -7,17 +7,20 @@ interface Props {
   activeParticipantId: string | null;
   isDM: boolean;
   ownCharacterId: string | null;
-  onUpdateConditions: (id: string, conditions: string[]) => void;
+  // Fire-and-forget writes; their promises are not awaited here.
+  onUpdateConditions: (id: string, conditions: string[]) => unknown;
   onApplyDamage: (id: string, amount: number, type: string | null, opts?: { crit?: boolean }) => Promise<DamageResult>;
-  onHeal: (id: string, amount: number) => void;
-  onRollDeathSave: (id: string) => void;
-  onSetConcentration: (id: string, spell: string | null) => void;
-  onSetCover: (id: string, cover: string) => void;
+  onHeal: (id: string, amount: number) => unknown;
+  onRollDeathSave: (id: string) => unknown;
+  onSetConcentration: (id: string, spell: string | null) => unknown;
+  onSetCover: (id: string, cover: string) => unknown;
   onSelect: (id: string) => void;
   selectedId: string | null;
   targetId?: string | null;
   /** Absent when the viewer cannot attack (a spectator). */
   onTarget?: (id: string) => void;
+  /** DM only: a monster's nickname, flavour text and image. */
+  onEditAppearance?: (id: string) => void;
 }
 
 export function InitiativeTracker({
@@ -35,6 +38,7 @@ export function InitiativeTracker({
   selectedId,
   targetId,
   onTarget,
+  onEditAppearance,
 }: Props) {
   if (participants.length === 0) {
     return (
@@ -73,6 +77,9 @@ export function InitiativeTracker({
             selected={p.id === selectedId}
             isTarget={p.id === targetId}
             onTarget={onTarget ? () => { onTarget(p.id); } : undefined}
+            onEditAppearance={
+              onEditAppearance && !p.is_player ? () => { onEditAppearance(p.id); } : undefined
+            }
           />
         );
       })}

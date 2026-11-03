@@ -169,7 +169,10 @@ export function combatantStats(
   };
 }
 
-export const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
+export const sign = (n: number) => (n >= 0 ? `+${String(n)}` : String(n));
+
+/** A dice expression, e.g. dice(2, 6) = "2d6". */
+export const dice = (count: number, sides: number) => `${String(count)}d${String(sides)}`;
 
 /** "2d6+3" -> { count: 2, sides: 6, mod: 3 }; tolerant of missing parts. */
 export function parseDamageDice(dice: string): {

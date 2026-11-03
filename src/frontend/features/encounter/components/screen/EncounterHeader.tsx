@@ -29,6 +29,7 @@ export function EncounterHeader({ screen, onRules, onEnd, onOpenSide }: Props) {
           size="sm"
           onClick={onOpenSide}
           title="Rolls & character"
+          aria-label="Rolls & character"
         >
           <PanelRight className="h-4 w-4" />
         </Button>

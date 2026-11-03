@@ -45,6 +45,7 @@ export function Filmstrip({
     >
       {participants.map((p) => {
         const active = p.id === activeId;
+        const viewing = p.id === selectedId;
         // Same visibility rule as the initiative cards: monster HP is the DM's.
         const showHp = isDM || p.is_player;
         const pct =
@@ -58,11 +59,12 @@ export function Filmstrip({
               onSelect(p.id);
             }}
             aria-current={active ? "step" : undefined}
+            aria-pressed={viewing}
             aria-label={`${p.name}${active ? ", acting now" : ""}`}
             className={cn(
               "relative flex w-[4.75rem] shrink-0 flex-col items-center gap-1 border px-1 py-1.5",
-              active ? "border-primary bg-primary/10" : "border-border/40",
-              p.id === selectedId && !active && "border-foreground/40",
+              active && "bg-primary/10",
+              viewing ? "border-primary" : "border-border/40",
             )}
           >
             <span
@@ -93,7 +95,7 @@ export function Filmstrip({
             {p.id === targetId && (
               <Crosshair
                 className="absolute right-0.5 top-0.5 h-3.5 w-3.5 text-destructive"
-                aria-label="Your target"
+                aria-label="Target"
               />
             )}
           </button>

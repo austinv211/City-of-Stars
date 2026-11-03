@@ -61,7 +61,7 @@ export function EconomyBar({
       used={participant[SLOT_FLAG[category]]}
       locked={locked}
       onSpend={(a) => {
-        rolls.spendAction(a.label, category, a.id);
+        rolls.spendAction(a.label, category, a.id, { type: "standard_action", name: a.label });
       }}
       onReset={() => {
         onSetTurnFlag(SLOT_FLAG[category], false);

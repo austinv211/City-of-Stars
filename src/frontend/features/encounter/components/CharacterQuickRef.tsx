@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useHoverPopover } from "@/core/hooks/useHoverPopover";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
 import {
@@ -79,24 +80,6 @@ const SAVE_DESC: Record<string, string> = {
   WIS: "Resist charms, compulsion, fright, and possession.",
   CHA: "Resist being banished, possessed, or erased from existence.",
 };
-
-// ── Hover-aware popover hook ─────────────────────────────────────────────────
-
-function useHoverPopover() {
-  const [open, setOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const open_ = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current);
-    setOpen(true);
-  }, []);
-
-  const scheduleClose = useCallback(() => {
-    timer.current = setTimeout(() => setOpen(false), 150);
-  }, []);
-
-  return { open, setOpen, onMouseEnter: open_, onMouseLeave: scheduleClose };
-}
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 

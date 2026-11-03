@@ -23,6 +23,7 @@ import {
 import { Plus, Trash2, Loader2, Search, Camera, Skull } from "lucide-react";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { uploadMonsterPortrait } from "@/features/encounter/lib/portraits";
 import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
 import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
@@ -269,17 +270,6 @@ export default function DmMonstersPage() {
     setPortraitPreview(URL.createObjectURL(file));
   }
 
-  async function uploadPortrait(monsterId: string, file: File): Promise<string | null> {
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${user!.id}/${monsterId}.${ext}`;
-    const { error } = await supabase.storage
-      .from("monster-portraits")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (error) return null;
-    const { data } = supabase.storage.from("monster-portraits").getPublicUrl(path);
-    return data.publicUrl;
-  }
-
   async function handleSave() {
     if (!campaign || !form.name.trim()) return;
     setSaving(true);
@@ -335,7 +325,7 @@ export default function DmMonstersPage() {
 
     if (monsterId && portraitFile) {
       setUploadingPortrait(true);
-      const url = await uploadPortrait(monsterId, portraitFile);
+      const url = user ? await uploadMonsterPortrait(user.id, portraitFile, monsterId) : null;
       if (url) {
         await supabase
           .from("custom_monsters")

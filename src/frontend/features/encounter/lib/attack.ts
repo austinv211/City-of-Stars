@@ -54,3 +54,9 @@ export function judgeAttack(
   if (natural <= 1) return "fumble";
   return total >= ac ? "hit" : "miss";
 }
+
+/** What anyone may know of a combatant's health without seeing numbers. */
+export function woundState(p: EncounterParticipant): "down" | "bloodied" | null {
+  if (p.hp_current <= 0) return "down";
+  return p.hp_max > 0 && p.hp_current * 2 <= p.hp_max ? "bloodied" : null;
+}

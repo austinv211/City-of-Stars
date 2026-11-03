@@ -38,7 +38,10 @@ export function useCharacters() {
         { event: "*", schema: "public", table: "characters", filter: `campaign_id=eq.${campaign.id}` },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setCharacters((prev) => [...prev, payload.new as Character]);
+            const added = payload.new as Character;
+            // The initial load may already have it: an insert just before the
+            // page opened can arrive here after the load returned.
+            setCharacters((prev) => (prev.some((c) => c.id === added.id) ? prev : [...prev, added]));
           } else if (payload.eventType === "UPDATE") {
             setCharacters((prev) =>
               prev.map((c) => (c.id === (payload.new as Character).id ? (payload.new as Character) : c))

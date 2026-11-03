@@ -4,23 +4,12 @@ import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
-import type { DiceRollBroadcast, ActionCategory } from "../types/encounter.types";
-import { DETERMINISTIC_DICE, deterministicDie } from "../lib/testDice";
-
-function cryptoRoll(sides: number): number {
-  if (DETERMINISTIC_DICE) return deterministicDie(sides);
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  return (array[0] % sides) + 1;
-}
-
-// Validates a value returned by DiceBox. Returns cryptoRoll fallback for any
-// NaN/undefined/out-of-range result (can occur when settle timeout fires before
-// a die comes to rest, or when DiceBox uses two d10s to simulate a d100).
-function safeValue(v: unknown, sides: number): number {
-  if (typeof v === "number" && Number.isFinite(v) && v >= 1 && v <= sides) return v;
-  return cryptoRoll(sides);
-}
+import type { DiceRollBroadcast, ActionCategory, RollContext } from "../types/encounter.types";
+import { dice } from "../components/stage/combatantStats";
+import { boxSource, cryptoSource } from "../lib/diceSources";
+import { rollPoolWith, type Pool } from "../lib/poolDice";
+import { isDamageRoll, rollFromRow, storedContext } from "../lib/rollRecord";
+import { DETERMINISTIC_DICE } from "../lib/testDice";
 
 export interface RollOptions {
   campaignId: string;
@@ -31,6 +20,7 @@ export interface RollOptions {
   sides: number;
   modifier: number;
   rollType: string;
+  context?: RollContext;
 }
 
 export interface RollEntry extends DiceRollBroadcast {
@@ -45,6 +35,8 @@ export interface ActionAnnounceOptions {
   characterName: string;
   actionText: string;
   actionCategory: ActionCategory;
+  rolledByDm?: boolean;
+  context?: RollContext;
 }
 
 export interface PoolRollOptions {
@@ -57,6 +49,7 @@ export interface PoolRollOptions {
   advantage: boolean;
   disadvantage: boolean;
   rollType: string;
+  context?: RollContext;
 }
 
 interface DiceContextValue {
@@ -114,10 +107,10 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
         initPromiseRef.current = box
           .init()
           .then(() => { boxRef.current = box; })
-          .catch((e) => { console.error("[DiceBox] init() failed:", e); });
+          .catch((e: unknown) => { console.error("[DiceBox] init() failed:", e); });
       } catch (e) {
         console.error("[DiceBox] constructor failed:", e);
-        return Promise.reject(e);
+        return Promise.reject(e instanceof Error ? e : new Error(String(e)));
       }
     }
     return initPromiseRef.current.then(() => {
@@ -128,278 +121,183 @@ export function DiceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!campaign) return;
+    const campaignId = campaign.id;
 
     async function seedFromDb() {
       const { data: rows } = await supabase
         .from("dice_rolls")
         .select("*")
-        .eq("campaign_id", campaign!.id)
+        .eq("campaign_id", campaignId)
         .order("rolled_at", { ascending: false })
         .limit(50);
-
       if (!rows?.length) return;
-
-      const seed: RollEntry[] = rows.map((r) => ({
-        id: r.id as string,
-        ts: new Date(r.rolled_at as string).getTime(),
-        characterName: (r.character_name as string | null) ?? "Unknown",
-        rolledByDm: (r.rolled_by_dm as boolean) ?? false,
-        diceType: r.dice_type as string,
-        result: r.result as number,
-        modifier: (r.modifier as number) ?? 0,
-        total: r.total as number,
-        rollType: r.roll_type as string,
-        encounterId: (r.encounter_id as string) ?? null,
-        rolls: [],
-      }));
-
+      const seed: RollEntry[] = rows.map(rollFromRow);
       setHistory((prev) => {
         const prevIds = new Set(prev.map((e) => e.id));
-        const fresh = seed.filter((s) => !prevIds.has(s.id));
-        return [...prev, ...fresh].slice(0, 100);
+        return [...prev, ...seed.filter((s) => !prevIds.has(s.id))].slice(0, 100);
       });
     }
 
-    seedFromDb();
+    void seedFromDb();
 
     const channel = supabase
-      .channel(`dice:${campaign.id}`)
+      .channel(`dice:${campaignId}`)
       .on("broadcast", { event: "roll" }, ({ payload }) => {
-        const entry = payload as DiceRollBroadcast;
-        setHistory((prev) =>
-          [{ ...entry, id: crypto.randomUUID(), ts: Date.now(), encounterId: entry.encounterId ?? null }, ...prev].slice(0, 100)
-        );
-        // Do NOT push to animQueue here — the overlay only shows for the client
-        // that made the roll. animQueue is populated by roll() / rollPool() locally.
+        // Not into animQueue: the overlay shows only for whoever rolled.
+        addToHistory(payload as DiceRollBroadcast);
       })
       .subscribe();
     channelRef.current = channel;
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
       channelRef.current = null;
     };
   }, [campaign?.id]);
 
-  const roll = useCallback(async (opts: RollOptions) => {
-    // Show canvas immediately so the user sees the backdrop while DiceBox inits/rolls.
-    setDiceAnimating(true);
-
-    // Parse count from diceType ("2d6" → 2, "d20" → 1).
-    const countMatch = /^(\d+)/i.exec(opts.diceType);
-    const diceCount = countMatch ? parseInt(countMatch[1]) : 1;
-    const notation = `${diceCount}d${opts.sides}`;
-
-    // DiceBox is the authoritative RNG — its physics result is what the card shows.
-    let individualRolls: number[];
-    let result: number;
-    inFlightRef.current += 1;
-    try {
-      const box = await getOrInitBox();
-      const rollResults = await box.roll(notation);
-      individualRolls = rollResults.map((r) => safeValue(r.value, opts.sides));
-      // Pad if DiceBox returned fewer dice than requested (e.g. settle timeout)
-      while (individualRolls.length < diceCount) individualRolls.push(cryptoRoll(opts.sides));
-      result = individualRolls.reduce((a, b) => a + b, 0);
-    } catch {
-      individualRolls = Array.from({ length: diceCount }, () => cryptoRoll(opts.sides));
-      result = individualRolls.reduce((a, b) => a + b, 0);
-    } finally {
-      inFlightRef.current -= 1;
-    }
-
-    // Populate the queue after physics settles so the result card matches the die face.
-    const total = result + opts.modifier;
-    const broadcast: DiceRollBroadcast = {
-      characterName: opts.characterName,
-      rolledByDm: opts.rolledByDm ?? false,
-      diceType: opts.diceType,
-      result,
-      modifier: opts.modifier,
-      total,
-      rollType: opts.rollType,
-      encounterId: opts.encounterId,
-      rolls: individualRolls,
-    };
-
+  function addToHistory(b: DiceRollBroadcast) {
     setHistory((prev) =>
-      [{ ...broadcast, id: crypto.randomUUID(), ts: Date.now(), encounterId: opts.encounterId }, ...prev].slice(0, 100)
+      [{ ...b, id: crypto.randomUUID(), ts: Date.now(), encounterId: b.encounterId ?? null }, ...prev].slice(0, 100),
     );
-    setAnimQueue((prev) => [...prev, broadcast]);
-    channelRef.current?.send({ type: "broadcast", event: "roll", payload: broadcast });
+  }
 
-    if (user) {
-      const { error: insertErr } = await supabase.from("dice_rolls").insert({
-        campaign_id: opts.campaignId,
-        encounter_id: opts.encounterId,
-        user_id: user.id,
-        character_name: opts.characterName,
-        rolled_by_dm: opts.rolledByDm ?? false,
-        dice_type: opts.diceType,
-        result,
-        modifier: opts.modifier,
-        total,
-        roll_type: opts.rollType,
-      });
-      if (insertErr) console.error("[dice_rolls insert]", insertErr);
-    }
-
-    if (opts.sides === 20) {
-      if (result === 20) incrementPartyStat(opts.campaignId, "total_crits", 1);
-      if (result === 1)  incrementPartyStat(opts.campaignId, "total_fumbles", 1);
-    }
-    if (opts.rollType.toLowerCase().includes("dmg") || opts.rollType.toLowerCase().includes("damage")) {
-      incrementPartyStat(opts.campaignId, "total_damage_dealt", total);
-    }
-
-    return total;
-  }, [user, getOrInitBox]);
-
-  const rollPool = useCallback(async (opts: PoolRollOptions) => {
-    const diceLabel = opts.pool.map(({ count, sides }) => `${count}d${sides}`).join("+");
-    const useAdvDis = opts.advantage || opts.disadvantage;
-
-    setDiceAnimating(true);
-
-    let diceSum = 0;
-    let discardedRoll: number | undefined;
-    let d20Result: number | undefined;
-    const allRolls: number[] = [];
-
-    const notationParts = opts.pool.map(({ sides, count }) => `${count}d${sides}`);
-
-    function sumResults(results: { sides: number; value: number }[]): number {
-      return results.reduce((s, r) => s + safeValue(r.value, r.sides), 0);
-    }
-
-    function cryptoSumPool(): number {
-      return opts.pool.reduce((s, { sides, count }) =>
-        s + Array.from({ length: count }, () => cryptoRoll(sides)).reduce((a, b) => a + b, 0), 0);
-    }
-
-    inFlightRef.current += 1;
-    try {
-      const box = await getOrInitBox();
-
-      if (useAdvDis) {
-        const results1 = await box.roll(notationParts);
-        const sum1 = sumResults(results1);
-        const results2 = await box.roll(notationParts);
-        const sum2 = sumResults(results2);
-        const keep = opts.advantage ? Math.max(sum1, sum2) : Math.min(sum1, sum2);
-        const drop = opts.advantage ? Math.min(sum1, sum2) : Math.max(sum1, sum2);
-        diceSum = keep;
-        discardedRoll = drop;
-        allRolls.push(keep);
-        if (opts.pool.length === 1 && opts.pool[0].sides === 20 && opts.pool[0].count === 1) {
-          d20Result = keep;
+  // Throw a pool with the 3D dice when they work, the fallback RNG when not.
+  // DiceBox is the authoritative RNG: its physics result is what the card shows.
+  const throwDice = useCallback(
+    async (pool: Pool, mode: { advantage: boolean; disadvantage: boolean }) => {
+      // Show the canvas at once so the backdrop is up while DiceBox inits.
+      setDiceAnimating(true);
+      inFlightRef.current += 1;
+      try {
+        const box = await getOrInitBox().catch(() => null);
+        try {
+          return await rollPoolWith(box ? boxSource(box) : cryptoSource, pool, mode);
+        } catch {
+          return await rollPoolWith(cryptoSource, pool, mode);
         }
-      } else {
-        const results = await box.roll(notationParts);
-        const bySides = new Map<number, number[]>();
-        for (const r of results) {
-          bySides.set(r.sides, [...(bySides.get(r.sides) ?? []), safeValue(r.value, r.sides)]);
-        }
-        for (const { sides, count } of opts.pool) {
-          const slice = (bySides.get(sides) ?? []).slice(0, count);
-          while (slice.length < count) slice.push(cryptoRoll(sides));
-          if (sides === 20) d20Result = slice[0];
-          diceSum += slice.reduce((s, v) => s + v, 0);
-          allRolls.push(...slice);
-        }
+      } finally {
+        inFlightRef.current -= 1;
       }
-    } catch {
-      if (useAdvDis) {
-        const sum1 = cryptoSumPool();
-        const sum2 = cryptoSumPool();
-        const keep = opts.advantage ? Math.max(sum1, sum2) : Math.min(sum1, sum2);
-        const drop = opts.advantage ? Math.min(sum1, sum2) : Math.max(sum1, sum2);
-        diceSum = keep;
-        discardedRoll = drop;
-        allRolls.push(keep);
-        if (opts.pool.length === 1 && opts.pool[0].sides === 20 && opts.pool[0].count === 1) {
-          d20Result = keep;
-        }
-      } else {
-        for (const { sides, count } of opts.pool) {
-          const rolls = Array.from({ length: count }, () => cryptoRoll(sides));
-          if (sides === 20) d20Result = rolls[0];
-          diceSum += rolls.reduce((a, b) => a + b, 0);
-          allRolls.push(...rolls);
-        }
+    },
+    [getOrInitBox],
+  );
+
+  /** Show, broadcast and record a roll, and count it in the party's tallies. */
+  const publish = useCallback(
+    (b: DiceRollBroadcast, campaignId: string, d20?: number) => {
+      addToHistory(b);
+      if (b.kind !== "action") setAnimQueue((prev) => [...prev, b]);
+      void channelRef.current?.send({ type: "broadcast", event: "roll", payload: b });
+
+      if (user) {
+        void supabase
+          .from("dice_rolls")
+          .insert({
+            campaign_id: campaignId,
+            encounter_id: b.encounterId ?? null,
+            user_id: user.id,
+            character_name: b.characterName,
+            rolled_by_dm: b.rolledByDm ?? false,
+            dice_type: b.diceType,
+            result: b.result,
+            modifier: b.modifier,
+            total: b.total,
+            // roll_type is required; an announcement's is its text.
+            roll_type: b.rollType || (b.actionText ?? ""),
+            context: storedContext(b),
+          })
+          .then(({ error }) => {
+            if (error) console.error("[dice_rolls insert]", error);
+          });
       }
-    } finally {
-      inFlightRef.current -= 1;
-    }
 
-    const total = diceSum + opts.modifier;
-    const rollType = opts.rollType || diceLabel;
+      if (d20 === 20) void incrementPartyStat(campaignId, "total_crits", 1);
+      if (d20 === 1) void incrementPartyStat(campaignId, "total_fumbles", 1);
+      if (b.kind !== "action" && isDamageRoll(b)) {
+        void incrementPartyStat(campaignId, "total_damage_dealt", b.total);
+      }
+    },
+    [user],
+  );
 
-    const broadcast: DiceRollBroadcast = {
-      characterName: opts.characterName,
-      rolledByDm: opts.rolledByDm ?? false,
-      diceType: diceLabel,
-      result: diceSum,
-      modifier: opts.modifier,
-      total,
-      rollType,
-      encounterId: opts.encounterId,
-      advantage: opts.advantage || undefined,
-      disadvantage: opts.disadvantage || undefined,
-      discardedRoll,
-      rolls: allRolls,
-    };
+  const roll = useCallback(
+    async (opts: RollOptions) => {
+      // "2d6" -> 2, "d20" -> 1.
+      const countMatch = /^(\d+)/i.exec(opts.diceType);
+      const count = countMatch ? parseInt(countMatch[1]) : 1;
+      const r = await throwDice([{ sides: opts.sides, count }], { advantage: false, disadvantage: false });
+      const total = r.sum + opts.modifier;
+      publish(
+        {
+          characterName: opts.characterName,
+          rolledByDm: opts.rolledByDm ?? false,
+          diceType: opts.diceType,
+          result: r.sum,
+          modifier: opts.modifier,
+          total,
+          rollType: opts.rollType,
+          encounterId: opts.encounterId,
+          rolls: r.rolls,
+          context: opts.context,
+        },
+        opts.campaignId,
+        r.d20,
+      );
+      return total;
+    },
+    [throwDice, publish],
+  );
 
-    setHistory((prev) =>
-      [{ ...broadcast, id: crypto.randomUUID(), ts: Date.now(), encounterId: opts.encounterId }, ...prev].slice(0, 100)
-    );
-    setAnimQueue((prev) => [...prev, broadcast]);
-    channelRef.current?.send({ type: "broadcast", event: "roll", payload: broadcast });
+  const rollPool = useCallback(
+    async (opts: PoolRollOptions) => {
+      const diceLabel = opts.pool.map(({ count, sides }) => dice(count, sides)).join("+");
+      const r = await throwDice(opts.pool, opts);
+      const total = r.sum + opts.modifier;
+      publish(
+        {
+          characterName: opts.characterName,
+          rolledByDm: opts.rolledByDm ?? false,
+          diceType: diceLabel,
+          result: r.sum,
+          modifier: opts.modifier,
+          total,
+          rollType: opts.rollType || diceLabel,
+          encounterId: opts.encounterId,
+          advantage: opts.advantage || undefined,
+          disadvantage: opts.disadvantage || undefined,
+          discardedRoll: r.discarded,
+          rolls: r.rolls,
+          context: opts.context,
+        },
+        opts.campaignId,
+        r.d20,
+      );
+      return total;
+    },
+    [throwDice, publish],
+  );
 
-    if (user) {
-      const { error: insertErr } = await supabase.from("dice_rolls").insert({
-        campaign_id: opts.campaignId,
-        encounter_id: opts.encounterId,
-        user_id: user.id,
-        character_name: opts.characterName,
-        rolled_by_dm: opts.rolledByDm ?? false,
-        dice_type: diceLabel,
-        result: diceSum,
-        modifier: opts.modifier,
-        total,
-        roll_type: rollType,
-      });
-      if (insertErr) console.error("[dice_rolls insert]", insertErr);
-    }
-
-    if (d20Result !== undefined) {
-      if (d20Result === 20) incrementPartyStat(opts.campaignId, "total_crits", 1);
-      if (d20Result === 1)  incrementPartyStat(opts.campaignId, "total_fumbles", 1);
-    }
-    if (rollType.toLowerCase().includes("dmg") || rollType.toLowerCase().includes("damage")) {
-      incrementPartyStat(opts.campaignId, "total_damage_dealt", total);
-    }
-
-    return total;
-  }, [user, getOrInitBox]);
-
-  const announceAction = useCallback((opts: ActionAnnounceOptions) => {
-    const broadcast: DiceRollBroadcast = {
-      characterName: opts.characterName,
-      diceType: "",
-      result: 0,
-      modifier: 0,
-      total: 0,
-      rollType: "",
-      encounterId: opts.encounterId,
-      kind: "action",
-      actionText: opts.actionText,
-      actionCategory: opts.actionCategory,
-    };
-    setHistory((prev) =>
-      [{ ...broadcast, id: crypto.randomUUID(), ts: Date.now(), encounterId: opts.encounterId }, ...prev].slice(0, 100)
-    );
-    channelRef.current?.send({ type: "broadcast", event: "roll", payload: broadcast });
-  }, []);
+  const announceAction = useCallback(
+    (opts: ActionAnnounceOptions) => {
+      publish(
+        {
+          characterName: opts.characterName,
+          rolledByDm: opts.rolledByDm ?? false,
+          diceType: "",
+          result: 0,
+          modifier: 0,
+          total: 0,
+          rollType: "",
+          encounterId: opts.encounterId,
+          kind: "action",
+          actionText: opts.actionText,
+          actionCategory: opts.actionCategory,
+          context: opts.context,
+        },
+        opts.campaignId,
+      );
+    },
+    [publish],
+  );
 
   const shiftAnim = useCallback(() => {
     setAnimQueue((prev) => prev.slice(1));

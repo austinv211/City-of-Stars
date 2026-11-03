@@ -97,6 +97,7 @@ function useOwnRolls(screen: EncounterScreen, own: EncounterParticipant) {
     campaignId: screen.campaign?.id ?? "",
     encounterId: screen.encounterId ?? "",
     isDM: false,
+    targetId: screen.targetId,
     onSetTurnFlag: (flag, v) => void screen.combat.setTurnFlag(own.id, flag, v),
   });
 }

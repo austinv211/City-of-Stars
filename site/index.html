@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="noindex" />
+    <title>City of Stars</title>
+    <style>
+      /* The app's Polaris palette (src/frontend/styles/globals.scss). */
+      :root {
+        --background: oklch(0.1161 0.0127 222.2833);
+        --foreground: oklch(0.8802 0.0077 207.1375);
+        --card: oklch(0.1461 0.0127 222.2833);
+        --muted-foreground: oklch(0.4987 0.015 221.612);
+        --primary: oklch(0.6554 0.1151 214.5277);
+        --primary-hover: oklch(0.57 0.1151 214.5277);
+        --primary-foreground: oklch(0.22 0.04 214.5);
+        --secondary: oklch(0.7791 0.1499 78.9127);
+        --destructive: oklch(0.6406 0.1801 34.9238);
+        --success: oklch(0.65 0.15 145);
+        --border: oklch(0.2487 0.0127 222.2833);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+        background:
+          radial-gradient(ellipse 70% 60% at 40% 35%, color-mix(in oklch, var(--secondary) 6%, transparent) 0%, transparent 55%),
+          radial-gradient(ellipse 50% 40% at 65% 55%, color-mix(in oklch, var(--primary) 7%, transparent) 0%, transparent 60%),
+          var(--background);
+        color: var(--foreground);
+        font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      .card {
+        position: relative;
+        width: 100%;
+        max-width: 24rem;
+        padding: 2.25rem 2rem;
+        overflow: hidden;
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+        text-align: center;
+      }
+      /* The app's rainbow accent bar along the top of the login card. */
+      .accent {
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 2px;
+        background: linear-gradient(90deg, #a6e3a1, #b4befe, #89b4fa, #f5e0dc, #f2cdcd, #f5c2e7, #74c7ec, #89dceb, #94e2d5, #f38ba8, #eba0ac, #fab387);
+      }
+      .mark {
+        display: inline-flex;
+        width: 56px;
+        height: 56px;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in oklch, var(--primary) 15%, transparent);
+        border: 1px solid color-mix(in oklch, var(--primary) 20%, transparent);
+      }
+      .brand {
+        margin: 0.75rem 0 1.75rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      h1 { margin: 0 0 0.5rem; font-size: 1.05rem; font-weight: 600; }
+      p { margin: 0 0 0.5rem; color: var(--muted-foreground); }
+      .notice {
+        margin-bottom: 1.25rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid;
+        font-size: 0.875rem;
+        text-align: left;
+      }
+      .notice.ok { color: var(--success); border-color: color-mix(in oklch, var(--success) 30%, transparent); background: color-mix(in oklch, var(--success) 10%, transparent); }
+      .notice.err { color: var(--destructive); border-color: color-mix(in oklch, var(--destructive) 30%, transparent); background: color-mix(in oklch, var(--destructive) 10%, transparent); }
+      .actions { display: grid; gap: 0.5rem; margin-top: 1.5rem; }
+      .button {
+        display: block;
+        padding: 0.65rem 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .button.primary { background: var(--primary); color: var(--primary-foreground); }
+      .button.primary:hover { background: var(--primary-hover); }
+      .button.ghost { color: var(--muted-foreground); border-color: var(--border); }
+      .button.ghost:hover { color: var(--foreground); border-color: var(--muted-foreground); }
+      .hint { margin-top: 0.75rem; font-size: 0.8rem; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="accent" aria-hidden="true"></div>
+      <div class="mark" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 20 20">
+          <polygon points="10,10 7.5,7.5 10,0 12.5,7.5" fill="#5b9bd5" />
+          <polygon points="10,10 12.5,7.5 20,10 12.5,12.5" fill="#d4a054" />
+          <polygon points="10,10 12.5,12.5 10,20 7.5,12.5" fill="#5b9bd5" />
+          <polygon points="10,10 7.5,12.5 0,10 7.5,7.5" fill="#d4a054" />
+        </svg>
+      </div>
+      <div class="brand">City of Stars</div>
+
+      <section id="confirmed" hidden>
+        <div class="notice ok" role="status">Your email is confirmed.</div>
+        <h1>You're all set</h1>
+        <p>Open City of Stars and sign in with your email and password.</p>
+      </section>
+
+      <section id="failed" hidden>
+        <div class="notice err" role="alert" id="failed-reason">
+          The confirmation link has expired or was already used.
+        </div>
+        <h1>That link didn't work</h1>
+        <p>Try signing in. If your email still isn't confirmed, sign up again for a fresh link.</p>
+      </section>
+
+      <section id="default">
+        <h1>The companion app for our campaign</h1>
+        <p>Track your character and join encounters with the table.</p>
+      </section>
+
+      <div class="actions">
+        <a class="button primary" id="open-app" href="cityofstars://auth/confirmed">Open City of Stars</a>
+        <a class="button ghost" href="https://github.com/austinv211/City-of-Stars/releases/latest">
+          Don't have it yet? Download the app
+        </a>
+      </div>
+      <p class="hint">Opening asks your browser for permission the first time.</p>
+    </main>
+
+    <script>
+      // Supabase verifies the link before redirecting here and reports the
+      // outcome in the URL: tokens on success, error_description on failure.
+      // The tokens aren't used (the user signs in in the app) and are cleared
+      // from the address bar.
+      const params = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+      const show = (id) => {
+        document.getElementById("default").hidden = true;
+        document.getElementById(id).hidden = false;
+      };
+      const failed = params.get("error") || params.get("error_description");
+      const confirmed = params.get("access_token") || params.get("type") === "signup" || params.get("code");
+      const openApp = document.getElementById("open-app");
+
+      if (failed) {
+        show("failed");
+        const reason = params.get("error_description");
+        if (reason) document.getElementById("failed-reason").textContent = reason.replace(/\+/g, " ");
+        openApp.href = "cityofstars://open";
+      } else if (confirmed) {
+        show("confirmed");
+        // Offer to open the app straight away: the browser asks "Open City of
+        // Stars?" if it's installed, and does nothing if it isn't.
+        setTimeout(() => { location.href = openApp.href; }, 400);
+      } else {
+        openApp.href = "cityofstars://open";
+      }
+      if (location.hash || location.search) history.replaceState(null, "", location.pathname);
+    </script>
+  </body>
+</html>

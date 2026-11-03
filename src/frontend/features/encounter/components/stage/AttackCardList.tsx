@@ -10,7 +10,7 @@ import { AttackCard } from "./AttackCard";
 import { AttackOutcome } from "./AttackOutcome";
 import { useAttackOutcome } from "./useAttackOutcome";
 import { SpellSlotCast } from "./SpellSlotCast";
-import { parseDamageDice, sign } from "./combatantStats";
+import { dice, parseDamageDice, sign } from "./combatantStats";
 import type { CombatantView } from "./combatantView";
 
 /** Weapon attacks and damaging spells, each as an AttackCard. */
@@ -48,7 +48,7 @@ export function AttackCardList({
               key={atk.id}
               atk={atk}
               view={view}
-              description={atk.notes || spellDesc.get(atk.name.toLowerCase()) || null}
+              description={atk.notes || (spellDesc.get(atk.name.toLowerCase()) ?? null)}
             />
           ))}
           {damageSpells.map((spell) => (
@@ -77,18 +77,22 @@ function WeaponAttack({
   description: string | null;
 }) {
   const { rolls, stats, locked } = view;
-  const outcome = useAttackOutcome();
+  const outcome = useAttackOutcome(view.target);
   const { attackMod, damageMod, diceCount } = stats.attackRoll(atk);
   const toHit = attackMod + stats.exhaustPenalty;
-  const dice = `${diceCount}d${atk.dice_sides}`;
+  const baseDice = dice(diceCount, atk.dice_sides);
   // Off-hand and Cleave deal weapon dice without the positive ability
   // modifier (a negative modifier still applies, per 2024).
   const noPosMod = Math.min(0, damageMod);
   const versatile = atk.versatile_sides;
+  const source = { type: atk.is_spell ? "spell" : "weapon", name: atk.name } as const;
   const damage =
     (diceExpr: string, sides: number, mod: number, label: string, crit = false) =>
     () => {
-      outcome.deal(rolls.doRoll(diceExpr, sides, mod, `${atk.name} ${label}`), crit);
+      outcome.deal(
+        rolls.doRoll(diceExpr, sides, mod, `${atk.name} ${label}`, { kind: "damage", source, crit }),
+        crit,
+      );
     };
 
   return (
@@ -98,20 +102,20 @@ function WeaponAttack({
       damageType={atk.damage_type}
       description={description}
       attackMod={toHit}
-      damageLabel={`${dice}${damageMod ? sign(damageMod) : ""}`}
+      damageLabel={`${baseDice}${damageMod ? sign(damageMod) : ""}`}
       disabled={locked}
       adjust={stats.condEffects.attackAdjust}
       mastery={atk.mastery}
-      versatileLabel={versatile ? `d${versatile}` : undefined}
+      versatileLabel={versatile ? `d${String(versatile)}` : undefined}
       onAttack={() => {
         outcome.aim(
-          rolls.rollD20(toHit, `${atk.name} Attack`, stats.attackOpts),
+          rolls.rollD20(toHit, `${atk.name} Attack`, stats.attackOpts, { kind: "attack", source }),
           toHit,
         );
       }}
-      onDamage={damage(dice, atk.dice_sides, damageMod, "Dmg")}
+      onDamage={damage(baseDice, atk.dice_sides, damageMod, "Dmg")}
       onCritDamage={damage(
-        `${diceCount * 2}d${atk.dice_sides}`,
+        dice(diceCount * 2, atk.dice_sides),
         atk.dice_sides,
         damageMod,
         "Crit",
@@ -119,23 +123,22 @@ function WeaponAttack({
       )}
       onVersatileDamage={
         versatile
-          ? damage(`${diceCount}d${versatile}`, versatile, damageMod, "2H Dmg")
+          ? damage(dice(diceCount, versatile), versatile, damageMod, "2H Dmg")
           : undefined
       }
       onOffhandDamage={
         atk.is_light && !atk.is_spell
-          ? damage(dice, atk.dice_sides, noPosMod, "Off-hand Dmg")
+          ? damage(baseDice, atk.dice_sides, noPosMod, "Off-hand Dmg")
           : undefined
       }
       onCleaveDamage={
         atk.mastery === "Cleave"
-          ? damage(dice, atk.dice_sides, noPosMod, "Cleave Dmg")
+          ? damage(baseDice, atk.dice_sides, noPosMod, "Cleave Dmg")
           : undefined
       }
       outcome={
         <AttackOutcome
           outcome={outcome}
-          target={view.target}
           damageType={atk.damage_type}
           onApplyDamage={view.onApplyDamage}
         />
@@ -156,7 +159,8 @@ function DamageSpell({
   onExpend: (level: number) => void;
 }) {
   const { participant, character, rolls, stats, locked } = view;
-  const outcome = useAttackOutcome();
+  const outcome = useAttackOutcome(view.target);
+  const source = { type: "spell", name: spell.name } as const;
   const { count, sides, mod } = parseDamageDice(spell.damage_dice ?? "");
   // Cantrips (level 0) scale their dice with character level.
   const dmgCount = spell.level === 0 && character ? count * stats.cantripMult : count;
@@ -169,24 +173,28 @@ function DamageSpell({
       damageType={spell.damage_type ?? ""}
       description={spell.description || null}
       attackMod={spell.attack_type ? toHit : null}
-      damageLabel={`${dmgCount}d${sides}${mod ? sign(mod) : ""}`}
+      damageLabel={`${dice(dmgCount, sides)}${mod ? sign(mod) : ""}`}
       disabled={locked}
       adjust={stats.condEffects.attackAdjust}
       onAttack={() => {
         outcome.aim(
-          rolls.rollD20(toHit, `${spell.name} Attack`, stats.attackOpts),
+          rolls.rollD20(toHit, `${spell.name} Attack`, stats.attackOpts, { kind: "attack", source }),
           toHit,
         );
       }}
       onDamage={() => {
         outcome.deal(
-          rolls.doRoll(`${dmgCount}d${sides}`, sides, mod, `${spell.name} Dmg`),
+          rolls.doRoll(dice(dmgCount, sides), sides, mod, `${spell.name} Dmg`, { kind: "damage", source }),
           false,
         );
       }}
       onCritDamage={() => {
         outcome.deal(
-          rolls.doRoll(`${dmgCount * 2}d${sides}`, sides, mod, `${spell.name} Crit`),
+          rolls.doRoll(dice(dmgCount * 2, sides), sides, mod, `${spell.name} Crit`, {
+            kind: "damage",
+            source,
+            crit: true,
+          }),
           true,
         );
       }}
@@ -203,7 +211,6 @@ function DamageSpell({
       outcome={
         <AttackOutcome
           outcome={outcome}
-          target={view.target}
           damageType={spell.damage_type ?? ""}
           onApplyDamage={view.onApplyDamage}
         />

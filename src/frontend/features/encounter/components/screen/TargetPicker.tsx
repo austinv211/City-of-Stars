@@ -1,4 +1,4 @@
-import { Crosshair, Droplets, Shield } from "lucide-react";
+import { Crosshair, Shield } from "lucide-react";
 import {
   ResponsiveDialog,
   ResponsiveDialogBody,
@@ -8,6 +8,7 @@ import {
 } from "@/core/components/ui/responsive-dialog";
 import { cn } from "@/lib/utils";
 import { targetInfo } from "../../lib/attack";
+import { WoundBadge } from "../stage/WoundBadge";
 import type { EncounterParticipant } from "../../types/encounter.types";
 
 /**
@@ -20,7 +21,7 @@ export function TargetPicker({
   onOpenChange,
   participants,
   isDM,
-  ownId,
+  actor,
   currentId,
   onPick,
 }: {
@@ -28,30 +29,28 @@ export function TargetPicker({
   onOpenChange: (open: boolean) => void;
   participants: EncounterParticipant[];
   isDM: boolean;
-  /** The viewer's own combatant, listed last: you rarely target yourself. */
-  ownId: string | null;
+  /** The combatant aiming; not listed, since it can't target itself. */
+  actor: EncounterParticipant | null;
   currentId: string | null;
   onPick: (id: string) => void;
 }) {
-  const ordered = [
-    ...participants.filter((p) => p.id !== ownId),
-    ...participants.filter((p) => p.id === ownId),
-  ];
+  const choices = participants.filter((p) => p.id !== actor?.id);
+  // The DM aims for many combatants, so say whose target this is.
+  const title = isDM && actor ? `Choose ${actor.name}'s target` : "Choose a target";
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent widthClassName="md:max-w-md">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Choose a target</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{title}</ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
         <ResponsiveDialogBody>
           <ul className="divide-y divide-border/40 border border-border/40">
-            {ordered.map((p) => (
+            {choices.map((p) => (
               <li key={p.id}>
                 <TargetRow
                   participant={p}
                   isDM={isDM}
-                  isOwn={p.id === ownId}
                   selected={p.id === currentId}
                   onPick={() => {
                     onPick(p.id);
@@ -70,19 +69,15 @@ export function TargetPicker({
 function TargetRow({
   participant: p,
   isDM,
-  isOwn,
   selected,
   onPick,
 }: {
   participant: EncounterParticipant;
   isDM: boolean;
-  isOwn: boolean;
   selected: boolean;
   onPick: () => void;
 }) {
   const info = targetInfo(isDM, p);
-  const down = p.hp_current <= 0;
-  const bloodied = !down && p.hp_max > 0 && p.hp_current * 2 <= p.hp_max;
 
   return (
     <button
@@ -103,7 +98,6 @@ function TargetRow({
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">
           {p.name}
-          {isOwn && <span className="text-muted-foreground"> (you)</span>}
         </span>
         <span className="flex items-center gap-2 text-xs text-muted-foreground">
           {info.ac !== null && (
@@ -112,11 +106,7 @@ function TargetRow({
             </span>
           )}
           {info.totalCover && <span className="text-secondary">Total cover</span>}
-          {(down || bloodied) && (
-            <span className="flex items-center gap-1 text-destructive">
-              <Droplets className="h-3 w-3" /> {down ? "Down" : "Bloodied"}
-            </span>
-          )}
+          <WoundBadge participant={p} />
         </span>
       </span>
     </button>

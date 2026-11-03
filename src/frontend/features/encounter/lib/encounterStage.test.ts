@@ -1,56 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { deriveStage, type StageInput } from "./encounterStage";
-import type { EncounterEffect, EncounterParticipant } from "../types/encounter.types";
+import {
+  deriveStage,
+  peekReleaseKey,
+  resolvePanelId,
+  type StageInput,
+} from "./encounterStage";
+import type { EncounterEffect } from "../types/encounter.types";
+import { combatant } from "./participantFixture";
 
-function combatant(
-  id: string,
-  order: number,
-  over: Partial<EncounterParticipant> = {},
-) {
-  return {
-    id,
-    encounter_id: "enc",
-    character_id: null,
-    name: id,
-    portrait_url: null,
-    initiative_order: order,
-    initiative_score: 10,
-    hp_current: 10,
-    hp_max: 10,
-    hp_temp: 0,
-    ac: 12,
-    conditions: [],
-    is_player: true,
-    owner_id: null,
-    str_score: null,
-    dex_score: null,
-    con_score: null,
-    int_score: null,
-    wis_score: null,
-    cha_score: null,
-    actions: null,
-    special_abilities: null,
-    has_rolled_initiative: true,
-    description: null,
-    damage_resistances: [],
-    damage_immunities: [],
-    damage_vulnerabilities: [],
-    concentrating_on: null,
-    death_save_successes: 0,
-    death_save_failures: 0,
-    exhaustion: 0,
-    heroic_inspiration: false,
-    cover: "none",
-    action_used: false,
-    bonus_used: false,
-    reaction_used: false,
-    dodging: false,
-    legendary_actions: null,
-    legendary_actions_max: 0,
-    legendary_actions_remaining: 0,
-    ...over,
-  } satisfies EncounterParticipant;
-}
 
 // Order: fighter(1), goblin(2), me(3).
 const fighter = combatant("fighter", 1);
@@ -186,5 +143,40 @@ describe("deriveStage: effects and round", () => {
 
   it("passes the round through", () => {
     expect(stage().round).toBe(2);
+  });
+});
+
+describe("resolvePanelId", () => {
+  const base = { ownId: "me", activeId: "goblin", peekId: null };
+
+  it("follows the turn for the DM and shows a player their own combatant", () => {
+    expect(resolvePanelId({ ...base, isDM: true })).toBe("goblin");
+    expect(resolvePanelId({ ...base, isDM: false })).toBe("me");
+  });
+
+  it("shows a peeked card for either role", () => {
+    expect(resolvePanelId({ ...base, isDM: true, peekId: "fighter" })).toBe("fighter");
+    expect(resolvePanelId({ ...base, isDM: false, peekId: "fighter" })).toBe("fighter");
+  });
+});
+
+describe("peekReleaseKey", () => {
+  it("ends a DM's peek when the turn moves on", () => {
+    expect(peekReleaseKey(true, "dm-running", "goblin")).not.toBe(
+      peekReleaseKey(true, "dm-running", "fighter"),
+    );
+  });
+
+  it("keeps a player's peek while watching, whoever is acting", () => {
+    expect(peekReleaseKey(false, "watching", "goblin")).toBe(
+      peekReleaseKey(false, "watching", "fighter"),
+    );
+  });
+
+  it("ends a player's peek when they go on deck, take their turn, and finish it", () => {
+    const keys = (["watching", "on-deck", "my-turn", "watching"] as const).map((p) =>
+      peekReleaseKey(false, p, null),
+    );
+    for (let i = 1; i < keys.length; i++) expect(keys[i]).not.toBe(keys[i - 1]);
   });
 });

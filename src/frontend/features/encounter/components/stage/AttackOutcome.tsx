@@ -1,8 +1,9 @@
 import { Crosshair } from "lucide-react";
 import { Button } from "@/core/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { DamageResult } from "../../hooks/useEncounterParticipants";
 import { judgeAttack, type AttackVerdict, type TargetInfo } from "../../lib/attack";
+import type { DamageResult } from "../../hooks/useEncounterParticipants";
+import type { ApplyDamage } from "./combatantView";
 import type { AttackOutcomeState, Rolled } from "./useAttackOutcome";
 
 const VERDICT: Record<AttackVerdict, { label: string; className: string }> = {
@@ -23,20 +24,14 @@ const VERDICT: Record<AttackVerdict, { label: string; className: string }> = {
  */
 export function AttackOutcome({
   outcome,
-  target,
   damageType,
   onApplyDamage,
 }: {
   outcome: AttackOutcomeState;
-  target: TargetInfo | null;
   damageType: string;
-  onApplyDamage?: (
-    amount: number,
-    type: string | null,
-    crit: boolean,
-  ) => Promise<DamageResult>;
+  onApplyDamage?: ApplyDamage;
 }) {
-  const { attack, damage, applied } = outcome;
+  const { attack, damage, applied, target } = outcome;
   if (!attack && !damage) return null;
   const targetName = target?.participant.name;
 
@@ -67,6 +62,7 @@ export function AttackOutcome({
                 className="h-7 px-2 text-xs"
                 onClick={() =>
                   void onApplyDamage(
+                    target.participant.id,
                     damage.total,
                     damageType || null,
                     damage.crit,

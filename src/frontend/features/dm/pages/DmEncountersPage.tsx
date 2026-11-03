@@ -3,29 +3,20 @@ import { useNavigate } from "react-router";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Badge } from "@/core/components/ui/badge";
-import { Input } from "@/core/components/ui/input";
-import { Label } from "@/core/components/ui/label";
-import { Checkbox } from "@/core/components/ui/checkbox";
 import { Separator } from "@/core/components/ui/separator";
 import { ResponsiveTable } from "@/core/components/ui/responsive-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/core/components/ui/dialog";
 import { Plus, Trash2, Swords, Play, BookOpen, ScrollText, X, Pencil, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Textarea } from "@/core/components/ui/textarea";
 import { useEncounterManager } from "@/features/dm/hooks/useEncounterManager";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { supabase } from "@/lib/supabase";
 import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
-import { MonsterPicker } from "@/features/encounter/components/MonsterPicker";
+import { StartEncounterDialog } from "@/features/dm/components/StartEncounterDialog";
+import { TemplateDialog } from "@/features/dm/components/TemplateDialog";
+import { BLANK_NPC, type TemplateDraft } from "@/features/dm/lib/templateDraft";
 import type { CustomMonster } from "@/features/encounter/components/MonsterPicker";
-import type { NpcDraft, PartyEntry } from "@/features/dm/hooks/useEncounterManager";
+import type { PartyEntry } from "@/features/dm/hooks/useEncounterManager";
 import type { Encounter, EncounterParticipant } from "@/features/encounter/types/encounter.types";
 
 interface HistoryRoll {
@@ -40,8 +31,6 @@ interface HistoryRoll {
   roll_type: string;
   rolled_at: string;
 }
-
-const BLANK_NPC: NpcDraft = { name: "", hp: 10, ac: 12, initiative: 0 };
 
 function StatusBadge({ status }: { status: Encounter["status"] }) {
   if (status === "active")
@@ -65,24 +54,11 @@ export default function DmEncountersPage() {
   // Participant counts per encounter id (for the table columns).
   const [counts, setCounts] = useState<Record<string, { npc: number; total: number }>>({});
 
-  // Create / edit dialog
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
-  const [npcs, setNpcs] = useState<NpcDraft[]>([{ ...BLANK_NPC }]);
-  const [creating, setCreating] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // Create / edit dialog: the template being edited, or null when closed.
+  const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
 
   // Start / run dialog
   const [startTarget, setStartTarget] = useState<Encounter | null>(null);
-  // The start dialog records only what the DM changed -- who they left out,
-  // and HP/AC they overrode -- not a snapshot of the party taken on open. A
-  // snapshot taken before the campaign's characters had loaded was empty, and
-  // the encounter then ran with no party at all.
-  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
-  const [partyHp, setPartyHp] = useState<Record<string, number>>({});
-  const [partyAc, setPartyAc] = useState<Record<string, number>>({});
-  const [starting, setStarting] = useState(false);
 
   // History side panel
   const [historyEncounter, setHistoryEncounter] = useState<Encounter | null>(null);
@@ -138,89 +114,33 @@ export default function DmEncountersPage() {
   // ── Create / edit helpers ─────────────────────────────────────────────────
 
   function openCreate() {
-    setEditingTemplateId(null);
-    setNewName("");
-    setNpcs([{ ...BLANK_NPC }]);
-    setPickerOpen(false);
-    setCreateOpen(true);
+    setTemplateDraft({ id: null, name: "", npcs: [{ ...BLANK_NPC }] });
   }
 
   async function openEditTemplate(template: Encounter) {
-    setEditingTemplateId(template.id);
-    setNewName(template.name ?? "");
-    setPickerOpen(false);
     const loaded = await getTemplateNpcs(template.id);
-    setNpcs(loaded.length > 0 ? loaded : [{ ...BLANK_NPC }]);
-    setCreateOpen(true);
-  }
-
-  function updateNpc(idx: number, field: keyof NpcDraft, value: string | number | undefined) {
-    setNpcs((prev) => prev.map((n, i) => (i === idx ? { ...n, [field]: value } : n)));
-  }
-
-  function removeNpc(idx: number) {
-    setNpcs((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function addFromPicker(draft: NpcDraft) {
-    setNpcs((prev) => {
-      if (prev.length === 1 && !prev[0].name.trim()) return [draft];
-      return [...prev, draft];
+    setTemplateDraft({
+      id: template.id,
+      name: template.name ?? "",
+      npcs: loaded.length > 0 ? loaded : [{ ...BLANK_NPC }],
     });
-    setPickerOpen(false);
   }
 
-  async function handleSaveTemplate() {
-    if (!newName.trim()) return;
-    setCreating(true);
-    const validNpcs = npcs.filter((n) => n.name.trim());
-    if (editingTemplateId) {
-      await updateTemplate(editingTemplateId, newName.trim(), validNpcs);
-    } else {
-      await createEncounter(newName.trim(), validNpcs, { asTemplate: true });
-    }
-    setCreating(false);
-    setCreateOpen(false);
+  async function handleSaveTemplate(draft: TemplateDraft) {
+    if (draft.id) await updateTemplate(draft.id, draft.name, draft.npcs);
+    else await createEncounter(draft.name, draft.npcs, { asTemplate: true });
+    setTemplateDraft(null);
   }
 
   // ── Start / run helpers ─────────────────────────────────────────────────────
 
-  function openStart(encounter: Encounter) {
-    setExcludedIds(new Set());
-    setPartyHp({});
-    setPartyAc({});
-    setStartTarget(encounter);
-  }
-
-  type PartyMember = (typeof activeCharacters)[number];
-  const isInParty = (c: PartyMember) => !excludedIds.has(c.id);
-  const startHp = (c: PartyMember) => partyHp[c.id] ?? c.hp_current;
-  const startAc = (c: PartyMember) => partyAc[c.id] ?? c.ac;
-
-  async function handleStart() {
-    if (!startTarget) return;
-    setStarting(true);
-    const party: PartyEntry[] = activeCharacters
-      .filter(isInParty)
-      .map((c) => ({
-        characterId: c.id,
-        name: c.name,
-        ownerId: c.owner_id,
-        portraitUrl: c.portrait_url,
-        hp: startHp(c),
-        ac: startAc(c),
-      }));
-
-    let runId: string | null = startTarget.id;
-    if (startTarget.is_template) {
-      runId = await runTemplate(startTarget, party);
-    } else {
-      await startEncounter(startTarget.id, party);
-    }
+  async function handleStart(encounter: Encounter, party: PartyEntry[]) {
+    const runId = encounter.is_template
+      ? await runTemplate(encounter, party)
+      : (await startEncounter(encounter.id, party), encounter.id);
     if (runId) {
       await supabase.rpc("advance_encounter_turn", { p_encounter_id: runId });
     }
-    setStarting(false);
     setStartTarget(null);
     navigate("/dm/encounters/active");
   }
@@ -233,6 +153,8 @@ export default function DmEncountersPage() {
         .from("dice_rolls")
         .select("*")
         .eq("encounter_id", enc.id)
+        // Rolls only: announced actions are stored too, with no dice.
+        .neq("dice_type", "")
         .order("rolled_at", { ascending: false }),
       supabase
         .from("encounter_participants")
@@ -389,7 +311,7 @@ export default function DmEncountersPage() {
                           <Button
                             size="sm"
                             onClick={() => {
-                              openStart(tpl);
+                              setStartTarget(tpl);
                             }}
                           >
                             <Play className="mr-1.5 h-3 w-3" />
@@ -494,7 +416,7 @@ export default function DmEncountersPage() {
                             <Button
                               size="sm"
                               onClick={() => {
-                                openStart(enc);
+                                setStartTarget(enc);
                               }}
                             >
                               <Play className="mr-1.5 h-3 w-3" />
@@ -599,207 +521,27 @@ export default function DmEncountersPage() {
       )}
 
       {/* ── Create / Edit Template Dialog ───────────────────────────────────── */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingTemplateId ? "Edit Template" : "New Encounter Template"}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Template Name</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Goblin Ambush…"
-              />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">NPCs</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
-                    <BookOpen className="h-3 w-3 mr-1.5" />
-                    Pick Monster
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setNpcs((prev) => [...prev, { ...BLANK_NPC }])}
-                  >
-                    <Plus className="h-3 w-3 mr-1.5" />
-                    Blank
-                  </Button>
-                </div>
-              </div>
-
-              {/* Column headers */}
-              <div className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 px-3">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">HP</span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">AC</span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">Init</span>
-                <span />
-              </div>
-
-              {npcs.map((npc, idx) => (
-                <div key={idx} className="space-y-1.5 border rounded-md p-2 bg-muted/10">
-                  <div className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 items-center">
-                    <Input
-                      value={npc.name}
-                      onChange={(e) => updateNpc(idx, "name", e.target.value)}
-                      placeholder="Monster name"
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      value={npc.hp}
-                      onChange={(e) => updateNpc(idx, "hp", parseInt(e.target.value) || 1)}
-                      className="text-center"
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      value={npc.ac}
-                      onChange={(e) => updateNpc(idx, "ac", parseInt(e.target.value) || 1)}
-                      className="text-center"
-                    />
-                    <Input
-                      type="number"
-                      value={npc.initiative}
-                      onChange={(e) => updateNpc(idx, "initiative", parseInt(e.target.value) || 0)}
-                      className="text-center"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeNpc(idx)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={npc.description ?? ""}
-                    onChange={(e) => updateNpc(idx, "description", e.target.value || undefined)}
-                    placeholder="Description shown to players (optional)…"
-                    rows={2}
-                    className="text-xs resize-none"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Monster Picker inline panel */}
-            {pickerOpen && (
-              <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Monster Picker</p>
-                  <Button variant="ghost" size="sm" onClick={() => setPickerOpen(false)}>
-                    Close
-                  </Button>
-                </div>
-                <MonsterPicker
-                  customMonsters={customMonsters}
-                  onSelect={addFromPicker}
-                  onLibraryChange={loadLibrary}
-                />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveTemplate} disabled={creating || !newName.trim()}>
-              {creating
-                ? "Saving…"
-                : editingTemplateId
-                  ? "Save Template"
-                  : "Create Template"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TemplateDialog
+        key={templateDraft ? (templateDraft.id ?? "new") : "closed"}
+        draft={templateDraft}
+        customMonsters={customMonsters}
+        onLibraryChange={loadLibrary}
+        onClose={() => {
+          setTemplateDraft(null);
+        }}
+        onSave={handleSaveTemplate}
+      />
 
       {/* ── Start / Run Dialog ─────────────────────────────────────────────── */}
-      <Dialog open={!!startTarget} onOpenChange={(open) => !open && setStartTarget(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {startTarget?.is_template ? "Run" : "Start"}: {startTarget?.name}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Select party members and set their starting HP and AC.
-            </p>
-
-            {activeCharacters.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No active characters in this campaign.</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="grid grid-cols-[auto_1fr_70px_70px] gap-2 items-center px-1">
-                  <span />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Character</span>
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">HP</span>
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">AC</span>
-                </div>
-                {activeCharacters.map((c) => (
-                  <div key={c.id} className="grid grid-cols-[auto_1fr_70px_70px] gap-2 items-center">
-                    <Checkbox
-                      aria-label={`Include ${c.name}`}
-                      checked={isInParty(c)}
-                      onCheckedChange={() => {
-                        setExcludedIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(c.id)) next.delete(c.id);
-                          else next.add(c.id);
-                          return next;
-                        });
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{c.class} {c.level}</p>
-                    </div>
-                    <Input
-                      type="number"
-                      min={1}
-                      aria-label={`${c.name} starting HP`}
-                      value={startHp(c)}
-                      onChange={(e) => setPartyHp((prev) => ({ ...prev, [c.id]: parseInt(e.target.value) || 1 }))}
-                      disabled={!isInParty(c)}
-                      className="text-center"
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      aria-label={`${c.name} AC`}
-                      value={startAc(c)}
-                      onChange={(e) => setPartyAc((prev) => ({ ...prev, [c.id]: parseInt(e.target.value) || 1 }))}
-                      disabled={!isInParty(c)}
-                      className="text-center"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStartTarget(null)}>Cancel</Button>
-            <Button onClick={handleStart} disabled={starting}>
-              {starting
-                ? (startTarget?.is_template ? "Running…" : "Starting…")
-                : (startTarget?.is_template ? "Run Encounter" : "Start Encounter")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <StartEncounterDialog
+        key={startTarget?.id ?? "closed"}
+        encounter={startTarget}
+        characters={activeCharacters}
+        onClose={() => {
+          setStartTarget(null);
+        }}
+        onStart={(party) => (startTarget ? handleStart(startTarget, party) : Promise.resolve())}
+      />
     </div>
   );
 }

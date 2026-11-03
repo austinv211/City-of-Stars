@@ -52,6 +52,21 @@
       "windows": {
         "installMode": "passive"
       }
+    },
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "cityofstars"
+        ]
+      },
+      "mobile": [
+        {
+          "scheme": [
+            "cityofstars"
+          ],
+          "appLink": false
+        }
+      ]
     }
   }
 }

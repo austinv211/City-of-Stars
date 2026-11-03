@@ -26,6 +26,7 @@ import DmCharacterViewPage from "@/features/dm/pages/DmCharacterViewPage";
 import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
 import AdminCampaignsPage from "@/features/admin/pages/AdminCampaignsPage";
 import RealtimeDebugOverlay from "@/core/components/RealtimeDebugOverlay";
+import { useDeepLinks } from "@/core/hooks/useDeepLinks";
 import { useUpdateCheck } from "@/core/hooks/useUpdateCheck";
 
 function RootRedirect() {
@@ -47,6 +48,7 @@ function RootRedirect() {
 export default function App() {
   // At the root, not in AppShell, so the login screen hears about updates too.
   useUpdateCheck();
+  useDeepLinks();
   return (
     <AuthProvider>
       <BrowserRouter>
