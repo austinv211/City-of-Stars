@@ -62,7 +62,10 @@ export function notifyUpdate(result: UpdateCheck, { force = false } = {}): boole
         toast.loading(`Downloading ${version}…`, { id: TOAST_ID, duration: Infinity });
         installUpdate(update, (percent) => {
           const progress = percent === null ? "" : ` ${String(percent)}%`;
-          toast.loading(`Downloading ${version}…${progress}`, { id: TOAST_ID, duration: Infinity });
+          toast.loading(`Downloading ${version}…${progress}`, {
+            id: TOAST_ID,
+            duration: Infinity,
+          });
         }).catch((err: unknown) => {
           console.warn("[updater] install failed", err);
           toast.error("Update failed", {

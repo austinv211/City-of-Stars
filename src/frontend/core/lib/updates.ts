@@ -48,7 +48,11 @@ const NONE: UpdateCheck = { kind: "none" };
  */
 export function compareSemver(a: string, b: string): number {
   const parts = (v: string) =>
-    v.replace(/^v/, "").split("-")[0].split(".").map((n) => Number(n) || 0);
+    v
+      .replace(/^v/, "")
+      .split("-")[0]
+      .split(".")
+      .map((n) => Number(n) || 0);
   const pa = parts(a);
   const pb = parts(b);
   for (let i = 0; i < 3; i++) {
@@ -64,8 +68,12 @@ export function compareSemver(a: string, b: string): number {
  */
 export function pickAsset(release: GithubRelease, kind: LinkKind): string {
   const match = (name: string) =>
-    kind === "android" ? name.endsWith("_android.apk") : name.startsWith("cityofstars_linux_") && name.endsWith(".deb");
-  return release.assets.find((a) => match(a.name))?.browser_download_url ?? release.html_url;
+    kind === "android"
+      ? name.endsWith("_android.apk")
+      : name.startsWith("cityofstars_linux_") && name.endsWith(".deb");
+  return (
+    release.assets.find((a) => match(a.name))?.browser_download_url ?? release.html_url
+  );
 }
 
 async function fetchLatestRelease(): Promise<GithubRelease> {

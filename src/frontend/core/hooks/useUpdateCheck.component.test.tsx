@@ -58,12 +58,19 @@ describe("useUpdateCheck", () => {
 
   it("offers to install an installable update", async () => {
     const update = { version: "9.0.0" } as never;
-    vi.mocked(checkForUpdate).mockResolvedValue({ kind: "installable", version: "9.0.0", update });
+    vi.mocked(checkForUpdate).mockResolvedValue({
+      kind: "installable",
+      version: "9.0.0",
+      update,
+    });
     renderHook(() => {
       useUpdateCheck();
     });
     await waitFor(() => {
-      expect(toast).toHaveBeenCalledWith("Version 9.0.0 is available", expect.anything());
+      expect(toast).toHaveBeenCalledWith(
+        "Version 9.0.0 is available",
+        expect.anything(),
+      );
     });
     const event = clickEvent();
     lastToastOptions().action.onClick(event);
@@ -73,7 +80,11 @@ describe("useUpdateCheck", () => {
   });
 
   it("links to the download when the install can't update itself", async () => {
-    vi.mocked(checkForUpdate).mockResolvedValue({ kind: "link", version: "9.1.0", url: "https://dl/apk" });
+    vi.mocked(checkForUpdate).mockResolvedValue({
+      kind: "link",
+      version: "9.1.0",
+      url: "https://dl/apk",
+    });
     renderHook(() => {
       useUpdateCheck();
     });
@@ -85,7 +96,11 @@ describe("useUpdateCheck", () => {
   });
 
   it("does not repeat a notice for a version already shown", async () => {
-    vi.mocked(checkForUpdate).mockResolvedValue({ kind: "link", version: "9.2.0", url: "https://dl/apk" });
+    vi.mocked(checkForUpdate).mockResolvedValue({
+      kind: "link",
+      version: "9.2.0",
+      url: "https://dl/apk",
+    });
     const first = renderHook(() => {
       useUpdateCheck();
     });

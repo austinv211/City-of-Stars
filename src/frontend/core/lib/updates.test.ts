@@ -22,10 +22,19 @@ describe("pickAsset", () => {
     tag_name: "v0.4.0",
     html_url: "https://github.com/austinv211/City-of-Stars/releases/tag/v0.4.0",
     assets: [
-      { name: "cityofstars_linux_v0.4.0.AppImage", browser_download_url: "https://dl/appimage" },
+      {
+        name: "cityofstars_linux_v0.4.0.AppImage",
+        browser_download_url: "https://dl/appimage",
+      },
       { name: "cityofstars_linux_v0.4.0.deb", browser_download_url: "https://dl/deb" },
-      { name: "cityofstars_v0.4.0_android.apk", browser_download_url: "https://dl/apk" },
-      { name: "cityofstars_windows_v0.4.0_x64-setup.exe", browser_download_url: "https://dl/exe" },
+      {
+        name: "cityofstars_v0.4.0_android.apk",
+        browser_download_url: "https://dl/apk",
+      },
+      {
+        name: "cityofstars_windows_v0.4.0_x64-setup.exe",
+        browser_download_url: "https://dl/exe",
+      },
     ],
   };
 
