@@ -53,11 +53,15 @@ jobs:
 
       - run: npm ci
 
+      # tauri.updater.conf.json turns on signed updater artifacts (.sig files).
+      # It's a CI-only overlay so local builds don't need the signing key.
       - name: Build Tauri app (Linux)
-        run: npm run tauri:build
+        run: npm run tauri:build -- --config tauri.updater.conf.json
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Collect and rename Linux artifacts
         run: |
@@ -65,6 +69,7 @@ jobs:
           APPIMAGE=$(find target/release/bundle/appimage -name "*.AppImage" | head -1)
           DEB=$(find target/release/bundle/deb -name "*.deb" | head -1)
           cp "$APPIMAGE" "cityofstars_linux_${VERSION}.AppImage"
+          cp "$APPIMAGE.sig" "cityofstars_linux_${VERSION}.AppImage.sig"
           cp "$DEB" "cityofstars_linux_${VERSION}.deb"
 
       - uses: actions/upload-artifact@v4
@@ -72,6 +77,7 @@ jobs:
           name: linux-artifacts
           path: |
             cityofstars_linux_*.AppImage
+            cityofstars_linux_*.AppImage.sig
             cityofstars_linux_*.deb
           if-no-files-found: error
           retention-days: 1
@@ -103,10 +109,12 @@ jobs:
       - run: npm ci
 
       - name: Build Tauri app (Windows)
-        run: npm run tauri:build
+        run: npm run tauri:build -- --config tauri.updater.conf.json
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Collect and rename Windows artifacts
         shell: bash
@@ -116,6 +124,8 @@ jobs:
           EXE=$(find target/release/bundle/nsis -name "*.exe" | head -1)
           cp "$MSI" "cityofstars_windows_${VERSION}_x64.msi"
           cp "$EXE" "cityofstars_windows_${VERSION}_x64-setup.exe"
+          cp "$MSI.sig" "cityofstars_windows_${VERSION}_x64.msi.sig"
+          cp "$EXE.sig" "cityofstars_windows_${VERSION}_x64-setup.exe.sig"
 
       - name: Build Tauri app (Windows debug)
         run: npm run tauri:build -- --debug
@@ -135,7 +145,9 @@ jobs:
           name: windows-artifacts
           path: |
             cityofstars_windows_*.msi
+            cityofstars_windows_*.msi.sig
             cityofstars_windows_*-setup.exe
+            cityofstars_windows_*-setup.exe.sig
             cityofstars_windows_*-setup-debug.exe
           if-no-files-found: error
           retention-days: 1
@@ -245,6 +257,40 @@ jobs:
         with:
           path: artifacts
 
+      # The manifest the in-app updater reads from releases/latest/download/.
+      # A prerelease never becomes "latest", so beta tags don't reach players.
+      # The updater tries "{os}-{arch}-{installer}" first, so MSI installs stay
+      # on MSI and NSIS installs on NSIS.
+      - name: Write updater manifest (latest.json)
+        run: |
+          TAG="${{ github.ref_name }}"
+          BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
+          sig() { cat "$(find artifacts -name "$1" | head -1)"; }
+          jq -n \
+            --arg version "${TAG#v}" \
+            --arg notes "City of Stars ${TAG}" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg nsis_url "${BASE}/cityofstars_windows_${TAG}_x64-setup.exe" \
+            --arg nsis_sig "$(sig "cityofstars_windows_${TAG}_x64-setup.exe.sig")" \
+            --arg msi_url "${BASE}/cityofstars_windows_${TAG}_x64.msi" \
+            --arg msi_sig "$(sig "cityofstars_windows_${TAG}_x64.msi.sig")" \
+            --arg appimage_url "${BASE}/cityofstars_linux_${TAG}.AppImage" \
+            --arg appimage_sig "$(sig "cityofstars_linux_${TAG}.AppImage.sig")" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64":      { url: $nsis_url,     signature: $nsis_sig },
+                "windows-x86_64-nsis": { url: $nsis_url,     signature: $nsis_sig },
+                "windows-x86_64-msi":  { url: $msi_url,      signature: $msi_sig },
+                "linux-x86_64":        { url: $appimage_url, signature: $appimage_sig }
+              }
+            }' > latest.json
+          # Fail the release rather than publish a manifest with an empty signature.
+          jq -e '[.platforms[].signature] | all(length > 0)' latest.json
+          cat latest.json
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -263,6 +309,8 @@ jobs:
             | Windows debug (.exe) | `cityofstars_windows_${{ github.ref_name }}_x64-setup-debug.exe` | NSIS installer — console window + DevTools enabled |
             | Android | `cityofstars_${{ github.ref_name }}_android.apk` | Sideload APK |
 
+            Windows and Linux AppImage installs from v0.4.0 on update themselves: the app offers the update when one is released. Android and .deb installs get a notice with a download link.
+
             ### Linux AppImage quick start (Arch and others)
             ```bash
             chmod +x cityofstars_linux_${{ github.ref_name }}.AppImage
@@ -274,4 +322,6 @@ jobs:
             artifacts/**/*.msi
             artifacts/**/*.exe
             artifacts/**/*.apk
+            artifacts/**/*.sig
+            latest.json
           fail_on_unmatched_files: true

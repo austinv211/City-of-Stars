@@ -26,6 +26,7 @@ import DmCharacterViewPage from "@/features/dm/pages/DmCharacterViewPage";
 import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
 import AdminCampaignsPage from "@/features/admin/pages/AdminCampaignsPage";
 import RealtimeDebugOverlay from "@/core/components/RealtimeDebugOverlay";
+import { useUpdateCheck } from "@/core/hooks/useUpdateCheck";
 
 function RootRedirect() {
   const { isPlayer, isDM, loading } = useCampaign();
@@ -44,6 +45,8 @@ function RootRedirect() {
 }
 
 export default function App() {
+  // At the root, not in AppShell, so the login screen hears about updates too.
+  useUpdateCheck();
   return (
     <AuthProvider>
       <BrowserRouter>
