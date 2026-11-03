@@ -5,9 +5,9 @@ name: CodeQL
 # Rust is included now, before Phase 4 adds real native code, so the first
 # #[tauri::command] is scanned from the day it lands.
 
+# On pull requests like CI, plus the weekly scan, which catches newly
+# published advisories in code that hasn't changed.
 on:
-  push:
-    branches: [master]
   pull_request:
     branches: [master]
   schedule:

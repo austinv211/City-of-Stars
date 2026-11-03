@@ -1,0 +1,76 @@
+name: Release on merge
+
+# Merge a PR into master with a release:patch, release:minor or
+# release:major label, and this bumps the version, commits and tags it, and
+# runs the release. Without a label, merging releases nothing.
+#
+# The tag is pushed with the workflow's own token, which (by GitHub's design)
+# doesn't trigger other workflows, so release.yml is called directly below
+# rather than by the tag push.
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-on-merge
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump version and tag
+    if: >-
+      github.event.pull_request.merged &&
+      (contains(github.event.pull_request.labels.*.name, 'release:major') ||
+       contains(github.event.pull_request.labels.*.name, 'release:minor') ||
+       contains(github.event.pull_request.labels.*.name, 'release:patch'))
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Bump, commit and tag
+        id: bump
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # The biggest label wins if a PR has more than one.
+          case " $LABELS " in
+            *" release:major "*) LEVEL=major ;;
+            *" release:minor "*) LEVEL=minor ;;
+            *) LEVEL=patch ;;
+          esac
+          VERSION=$(node scripts/bump-version.mjs "$LEVEL")
+          TAG="v$VERSION"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::$TAG already exists"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Release $TAG" -m "$LEVEL release for #$PR_NUMBER: $PR_TITLE"
+          git tag -a "$TAG" -m "City of Stars $TAG"
+          git push origin master "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Released $TAG ($LEVEL) from #$PR_NUMBER" >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Release
+    needs: bump
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.bump.outputs.tag }}
+    secrets: inherit
