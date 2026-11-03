@@ -25,6 +25,9 @@ export interface NpcDraft {
   damage_immunities?: string[];
   damage_vulnerabilities?: string[];
   description?: string;
+  /** Shown to players instead of `name`. */
+  nickname?: string;
+  portrait_url?: string;
 }
 
 /** The 2024 default: three legendary actions per round, for any creature that has them. */
@@ -61,6 +64,8 @@ function rowToNpc(n: ParticipantRow): NpcDraft {
     damage_immunities: n.damage_immunities,
     damage_vulnerabilities: n.damage_vulnerabilities,
     description: absent(n.description),
+    nickname: absent(n.nickname),
+    portrait_url: absent(n.portrait_url),
   };
 }
 
@@ -140,6 +145,8 @@ export function useEncounterManager() {
       damage_immunities: npc.damage_immunities ?? [],
       damage_vulnerabilities: npc.damage_vulnerabilities ?? [],
       description: nullable(npc.description),
+      nickname: nullable(npc.nickname),
+      portrait_url: nullable(npc.portrait_url),
     };
   }
 

@@ -3,29 +3,20 @@ import { useNavigate } from "react-router";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Badge } from "@/core/components/ui/badge";
-import { Input } from "@/core/components/ui/input";
-import { Label } from "@/core/components/ui/label";
 import { Separator } from "@/core/components/ui/separator";
 import { ResponsiveTable } from "@/core/components/ui/responsive-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/core/components/ui/dialog";
 import { Plus, Trash2, Swords, Play, BookOpen, ScrollText, X, Pencil, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Textarea } from "@/core/components/ui/textarea";
 import { useEncounterManager } from "@/features/dm/hooks/useEncounterManager";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { supabase } from "@/lib/supabase";
 import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
 import { StartEncounterDialog } from "@/features/dm/components/StartEncounterDialog";
-import { MonsterPicker } from "@/features/encounter/components/MonsterPicker";
+import { TemplateDialog } from "@/features/dm/components/TemplateDialog";
+import { BLANK_NPC, type TemplateDraft } from "@/features/dm/lib/templateDraft";
 import type { CustomMonster } from "@/features/encounter/components/MonsterPicker";
-import type { NpcDraft, PartyEntry } from "@/features/dm/hooks/useEncounterManager";
+import type { PartyEntry } from "@/features/dm/hooks/useEncounterManager";
 import type { Encounter, EncounterParticipant } from "@/features/encounter/types/encounter.types";
 
 interface HistoryRoll {
@@ -40,8 +31,6 @@ interface HistoryRoll {
   roll_type: string;
   rolled_at: string;
 }
-
-const BLANK_NPC: NpcDraft = { name: "", hp: 10, ac: 12, initiative: 0 };
 
 function StatusBadge({ status }: { status: Encounter["status"] }) {
   if (status === "active")
@@ -65,13 +54,8 @@ export default function DmEncountersPage() {
   // Participant counts per encounter id (for the table columns).
   const [counts, setCounts] = useState<Record<string, { npc: number; total: number }>>({});
 
-  // Create / edit dialog
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
-  const [npcs, setNpcs] = useState<NpcDraft[]>([{ ...BLANK_NPC }]);
-  const [creating, setCreating] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // Create / edit dialog: the template being edited, or null when closed.
+  const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
 
   // Start / run dialog
   const [startTarget, setStartTarget] = useState<Encounter | null>(null);
@@ -130,49 +114,22 @@ export default function DmEncountersPage() {
   // ── Create / edit helpers ─────────────────────────────────────────────────
 
   function openCreate() {
-    setEditingTemplateId(null);
-    setNewName("");
-    setNpcs([{ ...BLANK_NPC }]);
-    setPickerOpen(false);
-    setCreateOpen(true);
+    setTemplateDraft({ id: null, name: "", npcs: [{ ...BLANK_NPC }] });
   }
 
   async function openEditTemplate(template: Encounter) {
-    setEditingTemplateId(template.id);
-    setNewName(template.name ?? "");
-    setPickerOpen(false);
     const loaded = await getTemplateNpcs(template.id);
-    setNpcs(loaded.length > 0 ? loaded : [{ ...BLANK_NPC }]);
-    setCreateOpen(true);
-  }
-
-  function updateNpc(idx: number, field: keyof NpcDraft, value: string | number | undefined) {
-    setNpcs((prev) => prev.map((n, i) => (i === idx ? { ...n, [field]: value } : n)));
-  }
-
-  function removeNpc(idx: number) {
-    setNpcs((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function addFromPicker(draft: NpcDraft) {
-    setNpcs((prev) => {
-      if (prev.length === 1 && !prev[0].name.trim()) return [draft];
-      return [...prev, draft];
+    setTemplateDraft({
+      id: template.id,
+      name: template.name ?? "",
+      npcs: loaded.length > 0 ? loaded : [{ ...BLANK_NPC }],
     });
-    setPickerOpen(false);
   }
 
-  async function handleSaveTemplate() {
-    if (!newName.trim()) return;
-    setCreating(true);
-    const validNpcs = npcs.filter((n) => n.name.trim());
-    if (editingTemplateId) {
-      await updateTemplate(editingTemplateId, newName.trim(), validNpcs);
-    } else {
-      await createEncounter(newName.trim(), validNpcs, { asTemplate: true });
-    }
-    setCreating(false);
-    setCreateOpen(false);
+  async function handleSaveTemplate(draft: TemplateDraft) {
+    if (draft.id) await updateTemplate(draft.id, draft.name, draft.npcs);
+    else await createEncounter(draft.name, draft.npcs, { asTemplate: true });
+    setTemplateDraft(null);
   }
 
   // ── Start / run helpers ─────────────────────────────────────────────────────
@@ -562,130 +519,16 @@ export default function DmEncountersPage() {
       )}
 
       {/* ── Create / Edit Template Dialog ───────────────────────────────────── */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingTemplateId ? "Edit Template" : "New Encounter Template"}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Template Name</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Goblin Ambush…"
-              />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">NPCs</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
-                    <BookOpen className="h-3 w-3 mr-1.5" />
-                    Pick Monster
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setNpcs((prev) => [...prev, { ...BLANK_NPC }])}
-                  >
-                    <Plus className="h-3 w-3 mr-1.5" />
-                    Blank
-                  </Button>
-                </div>
-              </div>
-
-              {/* Column headers */}
-              <div className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 px-3">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">HP</span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">AC</span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">Init</span>
-                <span />
-              </div>
-
-              {npcs.map((npc, idx) => (
-                <div key={idx} className="space-y-1.5 border rounded-md p-2 bg-muted/10">
-                  <div className="grid grid-cols-[1fr_70px_70px_70px_32px] gap-2 items-center">
-                    <Input
-                      value={npc.name}
-                      onChange={(e) => updateNpc(idx, "name", e.target.value)}
-                      placeholder="Monster name"
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      value={npc.hp}
-                      onChange={(e) => updateNpc(idx, "hp", parseInt(e.target.value) || 1)}
-                      className="text-center"
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      value={npc.ac}
-                      onChange={(e) => updateNpc(idx, "ac", parseInt(e.target.value) || 1)}
-                      className="text-center"
-                    />
-                    <Input
-                      type="number"
-                      value={npc.initiative}
-                      onChange={(e) => updateNpc(idx, "initiative", parseInt(e.target.value) || 0)}
-                      className="text-center"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeNpc(idx)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={npc.description ?? ""}
-                    onChange={(e) => updateNpc(idx, "description", e.target.value || undefined)}
-                    placeholder="Description shown to players (optional)…"
-                    rows={2}
-                    className="text-xs resize-none"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Monster Picker inline panel */}
-            {pickerOpen && (
-              <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Monster Picker</p>
-                  <Button variant="ghost" size="sm" onClick={() => setPickerOpen(false)}>
-                    Close
-                  </Button>
-                </div>
-                <MonsterPicker
-                  customMonsters={customMonsters}
-                  onSelect={addFromPicker}
-                  onLibraryChange={loadLibrary}
-                />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveTemplate} disabled={creating || !newName.trim()}>
-              {creating
-                ? "Saving…"
-                : editingTemplateId
-                  ? "Save Template"
-                  : "Create Template"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TemplateDialog
+        key={templateDraft ? (templateDraft.id ?? "new") : "closed"}
+        draft={templateDraft}
+        customMonsters={customMonsters}
+        onLibraryChange={loadLibrary}
+        onClose={() => {
+          setTemplateDraft(null);
+        }}
+        onSave={handleSaveTemplate}
+      />
 
       {/* ── Start / Run Dialog ─────────────────────────────────────────────── */}
       <StartEncounterDialog

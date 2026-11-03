@@ -32,6 +32,7 @@ export interface CustomMonster {
   damage_resistances?: string[];
   damage_immunities?: string[];
   description?: string | null;
+  portrait_url?: string | null;
 }
 
 interface Props {
@@ -268,6 +269,7 @@ export function MonsterPicker({ customMonsters, onSelect, onLibraryChange }: Pro
                         damage_resistances: m.damage_resistances,
                         damage_immunities: m.damage_immunities,
                         description: m.description ?? undefined,
+                        portrait_url: m.portrait_url ?? undefined,
                       })
                     }
                   >

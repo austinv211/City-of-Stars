@@ -1122,6 +1122,7 @@ export type Database = {
           legendary_actions_max: number
           legendary_actions_remaining: number
           name: string
+          nickname: string | null
           owner_id: string | null
           portrait_url: string | null
           reaction_used: boolean
@@ -1164,6 +1165,7 @@ export type Database = {
           legendary_actions_max?: number
           legendary_actions_remaining?: number
           name: string
+          nickname?: string | null
           owner_id?: string | null
           portrait_url?: string | null
           reaction_used?: boolean
@@ -1206,6 +1208,7 @@ export type Database = {
           legendary_actions_max?: number
           legendary_actions_remaining?: number
           name?: string
+          nickname?: string | null
           owner_id?: string | null
           portrait_url?: string | null
           reaction_used?: boolean

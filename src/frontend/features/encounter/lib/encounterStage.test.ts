@@ -5,57 +5,9 @@ import {
   resolvePanelId,
   type StageInput,
 } from "./encounterStage";
-import type { EncounterEffect, EncounterParticipant } from "../types/encounter.types";
+import type { EncounterEffect } from "../types/encounter.types";
+import { combatant } from "./participantFixture";
 
-function combatant(
-  id: string,
-  order: number,
-  over: Partial<EncounterParticipant> = {},
-) {
-  return {
-    id,
-    encounter_id: "enc",
-    character_id: null,
-    name: id,
-    portrait_url: null,
-    initiative_order: order,
-    initiative_score: 10,
-    hp_current: 10,
-    hp_max: 10,
-    hp_temp: 0,
-    ac: 12,
-    conditions: [],
-    is_player: true,
-    owner_id: null,
-    str_score: null,
-    dex_score: null,
-    con_score: null,
-    int_score: null,
-    wis_score: null,
-    cha_score: null,
-    actions: null,
-    special_abilities: null,
-    has_rolled_initiative: true,
-    description: null,
-    damage_resistances: [],
-    damage_immunities: [],
-    damage_vulnerabilities: [],
-    concentrating_on: null,
-    death_save_successes: 0,
-    death_save_failures: 0,
-    exhaustion: 0,
-    heroic_inspiration: false,
-    cover: "none",
-    action_used: false,
-    bonus_used: false,
-    reaction_used: false,
-    dodging: false,
-    legendary_actions: null,
-    legendary_actions_max: 0,
-    legendary_actions_remaining: 0,
-    ...over,
-  } satisfies EncounterParticipant;
-}
 
 // Order: fighter(1), goblin(2), me(3).
 const fighter = combatant("fighter", 1);

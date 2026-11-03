@@ -32,11 +32,17 @@ export interface Encounter {
   lair_action_initiative: number | null;
 }
 
+/** What players see of a monster, set by the DM. */
+export type MonsterAppearance = Pick<EncounterParticipant, "nickname" | "description" | "portrait_url">;
+
 export interface EncounterParticipant {
   id: string;
   encounter_id: string;
   character_id: string | null;
+  /** The stat block's name, e.g. "Goblin". */
   name: string;
+  /** What the table calls it, e.g. "Grizzle"; shown to players instead of name. */
+  nickname: string | null;
   portrait_url: string | null;
   initiative_order: number;
   initiative_score: number;

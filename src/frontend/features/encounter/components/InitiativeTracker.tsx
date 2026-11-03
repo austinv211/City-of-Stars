@@ -19,6 +19,8 @@ interface Props {
   targetId?: string | null;
   /** Absent when the viewer cannot attack (a spectator). */
   onTarget?: (id: string) => void;
+  /** DM only: a monster's nickname, flavour text and image. */
+  onEditAppearance?: (id: string) => void;
 }
 
 export function InitiativeTracker({
@@ -36,6 +38,7 @@ export function InitiativeTracker({
   selectedId,
   targetId,
   onTarget,
+  onEditAppearance,
 }: Props) {
   if (participants.length === 0) {
     return (
@@ -74,6 +77,9 @@ export function InitiativeTracker({
             selected={p.id === selectedId}
             isTarget={p.id === targetId}
             onTarget={onTarget ? () => { onTarget(p.id); } : undefined}
+            onEditAppearance={
+              onEditAppearance && !p.is_player ? () => { onEditAppearance(p.id); } : undefined
+            }
           />
         );
       })}

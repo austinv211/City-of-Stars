@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -8,6 +8,7 @@ import type { Character, CharacterAttack } from "@/features/characters/types/cha
 import type { EncounterParticipant } from "../types/encounter.types";
 import { useDice } from "../context/DiceContext";
 import { deriveStage } from "../lib/encounterStage";
+import { withLabels } from "../lib/participantLabels";
 import { targetInfo } from "../lib/attack";
 import { useActiveEncounter } from "./useActiveEncounter";
 import { useEncounterEffects } from "./useEncounterEffects";
@@ -35,7 +36,11 @@ export function useEncounterScreen(playerMode: boolean) {
   const { characters, loading: charsLoading } = useCharacters();
   const { history: allHistory } = useDice();
 
-  const { participants } = combat;
+  // Named as the viewer should see them: nicknames, and "Goblin A/B" for twins.
+  const participants = useMemo(
+    () => withLabels(combat.participants, isDM),
+    [combat.participants, isDM],
+  );
   const { ownCharacter, ownParticipant } = findOwn(isDM, user?.id, characters, participants);
   const ownParticipantId = ownParticipant?.id ?? null;
 

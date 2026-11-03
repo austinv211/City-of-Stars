@@ -4,7 +4,7 @@ import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent } from "@/core/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
-import { Shield, Droplets, Brain, Crosshair } from "lucide-react";
+import { Shield, Droplets, Brain, Crosshair, Pencil } from "lucide-react";
 import { HPAdjuster } from "./HPAdjuster";
 import { ConditionBadges } from "./ConditionBadges";
 import { DamageHealControl } from "./DamageHealControl";
@@ -33,6 +33,8 @@ interface Props {
   isTarget?: boolean;
   /** Toggle targeting. Absent for viewers who cannot attack (spectators). */
   onTarget?: () => void;
+  /** DM only, on monsters: how players see it. */
+  onEditAppearance?: () => void;
 }
 
 const DODGE_HELP =
@@ -102,7 +104,7 @@ function StopClick({ className, children, ...rest }: { className: string; childr
   );
 }
 
-function CardHeader({ participant: p, isActive, showAC, isTarget, onTarget }: Props) {
+function CardHeader({ participant: p, isActive, showAC, isTarget, onTarget, onEditAppearance }: Props) {
   const coverBonus = coverAcBonus(p.cover);
   return (
     <div className="flex items-center gap-3">
@@ -125,6 +127,22 @@ function CardHeader({ participant: p, isActive, showAC, isTarget, onTarget }: Pr
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm truncate">{p.name}</span>
           {!p.is_player && <Badge variant="outline" className="text-xs">NPC</Badge>}
+          {onEditAppearance && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0 text-muted-foreground"
+              aria-label={`Edit appearance of ${p.name}`}
+              title="Nickname, description and image players see"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditAppearance();
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
           {onTarget && (
             <Button
               type="button"

@@ -3,7 +3,7 @@ import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { incrementPartyStat } from "@/features/campaign/lib/partyStatsUtils";
 import { applyDamageMitigation, concentrationDC, resolveDeathSave } from "@/features/characters/data/rules2024";
-import type { EncounterParticipant, MonsterAction, MonsterSpecialAbility } from "../types/encounter.types";
+import type { EncounterParticipant, MonsterAppearance, MonsterAction, MonsterSpecialAbility } from "../types/encounter.types";
 
 export interface DamageResult {
   dealt: number;
@@ -262,7 +262,13 @@ export function useEncounterParticipants(encounterId: string | null, campaignId?
       .eq("id", participantId);
   }
 
+  // What players see of a monster: nickname, flavour text and image (DM only, by RLS).
+  async function setAppearance(participantId: string, appearance: MonsterAppearance) {
+    await supabase.from("encounter_participants").update(appearance).eq("id", participantId);
+  }
+
   return {
+    setAppearance,
     spendLegendary,
     participants, loading, updateHP, updateConditions,
     applyDamage, applyHealing, setDeathSaves, applyDeathSaveRoll, setConcentration, setCover,
