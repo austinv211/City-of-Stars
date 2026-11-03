@@ -3,27 +3,35 @@ import { Button } from "@/core/components/ui/button";
 import { Separator } from "@/core/components/ui/separator";
 import { Crosshair, Swords, Flame } from "lucide-react";
 import type { MonsterAction, MonsterSpecialAbility } from "../../types/encounter.types";
-import { renderInline } from "./renderInline";
+import { DescriptionPreview } from "./DescriptionPreview";
 import { parseDamageDice, sign } from "./combatantStats";
 import type { CombatantView } from "./combatantView";
 import { AttackOutcome } from "./AttackOutcome";
 import { useAttackOutcome } from "./useAttackOutcome";
 
 /** A monster's passive traits (special abilities). */
-export function MonsterTraits({ traits }: { traits: MonsterSpecialAbility[] }) {
+export function MonsterTraits({
+  traits,
+  actorId,
+}: {
+  traits: MonsterSpecialAbility[];
+  actorId: string;
+}) {
   if (traits.length === 0) return null;
   return (
     <>
       <div>
         <p className="mb-2 text-xs font-semibold text-muted-foreground">Traits</p>
         <div className="space-y-2">
-          {traits.map((trait, i) => (
-            <div key={i} className="space-y-1 rounded-lg border bg-card/40 p-2.5">
+          {traits.map((trait) => (
+            <div key={trait.name} className="space-y-1 rounded-lg border bg-card/40 p-2.5">
               <span className="text-sm font-semibold">{trait.name}</span>
               {trait.desc && (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {renderInline(trait.desc)}
-                </p>
+                <DescriptionPreview
+                  text={trait.desc}
+                  name={trait.name}
+                  subject={{ kind: "ability", source: { type: "monster_action", name: trait.name }, actorId }}
+                />
               )}
             </div>
           ))}
@@ -93,9 +101,11 @@ function MonsterActionCard({
         )}
       </div>
       {action.desc && (
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          {renderInline(action.desc)}
-        </p>
+        <DescriptionPreview
+          text={action.desc}
+          name={action.name}
+          subject={{ kind: "ability", source, actorId: view.participant.id }}
+        />
       )}
       {(attackBonus != null || dice) && (
         <div className="flex flex-wrap gap-1.5">

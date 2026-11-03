@@ -13,6 +13,8 @@ import {
 import { TargetPicker } from "../components/screen/TargetPicker";
 import { EndEncounterDialog } from "../components/screen/EndEncounterDialog";
 import { useEncounterScreen } from "../hooks/useEncounterScreen";
+import { QuickViewProvider } from "../context/QuickViewContext";
+import { QuickViewDialog } from "../components/quickview/QuickViewDialog";
 
 /**
  * The encounter screen: data wiring, the pre-combat gates, the dialogs, and
@@ -77,7 +79,7 @@ export default function EncounterPage({
   const panelId = screen.panelParticipant?.id ?? null;
 
   return (
-    <>
+    <QuickViewProvider>
       {isPhone ? (
         <EncounterPhone {...layout} />
       ) : isTablet ? (
@@ -123,7 +125,8 @@ export default function EncounterPage({
           setRulesOpen(false);
         }}
       />
-    </>
+      <QuickViewDialog screen={screen} />
+    </QuickViewProvider>
   );
 }
 

@@ -26,6 +26,8 @@ export interface Character {
   background: string;
   level: number;
   portrait_url: string | null;
+  /** Full art: a bigger picture than the portrait, for the encounter screen. */
+  art_url: string | null;
   status: CharacterStatus;
   is_locked: boolean;
   backstory: string | null;

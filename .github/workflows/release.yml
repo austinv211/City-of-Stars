@@ -1,10 +1,27 @@
 name: Release
 
+# Three ways in, one release:
+#   - push a v* tag by hand (bypasses CI: tags never run ci.yml)
+#   - merge a PR labelled release:patch|minor|major; release-on-merge.yml
+#     bumps the version, tags it and calls this workflow with the tag
+#   - "Run workflow" in the Actions tab, for an existing tag
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_call:
+    inputs:
+      tag:
+        description: The tag to release, e.g. v0.7.0
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to release, e.g. v0.7.0
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,6 +29,8 @@ permissions:
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_TERM_COLOR: always
+  # The tag being released: the pushed tag, or the one passed in.
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   # ───────────────────────────────────────────────────────────────────────────
@@ -25,16 +44,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Compare tag with package.json, tauri.conf.json and Cargo.toml
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
+          TAG="${RELEASE_TAG#v}"
           PKG=$(jq -r .version package.json)
           CONF=$(jq -r .version src/tauri/tauri.conf.json)
           CARGO=$(sed -n 's/^version = "\(.*\)"/\1/p' src/tauri/Cargo.toml | head -1)
           echo "tag=$TAG package.json=$PKG tauri.conf.json=$CONF Cargo.toml=$CARGO"
           if [ "$PKG" != "$TAG" ] || [ "$CONF" != "$TAG" ] || [ "$CARGO" != "$TAG" ]; then
-            echo "::error::Tag v$TAG does not match the app version. Bump all three files before tagging."
+            echo "::error::Tag v$TAG does not match the app version. Run node scripts/bump-version.mjs before tagging."
             exit 1
           fi
 
@@ -48,6 +69,8 @@ jobs:
     needs: verify-version
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - uses: actions/setup-node@v4
         with:
@@ -90,7 +113,7 @@ jobs:
 
       - name: Collect and rename Linux artifacts
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="$RELEASE_TAG"
           APPIMAGE=$(find target/release/bundle/appimage -name "*.AppImage" | head -1)
           DEB=$(find target/release/bundle/deb -name "*.deb" | head -1)
           cp "$APPIMAGE" "cityofstars_linux_${VERSION}.AppImage"
@@ -117,6 +140,8 @@ jobs:
     needs: verify-version
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - uses: actions/setup-node@v4
         with:
@@ -145,7 +170,7 @@ jobs:
       - name: Collect and rename Windows artifacts
         shell: bash
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="$RELEASE_TAG"
           MSI=$(find target/release/bundle/msi -name "*.msi" | head -1)
           EXE=$(find target/release/bundle/nsis -name "*.exe" | head -1)
           cp "$MSI" "cityofstars_windows_${VERSION}_x64.msi"
@@ -162,7 +187,7 @@ jobs:
       - name: Collect and rename Windows debug artifacts
         shell: bash
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="$RELEASE_TAG"
           EXE=$(find target/debug/bundle/nsis -name "*.exe" | head -1)
           cp "$EXE" "cityofstars_windows_${VERSION}_x64-setup-debug.exe"
 
@@ -189,6 +214,8 @@ jobs:
     needs: verify-version
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - uses: actions/setup-node@v4
         with:
@@ -251,7 +278,7 @@ jobs:
 
       - name: Sign APK
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="$RELEASE_TAG"
           UNSIGNED_APK=$(find src/tauri/gen/android/app/build/outputs/apk -name "*.apk" | head -1)
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks "${{ github.workspace }}/release.keystore" \
@@ -290,7 +317,7 @@ jobs:
       # on MSI and NSIS installs on NSIS.
       - name: Write updater manifest (latest.json)
         run: |
-          TAG="${{ github.ref_name }}"
+          TAG="$RELEASE_TAG"
           BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
           sig() { cat "$(find artifacts -name "$1" | head -1)"; }
           jq -n \
@@ -321,27 +348,28 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "City of Stars ${{ github.ref_name }}"
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: "City of Stars ${{ env.RELEASE_TAG }}"
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
           body: |
             ## Downloads
 
             | Platform | File | Notes |
             |---|---|---|
-            | Linux (AppImage) | `cityofstars_linux_${{ github.ref_name }}.AppImage` | Works on Arch, Ubuntu, Fedora — no install needed |
-            | Linux (.deb) | `cityofstars_linux_${{ github.ref_name }}.deb` | Ubuntu/Debian |
-            | Windows (.msi) | `cityofstars_windows_${{ github.ref_name }}_x64.msi` | MSI installer |
-            | Windows (.exe) | `cityofstars_windows_${{ github.ref_name }}_x64-setup.exe` | NSIS installer |
-            | Windows debug (.exe) | `cityofstars_windows_${{ github.ref_name }}_x64-setup-debug.exe` | NSIS installer — console window + DevTools enabled |
-            | Android | `cityofstars_${{ github.ref_name }}_android.apk` | Sideload APK |
+            | Linux (AppImage) | `cityofstars_linux_${{ env.RELEASE_TAG }}.AppImage` | Works on Arch, Ubuntu, Fedora — no install needed |
+            | Linux (.deb) | `cityofstars_linux_${{ env.RELEASE_TAG }}.deb` | Ubuntu/Debian |
+            | Windows (.msi) | `cityofstars_windows_${{ env.RELEASE_TAG }}_x64.msi` | MSI installer |
+            | Windows (.exe) | `cityofstars_windows_${{ env.RELEASE_TAG }}_x64-setup.exe` | NSIS installer |
+            | Windows debug (.exe) | `cityofstars_windows_${{ env.RELEASE_TAG }}_x64-setup-debug.exe` | NSIS installer — console window + DevTools enabled |
+            | Android | `cityofstars_${{ env.RELEASE_TAG }}_android.apk` | Sideload APK |
 
             Windows and Linux AppImage installs from v0.4.0 on update themselves: the app offers the update when one is released. Android and .deb installs get a notice with a download link.
 
             ### Linux AppImage quick start (Arch and others)
             ```bash
-            chmod +x cityofstars_linux_${{ github.ref_name }}.AppImage
-            ./cityofstars_linux_${{ github.ref_name }}.AppImage
+            chmod +x cityofstars_linux_${{ env.RELEASE_TAG }}.AppImage
+            ./cityofstars_linux_${{ env.RELEASE_TAG }}.AppImage
             ```
           files: |
             artifacts/**/*.AppImage

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "version:bump": "node scripts/bump-version.mjs",
     "preview": "vite preview",
     "check:srd": "tsx scripts/check-srd-consistency.ts",
     "guard": "node --env-file=.env.e2e scripts/assert-not-production.mjs",

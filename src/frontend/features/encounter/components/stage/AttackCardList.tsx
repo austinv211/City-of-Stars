@@ -101,6 +101,7 @@ function WeaponAttack({
       typeLabel={atk.is_spell ? "Spell" : atk.is_ranged ? "Ranged" : "Melee"}
       damageType={atk.damage_type}
       description={description}
+      about={{ kind: "ability", source, actorId: view.participant.id }}
       attackMod={toHit}
       damageLabel={`${baseDice}${damageMod ? sign(damageMod) : ""}`}
       disabled={locked}
@@ -172,6 +173,7 @@ function DamageSpell({
       typeLabel={spell.level === 0 ? "Cantrip" : "Spell"}
       damageType={spell.damage_type ?? ""}
       description={spell.description || null}
+      about={{ kind: "ability", source, actorId: view.participant.id }}
       attackMod={spell.attack_type ? toHit : null}
       damageLabel={`${dice(dmgCount, sides)}${mod ? sign(mod) : ""}`}
       disabled={locked}

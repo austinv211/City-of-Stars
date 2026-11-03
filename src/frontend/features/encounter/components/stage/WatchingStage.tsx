@@ -2,7 +2,9 @@ import { ChevronDown, Shield, Zap } from "lucide-react";
 import { Button } from "@/core/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { EncounterParticipant } from "../../types/encounter.types";
+import { hpFraction } from "../../lib/attack";
 import type { Slot } from "../../lib/encounterStage";
+import { CombatantBanner } from "../CombatantArt";
 import { CLASS_REACTIONS, UNIVERSAL_REACTIONS } from "./actionCatalog";
 import type { CombatRolls } from "./useCombatRolls";
 
@@ -31,21 +33,18 @@ export function WatchingStage({
     ...UNIVERSAL_REACTIONS,
     ...(CLASS_REACTIONS[characterClass] ?? []),
   ];
-  const hpPct =
-    own.hp_max > 0 ? Math.max(0, Math.min(1, own.hp_current / own.hp_max)) : 0;
+  const hpPct = hpFraction(own);
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {active ? (
-          <>
-            <span className="font-semibold text-foreground">{active.name}</span> is
-            acting.
-          </>
-        ) : (
-          "Waiting for the first turn."
-        )}
-      </p>
+      {active ? (
+        // Who has the floor, big enough to set the scene.
+        <CombatantBanner participant={active} showHp={active.is_player} compact>
+          <span className="font-semibold uppercase tracking-wide text-primary">Acting now</span>
+        </CombatantBanner>
+      ) : (
+        <p className="text-sm text-muted-foreground">Waiting for the first turn.</p>
+      )}
 
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between text-sm">

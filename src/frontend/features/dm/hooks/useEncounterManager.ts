@@ -28,6 +28,7 @@ export interface NpcDraft {
   /** Shown to players instead of `name`. */
   nickname?: string;
   portrait_url?: string;
+  art_url?: string;
 }
 
 /** The 2024 default: three legendary actions per round, for any creature that has them. */
@@ -66,6 +67,7 @@ function rowToNpc(n: ParticipantRow): NpcDraft {
     description: absent(n.description),
     nickname: absent(n.nickname),
     portrait_url: absent(n.portrait_url),
+    art_url: absent(n.art_url),
   };
 }
 
@@ -74,6 +76,7 @@ export interface PartyEntry {
   name: string;
   ownerId: string;
   portraitUrl: string | null;
+  artUrl: string | null;
   /** HP entering the fight, already clamped to hpMax. */
   hp: number;
   /** The sheet's max: the participant's max, not the starting HP. */
@@ -147,6 +150,7 @@ export function useEncounterManager() {
       description: nullable(npc.description),
       nickname: nullable(npc.nickname),
       portrait_url: nullable(npc.portrait_url),
+      art_url: nullable(npc.art_url),
     };
   }
 
@@ -248,6 +252,7 @@ export function useEncounterManager() {
           character_id: p.characterId,
           name: p.name,
           portrait_url: p.portraitUrl,
+          art_url: p.artUrl,
           hp_current: p.hp,
           hp_max: p.hpMax,
           hp_temp: p.hpTemp,

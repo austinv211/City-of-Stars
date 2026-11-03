@@ -3,7 +3,8 @@ import { Button } from "@/core/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/core/components/ui/tooltip";
 import { Crosshair, Swords, Flame, Hand, Axe } from "lucide-react";
 import { MASTERY_INFO } from "@/features/characters/data/rules2024";
-import { renderInline } from "./renderInline";
+import type { QuickViewSubject } from "../../context/QuickViewContext";
+import { DescriptionPreview } from "./DescriptionPreview";
 import { sign } from "./combatantStats";
 
 /**
@@ -30,6 +31,7 @@ export function AttackCard({
   onCleaveDamage,
   castControl,
   outcome,
+  about,
 }: {
   name: string;
   typeLabel: string;
@@ -50,6 +52,8 @@ export function AttackCard({
   castControl?: React.ReactNode;
   /** What the last roll means against the current target. */
   outcome?: React.ReactNode;
+  /** The ability, for "More" in the quick view. */
+  about: QuickViewSubject;
 }) {
   return (
     <div className="space-y-2 rounded-lg border bg-card/60 p-2.5">
@@ -80,11 +84,7 @@ export function AttackCard({
           </Tooltip>
         )}
       </div>
-      {description && (
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          {renderInline(description)}
-        </p>
-      )}
+      {description && <DescriptionPreview text={description} subject={about} name={name} />}
       {/* Primary actions: aim (To Hit) + deal damage, colour-coded. */}
       <div className="flex gap-1.5">
         {attackMod !== null && (

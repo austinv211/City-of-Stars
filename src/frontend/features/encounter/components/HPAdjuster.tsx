@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { hpFraction } from "../lib/attack";
 
 interface Props {
   current: number;
@@ -21,7 +22,7 @@ export function HPAdjuster({ current, max, testId }: Props) {
     return () => clearTimeout(t);
   }, [current]);
 
-  const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
+  const pct = hpFraction({ hp_current: current, hp_max: max }) * 100;
   const fill = pct > 50 ? "bg-success" : pct > 25 ? "bg-secondary" : "bg-destructive";
   const textColor = pct > 50 ? "text-success" : pct > 25 ? "text-secondary" : "text-destructive";
 

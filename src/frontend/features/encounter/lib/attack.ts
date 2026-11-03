@@ -60,3 +60,8 @@ export function woundState(p: EncounterParticipant): "down" | "bloodied" | null 
   if (p.hp_current <= 0) return "down";
   return p.hp_max > 0 && p.hp_current * 2 <= p.hp_max ? "bloodied" : null;
 }
+
+/** Current HP as a fraction of max, 0..1, for HP bars. */
+export function hpFraction(p: Pick<EncounterParticipant, "hp_current" | "hp_max">): number {
+  return p.hp_max > 0 ? Math.max(0, Math.min(1, p.hp_current / p.hp_max)) : 0;
+}

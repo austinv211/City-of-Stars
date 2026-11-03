@@ -35,7 +35,6 @@ export function RollLog({
           key={entry.id}
           entry={entry}
           line={describeRoll(entry, participants, viewerIsDM)}
-          viewerIsDM={viewerIsDM}
         />
       ))}
     </ul>

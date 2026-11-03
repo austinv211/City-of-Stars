@@ -30,6 +30,7 @@ export function EditAppearanceDialog({
     nickname: participant?.nickname ?? null,
     description: participant?.description ?? null,
     portrait_url: participant?.portrait_url ?? null,
+    art_url: participant?.art_url ?? null,
   });
   const [saving, setSaving] = useState(false);
 

@@ -2,6 +2,7 @@ import { Crosshair, Shield, X } from "lucide-react";
 import { Button } from "@/core/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TargetInfo } from "../../lib/attack";
+import { QuickLink } from "../quickview/QuickLink";
 import { WoundBadge } from "./WoundBadge";
 
 /**
@@ -34,7 +35,9 @@ export function TargetBar({
     >
       <Crosshair className="h-4 w-4 shrink-0 text-destructive" />
       {actorName && <span className="shrink-0 text-muted-foreground">{label}:</span>}
-      <span className="min-w-0 truncate font-semibold text-foreground">{p.name}</span>
+      <QuickLink subject={{ kind: "combatant", id: p.id }} className="font-semibold text-foreground">
+        {p.name}
+      </QuickLink>
       {showNumbers && (
         <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
           <Shield className="h-3 w-3" /> AC {target.ac}

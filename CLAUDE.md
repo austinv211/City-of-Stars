@@ -95,10 +95,21 @@ Use `dev.ps1` instead of `make`. It mirrors all the same targets:
 
 If PowerShell blocks the script, run once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
-## Releasing & auto-update
+## CI and releasing
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`. It builds every
-platform and publishes a GitHub Release that includes a `latest.json` manifest.
+- **CI** (`ci.yml`, CodeQL) runs on pull requests into master, and on demand.
+  Pushes don't run it.
+- **Release by label:** merge a PR labelled `release:patch`, `release:minor` or
+  `release:major`. `release-on-merge.yml` bumps the version, commits
+  "Release vX.Y.Z" to master, tags it and runs `release.yml`.
+- **Release by hand:** `npm run version:bump -- minor` (or `patch`, `major`,
+  `x.y.z`), commit, then push a `vX.Y.Z` tag. A tag push runs only
+  `release.yml`, which first checks the tag matches the app version.
+
+`scripts/bump-version.mjs` sets the version in package.json,
+package-lock.json, src/tauri/tauri.conf.json, src/tauri/Cargo.toml and
+Cargo.lock. The release builds every platform and publishes a GitHub Release
+with a `latest.json` manifest.
 
 - Windows and Linux AppImage installs update themselves through
   `tauri-plugin-updater`, which reads

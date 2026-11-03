@@ -61,6 +61,7 @@ export function StartEncounterDialog({
           name: c.name,
           ownerId: c.owner_id,
           portraitUrl: c.portrait_url,
+          artUrl: c.art_url,
           hp: startHp(c),
           hpMax: maxHpOf(c),
           hpTemp: c.hp_temp,

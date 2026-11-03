@@ -8,6 +8,7 @@ import type {
 } from "@/features/characters/types/character.types";
 import type { EncounterParticipant } from "../types/encounter.types";
 import type { TargetInfo } from "../lib/attack";
+import { CombatantBanner } from "./CombatantArt";
 import { DicePoolBuilder } from "./DicePoolBuilder";
 import { AttackCardList } from "./stage/AttackCardList";
 import { AbilityCheckRow, SaveRow, SkillRow } from "./stage/CheckRows";
@@ -118,7 +119,7 @@ export function ActionPanel({
   return (
     <ScrollArea className="h-full">
       <div className="space-y-4 pr-1">
-        <PanelHeader participant={participant} />
+        <PanelHeader participant={participant} isDM={isDM} compact={secondaryCollapsed} />
 
         {!secondaryCollapsed && combatStatus}
         <ConditionEffects stats={view.stats} />
@@ -144,7 +145,7 @@ export function ActionPanel({
           </>
         )}
 
-        <MonsterTraits traits={participant.special_abilities ?? []} />
+        <MonsterTraits traits={participant.special_abilities ?? []} actorId={participant.id} />
         <MonsterActionList view={view} />
         <AttackCardList view={view} attacks={attacks} />
         {participant.is_player && <UnarmedStrike view={view} />}
@@ -174,21 +175,35 @@ function MoreSection({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Name, and for a monster the NPC badge and its flavour text (DM reference). */
-function PanelHeader({ participant }: { participant: EncounterParticipant }) {
+/**
+ * The combatant's picture and name, and for a monster the NPC badge and its
+ * flavour text (DM reference). Compact on a player's own turn, when the
+ * controls matter more than the art.
+ */
+function PanelHeader({
+  participant,
+  isDM,
+  compact,
+}: {
+  participant: EncounterParticipant;
+  isDM: boolean;
+  compact: boolean;
+}) {
   const npc = !participant.is_player;
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {participant.name}
-        </span>
+      <CombatantBanner participant={participant} showHp={isDM || !npc} compact={compact}>
         {npc && (
           <Badge variant="secondary" className="text-xs">
             NPC
           </Badge>
         )}
-      </div>
+        {participant.concentrating_on && (
+          <Badge variant="outline" className="border-white/30 text-xs">
+            Concentrating: {participant.concentrating_on}
+          </Badge>
+        )}
+      </CombatantBanner>
       {npc && participant.description && (
         <p className="text-xs italic leading-relaxed text-muted-foreground">
           {participant.description}

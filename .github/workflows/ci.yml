@@ -1,9 +1,11 @@
 name: CI
 
+# Pull requests are the gate. Pushes (branches or tags) don't run CI: a
+# tag goes straight to release.yml. "Run workflow" runs it on demand.
 on:
-  push:
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: read
