@@ -125,3 +125,10 @@ Sign-up passes `emailRedirectTo` (default
 - GitHub repo Settings → Pages → Source: **GitHub Actions**.
 - Supabase dashboard → Authentication → URL Configuration: set **Site URL**
   to that address and add it to **Redirect URLs**.
+
+The page's "Open City of Stars" button is a `cityofstars://` link. The app
+registers that scheme with `tauri-plugin-deep-link` (config in
+`tauri.conf.json`), and `tauri-plugin-single-instance` hands it to a window
+that's already open. `core/hooks/useDeepLinks.ts` reacts to it. A scheme
+registers only for an installed build (or at runtime on Windows/Linux), so
+`vite dev` in a browser never receives one.
