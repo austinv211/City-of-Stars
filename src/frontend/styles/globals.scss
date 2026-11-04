@@ -432,3 +432,53 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     animation: turn-shimmer 8s infinite;
   }
 }
+
+// ── Rich notes ─────────────────────────────────────────────────────────────
+// Fonts, colours and read-aloud boxes from the note editor
+// (core/components/richtext/extensions.ts). Selectors are the data
+// attributes the editor writes, so the editor and the reader share them.
+@layer components {
+  [data-font="epic"] { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.02em; }
+  [data-font="tome"] { font-family: "IM Fell English", Georgia, serif; }
+  [data-font="hand"] { font-family: "Caveat", cursive; font-size: 1.3em; line-height: 1.2; }
+  [data-font="typewriter"] { font-family: "Special Elite", "Courier New", monospace; }
+  [data-font="arcane"] { font-family: "Uncial Antiqua", Georgia, serif; }
+
+  [data-color="gold"] { color: var(--secondary); }
+  [data-color="arcane"] { color: var(--primary); }
+  [data-color="blood"] { color: var(--destructive); }
+  [data-color="verdant"] { color: var(--success); }
+  [data-color="violet"] { color: oklch(0.72 0.15 300); }
+  [data-color="ash"] { color: var(--muted-foreground); }
+
+  .rich-note {
+    aside[data-callout="read-aloud"] {
+      margin: 1em 0;
+      padding: 0.75em 1em;
+      border-left: 3px solid var(--secondary);
+      background: color-mix(in oklch, var(--secondary) 8%, transparent);
+      font-family: "IM Fell English", Georgia, serif;
+      font-size: 1.05em;
+
+      > :first-child { margin-top: 0; }
+      > :last-child { margin-bottom: 0; }
+    }
+
+    mark {
+      padding: 0 0.15em;
+      background: color-mix(in oklch, var(--secondary) 30%, transparent);
+      color: inherit;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+      max-height: 28rem;
+      margin: 1em auto;
+    }
+
+    img.ProseMirror-selectednode {
+      outline: 2px solid var(--primary);
+    }
+  }
+}

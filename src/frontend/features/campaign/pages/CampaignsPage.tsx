@@ -1,6 +1,5 @@
 import { Skeleton } from "@/core/components/ui/skeleton";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { RichText } from "@/core/components/RichText";
 import {
   Tabs,
   TabsContent,
@@ -51,11 +50,7 @@ function SessionBlock({
       </div>
 
       {partyNote?.content ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {partyNote.content}
-          </ReactMarkdown>
-        </div>
+        <RichText>{partyNote.content}</RichText>
       ) : (
         <p className="text-sm text-muted-foreground italic">
           No party notes for this session.

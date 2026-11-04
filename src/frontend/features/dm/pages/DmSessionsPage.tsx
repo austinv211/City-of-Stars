@@ -1,11 +1,10 @@
 import { useState, useRef } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Button } from "@/core/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Input } from "@/core/components/ui/input";
 import { Badge } from "@/core/components/ui/badge";
 import { RichTextEditor } from "@/core/components/RichTextEditor";
+import { RichText } from "@/core/components/RichText";
 import { Separator } from "@/core/components/ui/separator";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, ScrollText, Pencil } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -235,11 +234,7 @@ export default function DmSessionsPage() {
                         </div>
                       </div>
                     ) : getNote(session, "party")?.content ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {getNote(session, "party")!.content!}
-                        </ReactMarkdown>
-                      </div>
+                      <RichText>{getNote(session, "party")?.content}</RichText>
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No party notes yet.</p>
                     )}
@@ -292,11 +287,7 @@ export default function DmSessionsPage() {
                         </div>
                       </div>
                     ) : getNote(session, "dm_only")?.content ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {getNote(session, "dm_only")!.content!}
-                        </ReactMarkdown>
-                      </div>
+                      <RichText>{getNote(session, "dm_only")?.content}</RichText>
                     ) : (
                       <p className="text-sm text-muted-foreground italic">No DM notes yet.</p>
                     )}
