@@ -26,7 +26,7 @@ import { AppShell } from "./pages/AppShell";
 const KNOWN_AXE_DEBT = new Set(["color-contrast"]);
 
 const ROUTES = {
-  player1: ["/characters", "/campaigns", "/encounter"],
+  player1: ["/characters", "/campaigns", "/encounter", "/schedule"],
   dm: [
     "/dm/campaigns",
     "/dm/members",
@@ -34,6 +34,8 @@ const ROUTES = {
     "/dm/sessions",
     "/dm/encounters",
     "/dm/monsters",
+    "/dm/wild-magic",
+    "/schedule",
   ],
 } as const;
 
