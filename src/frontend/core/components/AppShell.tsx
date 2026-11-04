@@ -16,6 +16,7 @@ import { TabletRail } from "@/core/components/nav/TabletRail";
 import { useMotionAttribute } from "@/core/hooks/useFeelPrefs";
 import DiceRollOverlay from "./DiceRollOverlay";
 import { AccountDialog } from "./AccountDialog";
+import { DisplayNamePrompt } from "./DisplayNamePrompt";
 
 /** Identity + account controls, for the desktop sidebar footer. */
 function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
@@ -138,6 +139,7 @@ export default function AppShell() {
 
         <DiceRollOverlay />
         <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+        <DisplayNamePrompt />
       </TooltipProvider>
     </DiceProvider>
   );

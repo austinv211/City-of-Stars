@@ -14,6 +14,7 @@ import { setFeelPrefs, useFeelPrefs } from "@/core/hooks/useFeelPrefs";
 import { usePlatform } from "@/core/hooks/usePlatform";
 import { notifyUpdate } from "@/core/hooks/useUpdateCheck";
 import { checkForUpdate, getAppVersion } from "@/core/lib/updates";
+import { DISPLAY_NAME_MAX } from "./DisplayNamePrompt";
 
 interface Props {
   open: boolean;
@@ -61,11 +62,11 @@ export function AccountDialog({ open, onOpenChange }: Props) {
               value={name}
               onChange={(e) => { setName(e.target.value); setError(null); }}
               placeholder="How others see you"
-              maxLength={40}
+              maxLength={DISPLAY_NAME_MAX}
               onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
             />
             <p className="text-xs text-muted-foreground">
-              Shown in the app and on rolls you make without a character.
+              How your DM finds you and how the table sees you. Your email is only visible to your DM.
             </p>
           </div>
           <div className="space-y-1.5">

@@ -7,6 +7,7 @@ import { Button } from "@/core/components/ui/button";
 import { Input } from "@/core/components/ui/input";
 import { Label } from "@/core/components/ui/label";
 import { AnimatedStar } from "@/core/components/TitleBar";
+import { DISPLAY_NAME_MAX } from "@/core/components/DisplayNamePrompt";
 
 /** Where email confirmation links land; must be in Supabase's redirect allow-list. */
 const AUTH_LANDING_URL =
@@ -14,12 +15,53 @@ const AUTH_LANDING_URL =
 
 type Mode = "signin" | "signup";
 
+interface Fields {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+const EMPTY: Fields = { name: "", email: "", password: "", confirmPassword: "" };
+
+/** The first problem with the form, checked before anything touches auth. */
+function validate(mode: Mode, f: Fields): string | null {
+  if (mode === "signup" && !f.name.trim()) return "Choose a display name.";
+  if (mode === "signup" && f.password !== f.confirmPassword) return "Passwords do not match.";
+  if (f.password.length < 6) return "Password must be at least 6 characters.";
+  return null;
+}
+
+async function submit(mode: Mode, f: Fields): Promise<{ error?: string; created?: boolean }> {
+  const email = f.email.trim();
+  // Check the whitelist before touching auth, so a stranger gets a clear answer.
+  const { data: allowed } = await supabase.rpc("is_email_allowed", { user_email: email });
+  if (!allowed) {
+    return { error: "This email is not authorized to access City of Stars. Contact the administrator for access." };
+  }
+
+  if (mode === "signin") {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: f.password });
+    return error ? { error: error.message } : {};
+  }
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password: f.password,
+    options: {
+      // The app has no web origin to return to, so the confirmation link
+      // lands on a small static page that says what to do next.
+      emailRedirectTo: AUTH_LANDING_URL,
+      data: { display_name: f.name.trim() },
+    },
+  });
+  return error ? { error: error.message } : { created: true };
+}
+
 export default function LoginPage() {
   const { session } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fields, setFields] = useState<Fields>(EMPTY);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,69 +69,39 @@ export default function LoginPage() {
 
   if (session) return <Navigate to="/" replace />;
 
+  const set = (key: keyof Fields) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFields((f) => ({ ...f, [key]: e.target.value }));
+  };
+
   function switchMode(next: Mode) {
     setMode(next);
     setError(null);
     setSuccessMessage(null);
-    setPassword("");
-    setConfirmPassword("");
+    setFields((f) => ({ ...f, password: "", confirmPassword: "" }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
     setSuccessMessage(null);
-
-    if (mode === "signup" && password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
+    const problem = validate(mode, fields);
+    setError(problem);
+    if (problem) return;
 
     setLoading(true);
-
-    // Check whitelist before touching auth — works for both anon and authenticated callers.
-    const { data: allowed } = await supabase.rpc("is_email_allowed", {
-      user_email: email.trim(),
-    });
-    if (!allowed) {
-      setError(
-        "This email is not authorized to access City of Stars. Contact the administrator for access."
-      );
-      setLoading(false);
-      return;
-    }
-
-    if (mode === "signin") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        // The app has no web origin to return to, so the confirmation link
-        // lands on a small static page that says what to do next.
-        options: { emailRedirectTo: AUTH_LANDING_URL },
-      });
-      if (error) {
-        setError(error.message);
-      } else {
-        setSuccessMessage(
-          "Account created! Check your email for a confirmation link before signing in."
-        );
-        switchMode("signin");
-      }
-    }
-
+    const result = await submit(mode, fields);
     setLoading(false);
+    if (result.error) {
+      setError(result.error);
+    } else if (result.created) {
+      switchMode("signin");
+      setSuccessMessage("Account created! Check your email for a confirmation link before signing in.");
+    }
   }
+
+  const signingUp = mode === "signup";
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center bg-background p-4">
-      {/* Subtle radial glow behind the card */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -99,88 +111,58 @@ export default function LoginPage() {
       />
 
       <div className="relative w-full max-w-sm">
-        {/* Card */}
         <div
-          className="relative border border-border bg-card px-8 py-9 overflow-hidden"
+          className="relative overflow-hidden border border-border bg-card px-8 py-9"
           style={{ boxShadow: "var(--shadow-elevated)" }}
         >
-          <div className="absolute inset-x-0 top-0 h-[2px] ctp-accent-bar pointer-events-none" aria-hidden />
-          {/* Logo + title */}
-          <div className="mb-8 flex flex-col items-center gap-3 text-center">
-            <div className="flex h-14 w-14 items-center justify-center bg-primary/15 border border-primary/20">
-              <AnimatedStar size={32} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">City of Stars</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {mode === "signin" ? "Sign in to your account" : "Create a new account"}
-              </p>
-            </div>
-          </div>
+          <div className="ctp-accent-bar pointer-events-none absolute inset-x-0 top-0 h-[2px]" aria-hidden />
+          <Brand subtitle={signingUp ? "Create a new account" : "Sign in to your account"} />
+          <ModeTabs mode={mode} onChange={switchMode} />
 
-          {/* Mode tabs */}
-          <div
-            role="tablist"
-            aria-label="Sign in or sign up"
-            className="mb-6 grid grid-cols-2 p-0.5 text-sm bg-input"
-            style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.4)" }}
-          >
-            {(["signin", "signup"] as Mode[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="tab"
-                aria-selected={mode === m}
-                aria-controls="auth-form"
-                onClick={() => switchMode(m)}
-                className={
-                  mode === m
-                    ? "py-1.5 font-medium bg-primary/20 text-primary transition-all"
-                    : "py-1.5 font-medium text-muted-foreground transition-all"
-                }
-              >
-                {m === "signin" ? "Sign In" : "Sign Up"}
-              </button>
-            ))}
-          </div>
-
-          {/* Success message */}
           {successMessage && (
-            <div className="mb-5 rounded-md px-4 py-3 text-sm bg-success/10 border border-success/30 text-success">
+            <div className="mb-5 rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
               {successMessage}
             </div>
           )}
 
-          {/* Form */}
-          <form id="auth-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Email
-              </Label>
+          <form id="auth-form" onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+            {signingUp && (
+              <Field id="display-name" label="Display name" hint="How your DM and party see you. Your email stays private.">
+                <Input
+                  id="display-name"
+                  autoComplete="nickname"
+                  placeholder="e.g. Mira"
+                  maxLength={DISPLAY_NAME_MAX}
+                  value={fields.name}
+                  onChange={set("name")}
+                  required
+                  className="h-10"
+                />
+              </Field>
+            )}
+
+            <Field id="email" label="Email">
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={fields.email}
+                onChange={set("email")}
                 required
                 className="h-10"
               />
-            </div>
+            </Field>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Password
-              </Label>
+            <Field id="password" label="Password">
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  autoComplete={signingUp ? "new-password" : "current-password"}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={fields.password}
+                  onChange={set("password")}
                   required
                   className="h-10 pr-10"
                 />
@@ -194,29 +176,25 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </div>
+            </Field>
 
-            {mode === "signup" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="confirm-password" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Confirm Password
-                </Label>
+            {signingUp && (
+              <Field id="confirm-password" label="Confirm Password">
                 <Input
                   id="confirm-password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  value={fields.confirmPassword}
+                  onChange={set("confirmPassword")}
                   required
                   className="h-10"
                 />
-              </div>
+              </Field>
             )}
 
-            {/* Error */}
             {error && (
-              <div role="alert" className="rounded-md px-4 py-3 text-sm bg-destructive/10 border border-destructive/30 text-destructive">
+              <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {error}
               </div>
             )}
@@ -224,47 +202,83 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full h-10 font-medium"
+              className="mt-2 h-10 w-full font-medium"
               style={{ boxShadow: "var(--shadow-glow), var(--shadow-sm)" }}
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : mode === "signin" ? (
-                "Sign In"
-              ) : (
-                "Create Account"
-              )}
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {!loading && (signingUp ? "Create Account" : "Sign In")}
             </Button>
           </form>
 
-          {/* Mode switcher link */}
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            {mode === "signin" ? (
-              <>
-                Don&apos;t have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => switchMode("signup")}
-                  className="font-medium text-primary hover:underline"
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => switchMode("signin")}
-                  className="font-medium text-primary hover:underline"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
+            {signingUp ? "Already have an account? " : "Don't have an account? "}
+            <button
+              type="button"
+              onClick={() => switchMode(signingUp ? "signin" : "signup")}
+              className="font-medium text-primary hover:underline"
+            >
+              {signingUp ? "Sign in" : "Sign up"}
+            </button>
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Brand({ subtitle }: { subtitle: string }) {
+  return (
+    <div className="mb-8 flex flex-col items-center gap-3 text-center">
+      <div className="flex h-14 w-14 items-center justify-center border border-primary/20 bg-primary/15">
+        <AnimatedStar size={32} />
+      </div>
+      <div>
+        <h1 className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-xl font-bold tracking-tight text-transparent">
+          City of Stars
+        </h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function ModeTabs({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Sign in or sign up"
+      className="mb-6 grid grid-cols-2 bg-input p-0.5 text-sm"
+      style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.4)" }}
+    >
+      {(["signin", "signup"] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          role="tab"
+          aria-selected={mode === m}
+          aria-controls="auth-form"
+          onClick={() => onChange(m)}
+          className={
+            mode === m
+              ? "bg-primary/20 py-1.5 font-medium text-primary transition-all"
+              : "py-1.5 font-medium text-muted-foreground transition-all"
+          }
+        >
+          {m === "signin" ? "Sign In" : "Sign Up"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </Label>
+      {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

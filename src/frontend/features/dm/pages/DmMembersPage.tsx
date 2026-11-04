@@ -1,17 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
+import { UserPlus, Trash2, Users, AlertTriangle, User, Mail, X } from "lucide-react";
 import { Button } from "@/core/components/ui/button";
-import { Input } from "@/core/components/ui/input";
-import { Label } from "@/core/components/ui/label";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { ResponsiveTable } from "@/core/components/ui/responsive-table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/core/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/core/components/ui/select";
 import {
   ResponsiveDialog as Dialog,
   ResponsiveDialogContent as DialogContent,
@@ -19,19 +13,28 @@ import {
   ResponsiveDialogTitle as DialogTitle,
   ResponsiveDialogFooter as DialogFooter,
 } from "@/core/components/ui/responsive-dialog";
-import { UserPlus, Trash2, Users, AlertTriangle, User } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import NoCampaignMessage from "@/features/dm/components/NoCampaignMessage";
+import { AddMemberDialog } from "../components/AddMemberDialog";
+import {
+  cancelInvite,
+  changeMemberRole,
+  removeMember,
+  useCampaignRoster,
+  type MemberRole,
+  type PendingInvite,
+  type RosterMember,
+} from "../hooks/useCampaignRoster";
 
-interface Member {
-  id: string;
-  user_id: string;
-  email: string;
-  role: string;
-  joined_at: string;
+/** Why a role change or removal would leave the campaign without a DM, if it would. */
+function soleDmGuard(members: RosterMember[], target: RosterMember, selfId: string | undefined) {
+  const dmCount = members.filter((m) => m.role === "dm").length;
+  const isSoleDm = target.role === "dm" && dmCount === 1;
+  return isSoleDm && target.user_id === selfId
+    ? "You are the only DM. Appoint another DM first."
+    : null;
 }
 
 export default function DmMembersPage() {
@@ -39,185 +42,61 @@ export default function DmMembersPage() {
   const { campaign } = useCampaign();
   const { user } = useAuth();
   const { characters } = useCharacters();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { members, invites, loading, reload } = useCampaignRoster(campaign?.id);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [addEmail, setAddEmail] = useState("");
-  const [addRole, setAddRole] = useState<"player" | "dm">("player");
-  const [addError, setAddError] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<RosterMember | null>(null);
+  const [guardError, setGuardError] = useState<string | null>(null);
 
-  const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
-  const [removing, setRemoving] = useState(false);
-  const [dmGuardError, setDmGuardError] = useState<string | null>(null);
+  if (!campaign) return <NoCampaignMessage />;
 
   const activeCharacterByOwner = new Map(
-    characters.filter((c) => c.status === "active").map((c) => [c.owner_id, c.id])
+    characters.filter((c) => c.status === "active").map((c) => [c.owner_id, c.id]),
   );
 
-  async function load() {
-    if (!campaign) return;
-    setLoading(true);
-    const { data, error } = await supabase.rpc(
-      "get_campaign_members_with_email",
-      { cid: campaign.id },
-    );
-    if (error) console.error("[DmMembersPage] load error:", error);
-    setMembers((data as Member[]) ?? []);
-    setLoading(false);
+  async function apply(result: Promise<{ error?: string }>) {
+    const { error } = await result;
+    if (error) toast.error(error);
+    await reload();
   }
 
-  useEffect(() => {
-    load();
-  }, [campaign?.id]);
-
-  async function handleAdd() {
-    if (!campaign || !addEmail.trim()) return;
-    setAdding(true);
-    setAddError(null);
-
-    // Whitelist check first
-    const { data: allowed } = await supabase.rpc("is_email_allowed", {
-      user_email: addEmail.trim(),
-    });
-    if (!allowed) {
-      setAddError("That email is not on the whitelist. Add it in the Admin panel first.");
-      setAdding(false);
-      return;
-    }
-
-    // Look up user id by email
-    const { data: userId, error: lookupErr } = await supabase.rpc(
-      "find_user_id_by_email",
-      { target_email: addEmail.trim() },
-    );
-    if (lookupErr || !userId) {
-      setAddError("No account found with that email. They must sign up first.");
-      setAdding(false);
-      return;
-    }
-
-    // Check not already a member WITH THIS SPECIFIC ROLE (multiple roles per user are allowed)
-    if (members.some((m) => m.user_id === userId && m.role === addRole)) {
-      setAddError(`This user already has the ${addRole} role in this campaign.`);
-      setAdding(false);
-      return;
-    }
-
-    const { error: insertErr } = await supabase
-      .from("campaign_members")
-      .insert({
-        campaign_id: campaign.id,
-        user_id: userId,
-        role: addRole,
-      });
-
-    if (insertErr) {
-      setAddError(insertErr.message);
-      setAdding(false);
-      return;
-    }
-
-    setAddOpen(false);
-    setAddEmail("");
-    setAddRole("player");
-    setAdding(false);
-    load();
+  function tryRemove(member: RosterMember) {
+    const blocked = soleDmGuard(members, member, user?.id);
+    setGuardError(blocked);
+    if (!blocked) setRemoveTarget(member);
   }
 
-  function dmCount() {
-    return members.filter((m) => m.role === "dm").length;
-  }
-
-  function isSoleDM(member: Member) {
-    return member.role === "dm" && dmCount() === 1;
-  }
-
-  function tryRemove(member: Member) {
-    setDmGuardError(null);
-    if (member.user_id === user?.id && isSoleDM(member)) {
-      setDmGuardError("You are the only DM. Appoint another DM before leaving the campaign.");
-      return;
-    }
-    setRemoveTarget(member);
-  }
-
-  async function handleRemove(member: Member) {
-    if (!campaign) return;
-    setRemoving(true);
-    // Delete by id to target only this specific role row
-    await supabase
-      .from("campaign_members")
-      .delete()
-      .eq("id", member.id);
-    setRemoveTarget(null);
-    setRemoving(false);
-    load();
-  }
-
-  async function handleRoleChange(member: Member, newRole: "player" | "dm") {
-    if (!campaign) return;
-    setDmGuardError(null);
-    if (member.user_id === user?.id && member.role === "dm" && newRole === "player" && isSoleDM(member)) {
-      setDmGuardError("You are the only DM. Appoint another DM before changing your role.");
-      return;
-    }
-    // Block if changing to a role this user already has (would create a duplicate row)
-    if (members.some((m) => m.id !== member.id && m.user_id === member.user_id && m.role === newRole)) {
-      setDmGuardError(`This user already has the ${newRole} role. Add a separate row instead.`);
-      return;
-    }
-    // Update by id to target only this specific role row
-    await supabase
-      .from("campaign_members")
-      .update({ role: newRole })
-      .eq("id", member.id);
-    load();
-  }
-
-  if (!campaign) {
-    return <NoCampaignMessage />;
+  function handleRoleChange(member: RosterMember, role: MemberRole) {
+    const blocked = role === "player" ? soleDmGuard(members, member, user?.id) : null;
+    const duplicate = members.some((m) => m.id !== member.id && m.user_id === member.user_id && m.role === role);
+    setGuardError(blocked ?? (duplicate ? `${member.display_name} already has the ${role} role.` : null));
+    if (!blocked && !duplicate) void apply(changeMemberRole(member.id, role));
   }
 
   return (
-    <div className="px-4 sm:px-6 py-8 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="space-y-6 px-4 py-8 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Campaign Members</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {campaign.name}
-          </p>
+          <h1 className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-2xl font-bold text-transparent">
+            Campaign Members
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">{campaign.name}</p>
         </div>
-        <Button
-          onClick={() => {
-            setAddOpen(true);
-            setAddError(null);
-          }}
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
+        <Button onClick={() => setAddOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
           Add Member
         </Button>
       </div>
 
-      {dmGuardError && (
-        <div className="flex items-start gap-2 px-4 py-3 text-sm bg-destructive/10 border border-destructive/30 text-destructive">
-          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-          <span>{dmGuardError}</span>
+      {guardError && (
+        <div role="alert" className="flex items-start gap-2 border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{guardError}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="border border-border">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-border last:border-0">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-4 w-24 ml-auto" />
-              <Skeleton className="h-7 w-24" />
-              <Skeleton className="h-8 w-8" />
-            </div>
-          ))}
-        </div>
+        <MembersSkeleton />
       ) : members.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-20 text-center">
           <Users className="h-10 w-10 text-muted-foreground opacity-40" />
@@ -228,7 +107,17 @@ export default function DmMembersPage() {
           data={members}
           getRowKey={(m) => m.id}
           columns={[
-            { key: "email", header: "Email", primary: true, cell: (m) => m.email },
+            {
+              key: "name",
+              header: "Member",
+              primary: true,
+              cell: (m) => (
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{m.display_name}</p>
+                  {m.email && <p className="truncate text-xs text-muted-foreground">{m.email}</p>}
+                </div>
+              ),
+            },
             {
               key: "joined",
               header: "Joined",
@@ -239,13 +128,8 @@ export default function DmMembersPage() {
               key: "role",
               header: "Role",
               cell: (m) => (
-                <Select
-                  value={m.role}
-                  onValueChange={(v) => {
-                    handleRoleChange(m, v as "player" | "dm");
-                  }}
-                >
-                  <SelectTrigger className="h-7 w-24 text-xs" aria-label={`Role for ${m.email}`}>
+                <Select value={m.role} onValueChange={(v) => handleRoleChange(m, v as MemberRole)}>
+                  <SelectTrigger className="h-7 w-24 text-xs" aria-label={`Role for ${m.display_name}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -259,19 +143,17 @@ export default function DmMembersPage() {
               key: "character",
               header: "Character",
               cell: (m) => {
-                const activeCharId = activeCharacterByOwner.get(m.user_id);
+                const charId = activeCharacterByOwner.get(m.user_id);
                 return (
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-7 text-xs"
-                    disabled={!activeCharId}
-                    onClick={() => {
-                      if (activeCharId) navigate(`/dm/characters/${activeCharId}`);
-                    }}
+                    disabled={!charId}
+                    onClick={() => charId && navigate(`/dm/characters/${charId}`)}
                   >
                     <User className="mr-1 h-3 w-3" />
-                    {activeCharId ? "View" : "None"}
+                    {charId ? "View" : "None"}
                   </Button>
                 );
               },
@@ -286,10 +168,8 @@ export default function DmMembersPage() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => {
-                    tryRemove(m);
-                  }}
-                  aria-label={`Remove ${m.email}`}
+                  onClick={() => tryRemove(m)}
+                  aria-label={`Remove ${m.display_name}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -299,90 +179,78 @@ export default function DmMembersPage() {
         />
       )}
 
-      {/* Add member dialog */}
-      <Dialog
-        open={addOpen}
-        onOpenChange={(o) => {
-          if (!o) setAddOpen(false);
-        }}
-      >
-        <DialogContent widthClassName="md:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Member</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Email Address</Label>
-              <Input
-                autoFocus
-                type="email"
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-                placeholder="player@example.com"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAdd();
-                }}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Role</Label>
-              <Select
-                value={addRole}
-                onValueChange={(v) => setAddRole(v as "player" | "dm")}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="player">Player</SelectItem>
-                  <SelectItem value="dm">Dungeon Master</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {addError && <p className="text-sm text-destructive">{addError}</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAdd} disabled={adding || !addEmail.trim()}>
-              {adding ? "Adding…" : "Add Member"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PendingInvites invites={invites} onCancel={(i) => void apply(cancelInvite(i.id))} />
 
-      {/* Remove confirmation */}
-      <Dialog
-        open={!!removeTarget}
-        onOpenChange={(o) => {
-          if (!o) setRemoveTarget(null);
-        }}
-      >
+      <AddMemberDialog campaignId={campaign.id} open={addOpen} onOpenChange={setAddOpen} onChanged={() => void reload()} />
+
+      <Dialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
         <DialogContent widthClassName="md:max-w-md">
           <DialogHeader>
             <DialogTitle>Remove member?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">
-              {removeTarget?.email}
-            </span>{" "}
-            will lose access to this campaign and all its content.
+            <span className="font-medium text-foreground">{removeTarget?.display_name}</span> will lose
+            access to this campaign and all its content.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRemoveTarget(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setRemoveTarget(null)}>Cancel</Button>
             <Button
               variant="destructive"
-              disabled={removing}
-              onClick={() => removeTarget && handleRemove(removeTarget)}
+              onClick={() => {
+                if (removeTarget) void apply(removeMember(removeTarget.id));
+                setRemoveTarget(null);
+              }}
             >
               Remove
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function PendingInvites({ invites, onCancel }: { invites: PendingInvite[]; onCancel: (i: PendingInvite) => void }) {
+  if (invites.length === 0) return null;
+  return (
+    <section aria-labelledby="pending-invites" className="space-y-2">
+      <h2 id="pending-invites" className="text-xs font-semibold uppercase tracking-wide text-primary">
+        Waiting to sign up
+      </h2>
+      <ul className="divide-y divide-border border border-border">
+        {invites.map((i) => (
+          <li key={i.id} className="flex items-center gap-3 px-4 py-2 text-sm">
+            <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 truncate">{i.email}</span>
+            <span className="text-xs text-muted-foreground">{i.role === "dm" ? "DM" : "Player"}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              onClick={() => onCancel(i)}
+              aria-label={`Cancel invite for ${i.email}`}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted-foreground">They join this campaign automatically when they create their account.</p>
+    </section>
+  );
+}
+
+function MembersSkeleton() {
+  return (
+    <div className="border border-border">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="ml-auto h-4 w-24" />
+          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-8 w-8" />
+        </div>
+      ))}
     </div>
   );
 }
