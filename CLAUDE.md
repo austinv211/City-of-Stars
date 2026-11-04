@@ -95,6 +95,17 @@ Use `dev.ps1` instead of `make`. It mirrors all the same targets:
 
 If PowerShell blocks the script, run once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
+## Rich notes
+
+Notes (session notes, campaign description, character notes, wild magic
+surges) are stored as Markdown. `core/components/RichTextEditor.tsx` writes
+it; `core/components/RichText.tsx` is the only reader, so always render notes
+through `RichText`, never `ReactMarkdown` directly. Fonts, colours and
+read-aloud boxes have no Markdown syntax, so they are saved as a few HTML
+tags with data attributes from fixed lists (`core/components/richtext/extensions.ts`);
+`RichText` sanitises everything else away. Pictures go to the public
+`campaign-media` bucket under `<campaign_id>/`.
+
 ## CI and releasing
 
 - **CI** (`ci.yml`, CodeQL) runs on pull requests into master, and on demand.

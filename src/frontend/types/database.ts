@@ -4,7 +4,7 @@
 // Regenerate with the Supabase MCP `generate_typescript_types`, or:
 //   npx supabase gen types typescript --linked > src/frontend/types/database.ts
 //
-// This is the schema's own account of itself, across all 68 migrations. The
+// This is the schema's own account of itself, across all 82 migrations. The
 // hand-written interfaces in features/*/types/*.ts predate it and are NOT
 // checked against it -- which is the real type risk in this codebase, not
 // missing annotations (type coverage is already 99.7%).
@@ -103,6 +103,41 @@ export type Database = {
           invited_by?: string | null
         }
         Relationships: []
+      }
+      campaign_invites: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+          role: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_invites_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_items: {
         Row: {
@@ -606,6 +641,77 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_surges: {
+        Row: {
+          applied_by: string | null
+          campaign_id: string
+          character_id: string
+          created_at: string
+          description: string | null
+          effect_id: string | null
+          ended_at: string | null
+          id: string
+          name: string
+          roll: number | null
+          surge_id: string | null
+        }
+        Insert: {
+          applied_by?: string | null
+          campaign_id: string
+          character_id: string
+          created_at?: string
+          description?: string | null
+          effect_id?: string | null
+          ended_at?: string | null
+          id?: string
+          name: string
+          roll?: number | null
+          surge_id?: string | null
+        }
+        Update: {
+          applied_by?: string | null
+          campaign_id?: string
+          character_id?: string
+          created_at?: string
+          description?: string | null
+          effect_id?: string | null
+          ended_at?: string | null
+          id?: string
+          name?: string
+          roll?: number | null
+          surge_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_surges_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_surges_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_surges_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_surges_surge_id_fkey"
+            columns: ["surge_id"]
+            isOneToOne: false
+            referencedRelation: "wild_magic_surges"
             referencedColumns: ["id"]
           },
         ]
@@ -1348,6 +1454,76 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_sessions: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          location: string | null
+          note: string | null
+          starts_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string | null
+          note?: string | null
+          starts_at: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string | null
+          note?: string | null
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_sessions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_availability: {
+        Row: {
+          campaign_id: string
+          day: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          day: string
+          status: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          campaign_id?: string
+          day?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_availability_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_notes: {
         Row: {
           campaign_id: string
@@ -1695,6 +1871,47 @@ export type Database = {
         }
         Relationships: []
       }
+      wild_magic_surges: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          description: string | null
+          id: string
+          lasts_rounds: number | null
+          name: string
+          roll_max: number | null
+          roll_min: number | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          lasts_rounds?: number | null
+          name: string
+          roll_max?: number | null
+          roll_min?: number | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          lasts_rounds?: number | null
+          name?: string
+          roll_max?: number | null
+          roll_min?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wild_magic_surges_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1704,6 +1921,30 @@ export type Database = {
         Args: { p_encounter_id: string }
         Returns: undefined
       }
+      apply_wild_magic_surge: {
+        Args: { p_character_id: string; p_roll?: number; p_surge_id?: string }
+        Returns: {
+          applied_by: string | null
+          campaign_id: string
+          character_id: string
+          created_at: string
+          description: string | null
+          effect_id: string | null
+          ended_at: string | null
+          id: string
+          name: string
+          roll: number | null
+          surge_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "character_surges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      campaign_from_media_path: { Args: { p_name: string }; Returns: string }
+      end_wild_magic_surge: { Args: { p_id: string }; Returns: undefined }
       find_user_id_by_email: { Args: { target_email: string }; Returns: string }
       get_campaign_current_session: {
         Args: { _campaign_id: string }
@@ -1719,11 +1960,30 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_campaign_roster: {
+        Args: { cid: string }
+        Returns: {
+          display_name: string
+          email: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }[]
+      }
       get_my_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_my_app_roles: { Args: never; Returns: string[] }
+      get_whitelist_signups: {
+        Args: never
+        Returns: {
+          display_name: string
+          email: string
+          signed_up_at: string
+        }[]
+      }
       increment_party_stat: {
         Args: { p_amount: number; p_campaign_id: string; p_key: string }
         Returns: undefined
@@ -1736,6 +1996,16 @@ export type Database = {
       reorder_initiative: {
         Args: { p_encounter_id: string }
         Returns: undefined
+      }
+      search_campaign_candidates: {
+        Args: { cid: string; q?: string }
+        Returns: {
+          display_name: string
+          email: string
+          invited_roles: string[]
+          member_roles: string[]
+          user_id: string
+        }[]
       }
       set_campaign_session: {
         Args: { p_campaign_id: string; p_session: number }
