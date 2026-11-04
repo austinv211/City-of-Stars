@@ -1,7 +1,9 @@
 name: Pages
 
-# The static landing page that Supabase's email confirmation links open
-# (site/). The app has no web origin of its own to send them to.
+# The static site in site/: the download page players are sent to, which is
+# also where Supabase's email confirmation links land (the app has no web
+# origin of its own). The page reads the release list from the GitHub API at
+# runtime, so a new release needs no redeploy.
 on:
   push:
     branches: [master]

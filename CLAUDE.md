@@ -126,7 +126,13 @@ with a `latest.json` manifest.
 - Prerelease tags (`v1.2.3-beta`) never become "latest", so they don't reach
   players.
 
-## Email confirmation landing page
+## Download page and email confirmation landing page
+
+`site/index.html` is the page to share with players. It reads
+`api.github.com/repos/<repo>/releases` in the browser, recommends the file for
+the visitor's OS and lists every older version. The file-name patterns in its
+`PLATFORMS` list must match the asset names `release.yml` uploads. Prereleases
+are left out.
 
 Sign-up passes `emailRedirectTo` (default
 `https://austinv211.github.io/City-of-Stars/`, override with
