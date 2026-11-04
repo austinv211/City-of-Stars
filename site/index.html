@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
-    <meta name="robots" content="noindex" />
+    <meta name="description" content="Download City of Stars, the companion app for our campaign, for Windows, Android and Linux." />
     <title>City of Stars</title>
     <style>
       /* The app's Polaris palette (src/frontend/styles/globals.scss). */
@@ -13,6 +13,7 @@
         --foreground: oklch(0.8802 0.0077 207.1375);
         --card: oklch(0.1461 0.0127 222.2833);
         --muted-foreground: oklch(0.4987 0.015 221.612);
+        --subtle-foreground: oklch(0.68 0.012 214);
         --primary: oklch(0.6554 0.1151 214.5277);
         --primary-hover: oklch(0.57 0.1151 214.5277);
         --primary-foreground: oklch(0.22 0.04 214.5);
@@ -25,27 +26,25 @@
       html, body { margin: 0; }
       body {
         min-height: 100dvh;
-        display: grid;
-        place-items: center;
-        padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+        padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
         background:
-          radial-gradient(ellipse 70% 60% at 40% 35%, color-mix(in oklch, var(--secondary) 6%, transparent) 0%, transparent 55%),
-          radial-gradient(ellipse 50% 40% at 65% 55%, color-mix(in oklch, var(--primary) 7%, transparent) 0%, transparent 60%),
+          radial-gradient(ellipse 70% 60% at 40% 20%, color-mix(in oklch, var(--secondary) 6%, transparent) 0%, transparent 55%),
+          radial-gradient(ellipse 50% 40% at 65% 35%, color-mix(in oklch, var(--primary) 7%, transparent) 0%, transparent 60%),
           var(--background);
+        background-attachment: fixed;
         color: var(--foreground);
         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
+      .page { width: 100%; max-width: 34rem; margin: 0 auto; display: grid; gap: 1rem; }
       .card {
         position: relative;
-        width: 100%;
-        max-width: 24rem;
-        padding: 2.25rem 2rem;
+        padding: 2rem;
         overflow: hidden;
         background: var(--card);
         border: 1px solid var(--border);
         box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
-        text-align: center;
       }
+      .hero { text-align: center; }
       /* The app's rainbow accent bar along the top of the login card. */
       .accent {
         position: absolute;
@@ -63,7 +62,7 @@
         border: 1px solid color-mix(in oklch, var(--primary) 20%, transparent);
       }
       .brand {
-        margin: 0.75rem 0 1.75rem;
+        margin: 0.75rem 0 1.5rem;
         font-size: 1.25rem;
         font-weight: 700;
         letter-spacing: -0.01em;
@@ -73,7 +72,9 @@
         color: transparent;
       }
       h1 { margin: 0 0 0.5rem; font-size: 1.05rem; font-weight: 600; }
+      h2 { margin: 0; font-size: 0.95rem; font-weight: 600; }
       p { margin: 0 0 0.5rem; color: var(--muted-foreground); }
+      a { color: var(--primary); }
       .notice {
         margin-bottom: 1.25rem;
         padding: 0.75rem 1rem;
@@ -88,64 +89,188 @@
         display: block;
         padding: 0.65rem 1rem;
         font-weight: 600;
+        text-align: center;
         text-decoration: none;
         border: 1px solid transparent;
-        transition: background 0.15s, border-color 0.15s;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
       }
       .button.primary { background: var(--primary); color: var(--primary-foreground); }
       .button.primary:hover { background: var(--primary-hover); }
-      .button.ghost { color: var(--muted-foreground); border-color: var(--border); }
+      .button.ghost { color: var(--subtle-foreground); border-color: var(--border); }
       .button.ghost:hover { color: var(--foreground); border-color: var(--muted-foreground); }
+      .button small { display: block; font-weight: 400; font-size: 0.78rem; opacity: 0.8; }
       .hint { margin-top: 0.75rem; font-size: 0.8rem; }
+
+      /* Downloads */
+      .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+      .meta { font-size: 0.8rem; color: var(--muted-foreground); }
+      .platforms { display: grid; gap: 0.5rem; }
+      .platform {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 0.25rem 1rem;
+        padding: 0.7rem 0.9rem;
+        border: 1px solid var(--border);
+        color: var(--foreground);
+        text-decoration: none;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .platform:hover { border-color: var(--primary); background: color-mix(in oklch, var(--primary) 6%, transparent); }
+      .platform.recommended { border-color: color-mix(in oklch, var(--primary) 55%, transparent); }
+      .platform .name { font-weight: 600; }
+      .platform .kind { color: var(--subtle-foreground); font-weight: 400; }
+      .platform .note { grid-column: 1; font-size: 0.8rem; color: var(--muted-foreground); }
+      .platform .size { grid-row: 1 / span 2; grid-column: 2; font-size: 0.8rem; color: var(--muted-foreground); white-space: nowrap; }
+      .badge {
+        display: inline-block;
+        margin-left: 0.4rem;
+        padding: 0 0.35rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--secondary);
+        border: 1px solid color-mix(in oklch, var(--secondary) 40%, transparent);
+        vertical-align: 0.1em;
+      }
+      details { border-top: 1px solid var(--border); }
+      details:last-child { border-bottom: 1px solid var(--border); }
+      summary {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.6rem 0.1rem;
+        cursor: pointer;
+        list-style: none;
+      }
+      summary::-webkit-details-marker { display: none; }
+      summary::before { content: "▸"; color: var(--muted-foreground); margin-right: 0.5rem; transition: transform 0.15s; }
+      details[open] > summary::before { transform: rotate(90deg); }
+      summary .version { flex: 1; font-weight: 600; }
+      .files { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 0 0.9rem 1.1rem; }
+      .files a {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.82rem;
+        color: var(--subtle-foreground);
+        text-decoration: none;
+        border: 1px solid var(--border);
+      }
+      .files a:hover { color: var(--foreground); border-color: var(--primary); }
+      .help h2 { margin-bottom: 0.5rem; }
+      .help dl { margin: 0; display: grid; gap: 0.75rem; font-size: 0.875rem; }
+      .help dt { font-weight: 600; }
+      .help dd { margin: 0.15rem 0 0; color: var(--subtle-foreground); }
+      footer { text-align: center; font-size: 0.8rem; color: var(--muted-foreground); }
       [hidden] { display: none !important; }
     </style>
   </head>
   <body>
-    <main class="card">
-      <div class="accent" aria-hidden="true"></div>
-      <div class="mark" aria-hidden="true">
-        <svg width="32" height="32" viewBox="0 0 20 20">
-          <polygon points="10,10 7.5,7.5 10,0 12.5,7.5" fill="#5b9bd5" />
-          <polygon points="10,10 12.5,7.5 20,10 12.5,12.5" fill="#d4a054" />
-          <polygon points="10,10 12.5,12.5 10,20 7.5,12.5" fill="#5b9bd5" />
-          <polygon points="10,10 7.5,12.5 0,10 7.5,7.5" fill="#d4a054" />
-        </svg>
-      </div>
-      <div class="brand">City of Stars</div>
-
-      <section id="confirmed" hidden>
-        <div class="notice ok" role="status">Your email is confirmed.</div>
-        <h1>You're all set</h1>
-        <p>Open City of Stars and sign in with your email and password.</p>
-      </section>
-
-      <section id="failed" hidden>
-        <div class="notice err" role="alert" id="failed-reason">
-          The confirmation link has expired or was already used.
+    <div class="page">
+      <main class="card hero">
+        <div class="accent" aria-hidden="true"></div>
+        <div class="mark" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 20 20">
+            <polygon points="10,10 7.5,7.5 10,0 12.5,7.5" fill="#5b9bd5" />
+            <polygon points="10,10 12.5,7.5 20,10 12.5,12.5" fill="#d4a054" />
+            <polygon points="10,10 12.5,12.5 10,20 7.5,12.5" fill="#5b9bd5" />
+            <polygon points="10,10 7.5,12.5 0,10 7.5,7.5" fill="#d4a054" />
+          </svg>
         </div>
-        <h1>That link didn't work</h1>
-        <p>Try signing in. If your email still isn't confirmed, sign up again for a fresh link.</p>
+        <div class="brand">City of Stars</div>
+
+        <section id="confirmed" hidden>
+          <div class="notice ok" role="status">Your email is confirmed.</div>
+          <h1>You're all set</h1>
+          <p>Open City of Stars and sign in with your email and password.</p>
+        </section>
+
+        <section id="failed" hidden>
+          <div class="notice err" role="alert" id="failed-reason">
+            The confirmation link has expired or was already used.
+          </div>
+          <h1>That link didn't work</h1>
+          <p>Try signing in. If your email still isn't confirmed, sign up again for a fresh link.</p>
+        </section>
+
+        <section id="default">
+          <h1>The companion app for our campaign</h1>
+          <p>Track your character and join encounters with the table.</p>
+        </section>
+
+        <div class="actions">
+          <!-- Filled in by the script once releases load; the static href is the fallback. -->
+          <a class="button primary" id="download-main" href="https://github.com/austinv211/City-of-Stars/releases/latest">
+            Download the app
+          </a>
+          <a class="button ghost" id="open-app" href="cityofstars://open">Already installed? Open City of Stars</a>
+        </div>
+        <p class="hint" id="open-hint" hidden>Opening asks your browser for permission the first time.</p>
+      </main>
+
+      <section class="card" id="downloads" aria-labelledby="latest-title">
+        <div class="section-head">
+          <h2 id="latest-title">Latest version</h2>
+          <span class="meta" id="latest-meta"></span>
+        </div>
+        <div class="platforms" id="latest-files">
+          <p id="loading">Loading downloads…</p>
+        </div>
+        <noscript>
+          <p><a href="https://github.com/austinv211/City-of-Stars/releases/latest">See all downloads on GitHub</a></p>
+        </noscript>
       </section>
 
-      <section id="default">
-        <h1>The companion app for our campaign</h1>
-        <p>Track your character and join encounters with the table.</p>
+      <section class="card" id="older" aria-labelledby="older-title" hidden>
+        <div class="section-head">
+          <h2 id="older-title">Older versions</h2>
+          <span class="meta">Only if the table asks you to</span>
+        </div>
+        <div id="older-list"></div>
       </section>
 
-      <div class="actions">
-        <a class="button primary" id="open-app" href="cityofstars://auth/confirmed">Open City of Stars</a>
-        <a class="button ghost" href="https://github.com/austinv211/City-of-Stars/releases/latest">
-          Don't have it yet? Download the app
-        </a>
-      </div>
-      <p class="hint">Opening asks your browser for permission the first time.</p>
-    </main>
+      <section class="card help" aria-labelledby="help-title">
+        <h2 id="help-title">Installing for the first time</h2>
+        <dl>
+          <div>
+            <dt>Windows</dt>
+            <dd>
+              If Windows says it protected your PC, choose <b>More info</b> then <b>Run anyway</b>.
+              After that the app updates itself.
+            </dd>
+          </div>
+          <div>
+            <dt>Android</dt>
+            <dd>
+              Open the downloaded APK. If asked, allow your browser to install unknown apps.
+              The app tells you when a new version is out.
+            </dd>
+          </div>
+          <div>
+            <dt>Linux</dt>
+            <dd>
+              Make the AppImage executable (<code>chmod +x</code>) and run it. It updates itself.
+              The .deb is for Ubuntu and Debian.
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <footer>
+        <a href="https://github.com/austinv211/City-of-Stars/releases">All releases on GitHub</a>
+      </footer>
+    </div>
 
     <script>
-      // Supabase verifies the link before redirecting here and reports the
-      // outcome in the URL: tokens on success, error_description on failure.
-      // The tokens aren't used (the user signs in in the app) and are cleared
-      // from the address bar.
+      const REPO = "austinv211/City-of-Stars";
+      const RELEASES_URL = `https://github.com/${REPO}/releases`;
+      const API_URL = `https://api.github.com/repos/${REPO}/releases?per_page=100`;
+
+      // ── Email confirmation ─────────────────────────────────────────────────
+      // Sign-up's emailRedirectTo points here. Supabase verifies the link
+      // before redirecting and reports the outcome in the URL: tokens on
+      // success, error_description on failure. The tokens aren't used (the
+      // user signs in in the app) and are cleared from the address bar.
       const params = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
       const show = (id) => {
         document.getElementById("default").hidden = true;
@@ -154,21 +279,170 @@
       const failed = params.get("error") || params.get("error_description");
       const confirmed = params.get("access_token") || params.get("type") === "signup" || params.get("code");
       const openApp = document.getElementById("open-app");
+      const downloadMain = document.getElementById("download-main");
+
+      // Someone who just confirmed already has the app, so opening it comes
+      // first and downloading is the fallback.
+      const preferOpen = () => {
+        openApp.textContent = "Open City of Stars";
+        openApp.className = "button primary";
+        downloadMain.className = "button ghost";
+        downloadMain.parentElement.prepend(openApp);
+        document.getElementById("open-hint").hidden = false;
+      };
 
       if (failed) {
         show("failed");
         const reason = params.get("error_description");
         if (reason) document.getElementById("failed-reason").textContent = reason.replace(/\+/g, " ");
-        openApp.href = "cityofstars://open";
+        preferOpen();
       } else if (confirmed) {
         show("confirmed");
+        openApp.href = "cityofstars://auth/confirmed";
+        preferOpen();
         // Offer to open the app straight away: the browser asks "Open City of
         // Stars?" if it's installed, and does nothing if it isn't.
         setTimeout(() => { location.href = openApp.href; }, 400);
-      } else {
-        openApp.href = "cityofstars://open";
       }
       if (location.hash || location.search) history.replaceState(null, "", location.pathname);
+
+      // ── Downloads ──────────────────────────────────────────────────────────
+      // Read straight from GitHub Releases, so a new release shows up here
+      // without redeploying the page. File names come from release.yml.
+      const PLATFORMS = [
+        { os: "windows", name: "Windows", kind: "Installer", match: /_x64-setup\.exe$/, note: "Recommended for Windows. Updates itself." },
+        { os: "android", name: "Android", kind: "APK", match: /_android\.apk$/, note: "Install on your phone or tablet." },
+        { os: "linux", name: "Linux", kind: "AppImage", match: /\.AppImage$/, note: "Runs on most distros. Updates itself." },
+        { os: "linux", name: "Linux", kind: ".deb", match: /\.deb$/, note: "For Ubuntu and Debian." },
+        { os: "windows", name: "Windows", kind: ".msi", match: /_x64\.msi$/, note: "Alternative installer for managed PCs." },
+      ];
+
+      const detectOS = () => {
+        const ua = navigator.userAgent;
+        if (/Android/i.test(ua)) return "android";
+        if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+        if (/Windows/.test(ua)) return "windows";
+        if (/Mac OS X|Macintosh/.test(ua)) return "mac";
+        if (/Linux|CrOS|X11/.test(ua)) return "linux";
+        return null;
+      };
+
+      const el = (tag, props = {}, ...children) => {
+        const node = Object.assign(document.createElement(tag), props);
+        node.append(...children.filter((c) => c != null));
+        return node;
+      };
+      const formatSize = (bytes) => `${(bytes / 1024 / 1024).toFixed(0)} MB`;
+      const formatDate = (iso) =>
+        new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+      // The player-facing files in a release, in PLATFORMS order. Signatures,
+      // latest.json and the debug build are left out.
+      const filesOf = (release) =>
+        PLATFORMS.flatMap((platform) => {
+          const asset = release.assets.find((a) => platform.match.test(a.name));
+          return asset ? [{ ...platform, asset }] : [];
+        });
+
+      const renderLatest = (release, os) => {
+        const files = filesOf(release);
+        // The first match for this OS is its recommended file.
+        const pick = files.find((f) => f.os === os);
+        const ordered = pick ? [pick, ...files.filter((f) => f !== pick)] : files;
+
+        document.getElementById("latest-title").textContent = `Latest version · ${release.tag_name}`;
+        document.getElementById("latest-meta").replaceChildren(
+          el("a", { href: release.html_url, textContent: formatDate(release.published_at) }),
+        );
+        document.getElementById("latest-files").replaceChildren(
+          ...ordered.map((f) =>
+            el(
+              "a",
+              { className: `platform${f === pick ? " recommended" : ""}`, href: f.asset.browser_download_url },
+              el(
+                "span",
+                {},
+                el("span", { className: "name", textContent: f.name }),
+                " ",
+                el("span", { className: "kind", textContent: f.kind }),
+                f === pick ? el("span", { className: "badge", textContent: "Your device" }) : null,
+              ),
+              el("span", { className: "size", textContent: formatSize(f.asset.size) }),
+              el("span", { className: "note", textContent: f.note }),
+            ),
+          ),
+        );
+
+        if (pick) {
+          downloadMain.href = pick.asset.browser_download_url;
+          const label = `Download for ${pick.name}`;
+          downloadMain.replaceChildren(label, el("small", { textContent: `${release.tag_name} · ${pick.kind}` }));
+        } else {
+          // iPhone, Mac or unknown: no build to hand them, so point at the list.
+          downloadMain.href = "#downloads";
+          const why =
+            os === "ios" ? "Not available on iPhone or iPad yet"
+            : os === "mac" ? "Not available on Mac yet"
+            : "Pick your platform below";
+          downloadMain.replaceChildren("Download the app", el("small", { textContent: why }));
+        }
+      };
+
+      const renderOlder = (releases) => {
+        if (!releases.length) return;
+        document.getElementById("older-list").replaceChildren(
+          ...releases.map((release) =>
+            el(
+              "details",
+              {},
+              el(
+                "summary",
+                {},
+                el("span", { className: "version", textContent: release.tag_name }),
+                el("span", { className: "meta", textContent: formatDate(release.published_at) }),
+              ),
+              el(
+                "div",
+                { className: "files" },
+                ...filesOf(release).map((f) =>
+                  el("a", { href: f.asset.browser_download_url, textContent: `${f.name} ${f.kind}` }),
+                ),
+                el("a", { href: release.html_url, textContent: "Release notes" }),
+              ),
+            ),
+          ),
+        );
+        document.getElementById("older").hidden = false;
+      };
+
+      const renderError = () => {
+        document.getElementById("latest-files").replaceChildren(
+          el(
+            "p",
+            {},
+            "Couldn't load the download list. ",
+            el("a", { href: `${RELEASES_URL}/latest`, textContent: "Get the latest version on GitHub" }),
+            ".",
+          ),
+        );
+      };
+
+      fetch(API_URL, { headers: { Accept: "application/vnd.github+json" } })
+        .then((res) => {
+          if (!res.ok) throw new Error(`GitHub responded ${res.status}`);
+          return res.json();
+        })
+        .then((all) => {
+          // Prereleases are for testing and never reach players.
+          const releases = all.filter((r) => !r.draft && !r.prerelease && filesOf(r).length);
+          if (!releases.length) throw new Error("No releases");
+          renderLatest(releases[0], detectOS());
+          renderOlder(releases.slice(1));
+        })
+        .catch((err) => {
+          console.error(err);
+          renderError();
+        });
     </script>
   </body>
 </html>
