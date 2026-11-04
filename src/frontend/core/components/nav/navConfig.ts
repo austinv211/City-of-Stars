@@ -10,6 +10,7 @@ import {
   UserCog,
   Globe,
   Sparkles,
+  CalendarDays,
 } from "lucide-react";
 
 /**
@@ -58,6 +59,12 @@ export const playerNav: NavEntry[] = [
     icon: BookOpen,
   },
   {
+    to: "/schedule",
+    label: "Schedule",
+    description: "When the next session is, and when you can play",
+    icon: CalendarDays,
+  },
+  {
     to: "/encounter",
     label: "Encounter",
     shortLabel: "Combat",
@@ -92,6 +99,12 @@ export const dmNav: NavEntry[] = [
     railLabel: "Sessions",
     description: "Party and DM notes per session",
     icon: ScrollText,
+  },
+  {
+    to: "/schedule",
+    label: "Schedule",
+    description: "Find a day and set the next session",
+    icon: CalendarDays,
   },
   {
     to: "/dm/encounters",

@@ -24,6 +24,7 @@ import DmMembersPage from "@/features/dm/pages/DmMembersPage";
 import DmCharactersPage from "@/features/dm/pages/DmCharactersPage";
 import DmCharacterViewPage from "@/features/dm/pages/DmCharacterViewPage";
 import DmWildMagicPage from "@/features/wildmagic/pages/DmWildMagicPage";
+import SchedulePage from "@/features/schedule/pages/SchedulePage";
 import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
 import AdminCampaignsPage from "@/features/admin/pages/AdminCampaignsPage";
 import RealtimeDebugOverlay from "@/core/components/RealtimeDebugOverlay";
@@ -67,6 +68,8 @@ export default function App() {
               {/* Campaigns page is accessible to all authenticated users as a fallback */}
               <Route path="/campaigns" element={<ErrorBoundary><CampaignsPage /></ErrorBoundary>} />
               <Route path="/campaign" element={<Navigate to="/campaigns" replace />} />
+              {/* Schedule: every member marks availability; the DM sets the session */}
+              <Route path="/schedule" element={<ErrorBoundary><SchedulePage /></ErrorBoundary>} />
               {/* Player-only routes */}
               <Route element={<PlayerGuard />}>
                 <Route path="/characters" element={<CharactersPage />} />

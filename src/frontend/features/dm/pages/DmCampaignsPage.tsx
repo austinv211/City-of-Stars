@@ -33,6 +33,8 @@ import { PartyStatsPanel } from "@/features/campaign/components/PartyStatsPanel"
 import { CharacterStatMeter } from "@/features/campaign/components/CharacterStatMeter";
 import { RichTextEditor } from "@/core/components/RichTextEditor";
 import { RichText } from "@/core/components/RichText";
+import { NextSessionBanner } from "@/core/components/schedule/NextSessionBanner";
+import { useScheduledSessions } from "@/core/hooks/useScheduledSessions";
 import { cn } from "@/lib/utils";
 import type { SessionNote } from "@/features/campaign/types/campaign.types";
 
@@ -92,6 +94,7 @@ export default function DmCampaignsPage() {
   const { campaign: activeCampaign, campaignEncounters, isDM, switchCampaign } = useCampaign();
   const { notes } = useSessionNotes();
   const { characters } = useCharacters();
+  const { next: nextSession } = useScheduledSessions(activeCampaign?.id);
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,6 +266,8 @@ export default function DmCampaignsPage() {
           {activeCampaign && isDM && (
             <>
               <Separator />
+
+              <NextSessionBanner session={nextSession} />
 
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <CampaignHeader

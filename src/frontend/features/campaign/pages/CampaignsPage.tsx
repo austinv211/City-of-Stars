@@ -1,5 +1,7 @@
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { RichText } from "@/core/components/RichText";
+import { NextSessionBanner } from "@/core/components/schedule/NextSessionBanner";
+import { useScheduledSessions } from "@/core/hooks/useScheduledSessions";
 import {
   Tabs,
   TabsContent,
@@ -70,6 +72,7 @@ export default function CampaignsPage() {
     switchCampaign,
   } = useCampaign();
   const { notes } = useSessionNotes();
+  const { next: nextSession } = useScheduledSessions(campaign?.id);
   const { characters } = useCharacters();
 
   const activeCharacters = characters.filter((c) => c.status === "active");
@@ -186,6 +189,8 @@ export default function CampaignsPage() {
           {campaign && (
             <>
               <Separator />
+
+              <NextSessionBanner session={nextSession} />
 
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <CampaignHeader
