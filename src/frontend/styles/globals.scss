@@ -48,6 +48,7 @@ $panel-highlight: rgb(255 255 255 / 0.06);
 
   // Custom: success/heal state (HP heal flash, positive feedback)
   --success: oklch(0.65 0.15 145);
+  --surge: oklch(0.72 0.16 305);
 
   --border: oklch(0.2487 0.0127 222.2833);
   --input: oklch(0.1861 0.0127 222.2833);
@@ -448,7 +449,7 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   [data-color="arcane"] { color: var(--primary); }
   [data-color="blood"] { color: var(--destructive); }
   [data-color="verdant"] { color: var(--success); }
-  [data-color="violet"] { color: oklch(0.72 0.15 300); }
+  [data-color="violet"] { color: var(--surge); }
   [data-color="ash"] { color: var(--muted-foreground); }
 
   .rich-note {
@@ -480,5 +481,28 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     img.ProseMirror-selectednode {
       outline: 2px solid var(--primary);
     }
+  }
+}
+
+// ── Wild magic ─────────────────────────────────────────────────────────────
+@layer components {
+  // A slow shimmer behind an active surge. The [data-motion='reduce'] rule
+  // above stills it like every other animation.
+  .wild-surge {
+    background:
+      linear-gradient(
+        120deg,
+        color-mix(in oklch, var(--surge) 12%, transparent),
+        color-mix(in oklch, var(--primary) 8%, transparent),
+        color-mix(in oklch, var(--surge) 12%, transparent)
+      ),
+      var(--card);
+    background-size: 300% 100%, auto;
+    animation: surge-shimmer 9s ease-in-out infinite;
+  }
+
+  @keyframes surge-shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
 }

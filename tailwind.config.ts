@@ -56,6 +56,8 @@ export default {
           foreground: token("--card-foreground"),
         },
         success: token("--success"),
+        // Wild magic: the one colour that belongs to nothing else.
+        surge: token("--surge"),
         "accent-turn": token("--accent-turn"),
       },
       borderRadius: {

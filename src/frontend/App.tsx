@@ -23,6 +23,7 @@ import DmCampaignsPage from "@/features/dm/pages/DmCampaignsPage";
 import DmMembersPage from "@/features/dm/pages/DmMembersPage";
 import DmCharactersPage from "@/features/dm/pages/DmCharactersPage";
 import DmCharacterViewPage from "@/features/dm/pages/DmCharacterViewPage";
+import DmWildMagicPage from "@/features/wildmagic/pages/DmWildMagicPage";
 import AdminWhitelistPage from "@/features/admin/pages/AdminWhitelistPage";
 import AdminCampaignsPage from "@/features/admin/pages/AdminCampaignsPage";
 import RealtimeDebugOverlay from "@/core/components/RealtimeDebugOverlay";
@@ -87,6 +88,7 @@ export default function App() {
                 <Route path="/dm/encounters" element={<DmEncountersPage />} />
                 <Route path="/dm/encounters/active" element={<ErrorBoundary><EncounterPage /></ErrorBoundary>} />
                 <Route path="/dm/monsters" element={<DmMonstersPage />} />
+                <Route path="/dm/wild-magic" element={<DmWildMagicPage />} />
               </Route>
               {/* Admin-only routes */}
               <Route element={<AdminGuard />}>

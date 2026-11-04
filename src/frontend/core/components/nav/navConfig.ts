@@ -9,6 +9,7 @@ import {
   BookMarked,
   UserCog,
   Globe,
+  Sparkles,
 } from "lucide-react";
 
 /**
@@ -104,6 +105,13 @@ export const dmNav: NavEntry[] = [
     railLabel: "Monsters",
     description: "Custom stat blocks",
     icon: Skull,
+  },
+  {
+    to: "/dm/wild-magic",
+    label: "Wild Magic",
+    railLabel: "Surges",
+    description: "Your surge table, and surges in play",
+    icon: Sparkles,
   },
 ];
 

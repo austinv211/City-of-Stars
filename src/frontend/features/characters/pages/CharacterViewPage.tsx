@@ -8,6 +8,7 @@ import { useCharacter } from "../hooks/useCharacter";
 import { useAuth } from "@/core/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import type { CharacterInventoryItem, CharacterAttack, CharacterSpell } from "../types/character.types";
+import { ActiveSurges } from "@/core/components/wildmagic/ActiveSurges";
 
 const LOCK_STALE_MS = 30 * 60 * 1000;
 
@@ -173,6 +174,8 @@ export default function CharacterViewPage() {
           </div>
         )}
       </div>
+
+      <ActiveSurges characterId={character.id} canEnd={isOwn} />
 
       <CharacterSheet
         character={character}
