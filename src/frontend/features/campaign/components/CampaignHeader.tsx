@@ -2,9 +2,8 @@ import { useState } from "react";
 import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
 import { Users, Pencil, Check, X } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { RichTextEditor } from "@/core/components/RichTextEditor";
+import { RichText } from "@/core/components/RichText";
 import type { Campaign } from "../types/campaign.types";
 
 interface Props {
@@ -60,9 +59,9 @@ export function CampaignHeader({ campaign, isDM, memberCount, onEditDescription 
         </div>
       ) : (
         <div className="flex items-start gap-2 group">
-          <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground min-w-0">
+          <div className="min-w-0 text-muted-foreground">
             {campaign.description
-              ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{campaign.description}</ReactMarkdown>
+              ? <RichText>{campaign.description}</RichText>
               : onEditDescription && <p className="italic text-muted-foreground/60 text-sm">No description yet.</p>
             }
           </div>

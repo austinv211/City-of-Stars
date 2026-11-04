@@ -10,6 +10,8 @@ interface AuthContextValue {
   isPlayerRole: boolean;
   /** User's chosen display name, falling back to email local-part then "Player". */
   displayName: string;
+  /** False until the user picks a name; accounts made before sign-up asked for one start here. */
+  hasDisplayName: boolean;
   updateDisplayName: (name: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
@@ -108,10 +110,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user = session?.user ?? null;
   const metaName = (user?.user_metadata?.display_name as string | undefined)?.trim();
   const displayName = metaName || user?.email?.split("@")[0] || "Player";
+  const hasDisplayName = !!metaName;
 
   return (
     <AuthContext.Provider
-      value={{ session, user, loading, isAdmin, isPlayerRole, displayName, updateDisplayName, signOut }}
+      value={{
+        session, user, loading, isAdmin, isPlayerRole, displayName, hasDisplayName, updateDisplayName, signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

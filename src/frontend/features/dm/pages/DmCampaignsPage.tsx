@@ -23,8 +23,6 @@ import {
   Plus, Trash2, BookOpen, Radio, ScrollText,
   Lock, TrendingUp, Swords,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
@@ -34,6 +32,9 @@ import { CampaignHeader } from "@/features/campaign/components/CampaignHeader";
 import { PartyStatsPanel } from "@/features/campaign/components/PartyStatsPanel";
 import { CharacterStatMeter } from "@/features/campaign/components/CharacterStatMeter";
 import { RichTextEditor } from "@/core/components/RichTextEditor";
+import { RichText } from "@/core/components/RichText";
+import { NextSessionBanner } from "@/core/components/schedule/NextSessionBanner";
+import { useScheduledSessions } from "@/core/hooks/useScheduledSessions";
 import { cn } from "@/lib/utils";
 import type { SessionNote } from "@/features/campaign/types/campaign.types";
 
@@ -64,9 +65,7 @@ function SessionBlock({
       </div>
 
       {partyNote?.content ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{partyNote.content}</ReactMarkdown>
-        </div>
+        <RichText>{partyNote.content}</RichText>
       ) : (
         <p className="text-sm text-muted-foreground italic">No party notes for this session.</p>
       )}
@@ -80,9 +79,7 @@ function SessionBlock({
         </CardHeader>
         <CardContent className="pb-3 px-4">
           {dmNote?.content ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{dmNote.content}</ReactMarkdown>
-            </div>
+            <RichText>{dmNote.content}</RichText>
           ) : (
             <p className="text-sm text-muted-foreground italic">No DM notes for this session.</p>
           )}
@@ -97,6 +94,7 @@ export default function DmCampaignsPage() {
   const { campaign: activeCampaign, campaignEncounters, isDM, switchCampaign } = useCampaign();
   const { notes } = useSessionNotes();
   const { characters } = useCharacters();
+  const { next: nextSession } = useScheduledSessions(activeCampaign?.id);
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,6 +266,8 @@ export default function DmCampaignsPage() {
           {activeCampaign && isDM && (
             <>
               <Separator />
+
+              <NextSessionBanner session={nextSession} />
 
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <CampaignHeader

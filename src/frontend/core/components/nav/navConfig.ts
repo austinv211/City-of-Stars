@@ -9,6 +9,8 @@ import {
   BookMarked,
   UserCog,
   Globe,
+  Sparkles,
+  CalendarDays,
 } from "lucide-react";
 
 /**
@@ -57,6 +59,12 @@ export const playerNav: NavEntry[] = [
     icon: BookOpen,
   },
   {
+    to: "/schedule",
+    label: "Schedule",
+    description: "When the next session is, and when you can play",
+    icon: CalendarDays,
+  },
+  {
     to: "/encounter",
     label: "Encounter",
     shortLabel: "Combat",
@@ -93,6 +101,12 @@ export const dmNav: NavEntry[] = [
     icon: ScrollText,
   },
   {
+    to: "/schedule",
+    label: "Schedule",
+    description: "Find a day and set the next session",
+    icon: CalendarDays,
+  },
+  {
     to: "/dm/encounters",
     label: "Encounters",
     description: "Build, run and review fights",
@@ -104,6 +118,13 @@ export const dmNav: NavEntry[] = [
     railLabel: "Monsters",
     description: "Custom stat blocks",
     icon: Skull,
+  },
+  {
+    to: "/dm/wild-magic",
+    label: "Wild Magic",
+    railLabel: "Surges",
+    description: "Your surge table, and surges in play",
+    icon: Sparkles,
   },
 ];
 

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Button } from "@/core/components/ui/button";
 import { RichTextEditor } from "@/core/components/RichTextEditor";
+import { RichText } from "@/core/components/RichText";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
@@ -102,9 +101,7 @@ export function PersonalityPanel({ character, isOwn, onRefresh }: Props) {
                 </div>
               </div>
             ) : values[key] ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{values[key]}</ReactMarkdown>
-              </div>
+              <RichText>{values[key]}</RichText>
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 {isOwn ? `Click Edit to add ${label.toLowerCase()}.` : `No ${label.toLowerCase()} recorded.`}

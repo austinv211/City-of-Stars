@@ -31,7 +31,14 @@ export function useNavGroups(exclude: readonly string[]): NavGroup[] {
     });
   }
 
+  // A destination in more than one role's list (Schedule) shows once, in the
+  // first group that has it.
+  const seen = new Set(exclude);
   return groups
-    .map((g) => ({ ...g, entries: g.entries.filter((e) => !exclude.includes(e.to)) }))
+    .map((g) => {
+      const entries = g.entries.filter((e) => !seen.has(e.to));
+      for (const e of entries) seen.add(e.to);
+      return { ...g, entries };
+    })
     .filter((g) => g.entries.length > 0);
 }

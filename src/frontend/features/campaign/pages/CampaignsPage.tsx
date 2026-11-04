@@ -1,6 +1,7 @@
 import { Skeleton } from "@/core/components/ui/skeleton";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { RichText } from "@/core/components/RichText";
+import { NextSessionBanner } from "@/core/components/schedule/NextSessionBanner";
+import { useScheduledSessions } from "@/core/hooks/useScheduledSessions";
 import {
   Tabs,
   TabsContent,
@@ -51,11 +52,7 @@ function SessionBlock({
       </div>
 
       {partyNote?.content ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {partyNote.content}
-          </ReactMarkdown>
-        </div>
+        <RichText>{partyNote.content}</RichText>
       ) : (
         <p className="text-sm text-muted-foreground italic">
           No party notes for this session.
@@ -75,6 +72,7 @@ export default function CampaignsPage() {
     switchCampaign,
   } = useCampaign();
   const { notes } = useSessionNotes();
+  const { next: nextSession } = useScheduledSessions(campaign?.id);
   const { characters } = useCharacters();
 
   const activeCharacters = characters.filter((c) => c.status === "active");
@@ -191,6 +189,8 @@ export default function CampaignsPage() {
           {campaign && (
             <>
               <Separator />
+
+              <NextSessionBanner session={nextSession} />
 
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <CampaignHeader
