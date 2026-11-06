@@ -66,25 +66,22 @@ function CampaignIdentity({ campaign, switchable }: { campaign: Campaign | null;
 /**
  * The rail's version: no room for the name beside the icon, so the icon is
  * the button and the campaign's initials sit under it -- enough to tell two
- * campaigns apart at a glance. `compact` drops the initials, for a phone held
- * sideways where every row of height counts.
+ * campaigns apart at a glance.
  */
-export function RailCampaignSelector({ compact = false }: { compact?: boolean }) {
+export function RailCampaignSelector() {
   const { campaign, campaigns } = useCampaign();
   const multiple = campaigns.length > 1;
 
   const face = (
     <>
-      <CampaignIcon icon={campaign?.icon} size={compact ? "sm" : "lg"} />
-      {!compact && (
-        <span className="flex max-w-full items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          <span className="truncate">{initials(campaign?.name)}</span>
-          {multiple && <ChevronDown className="h-3 w-3 shrink-0" />}
-        </span>
-      )}
+      <CampaignIcon icon={campaign?.icon} size="lg" />
+      <span className="flex max-w-full items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="truncate">{initials(campaign?.name)}</span>
+        {multiple && <ChevronDown className="h-3 w-3 shrink-0" />}
+      </span>
     </>
   );
-  const shape = cn("flex w-full flex-col items-center gap-1 px-1", compact ? "py-1.5" : "py-2");
+  const shape = "flex w-full flex-col items-center gap-1 px-1 py-2";
 
   if (!multiple) {
     return (

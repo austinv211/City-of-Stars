@@ -119,9 +119,12 @@ export default function AppShell() {
             </aside>
 
             {/* ── Content ────────────────────────────────────────────────── */}
+            {/* Below md the tab bar takes the bottom inset; beside a rail or
+                sidebar (a phone held sideways) the content meets the screen's
+                bottom and far edge itself. */}
             <main
               data-scroll-container
-              className="flex min-w-0 flex-1 flex-col overflow-auto"
+              className="flex min-w-0 flex-1 flex-col overflow-auto md:pb-[var(--safe-bottom)] md:pr-[var(--safe-right)]"
             >
               <Outlet />
             </main>

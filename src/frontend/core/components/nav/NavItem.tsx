@@ -1,7 +1,7 @@
 import { NavLink } from "react-router";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/core/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { navIndicator } from "./navStyles";
+import { RAIL_ITEM, navIndicator } from "./navStyles";
 import type { NavEntry } from "./navConfig";
 
 export type NavVariant = "full" | "rail" | "tab" | "tile";
@@ -22,7 +22,7 @@ export type NavVariant = "full" | "rail" | "tab" | "tile";
  */
 const LAYOUT: Record<Exclude<NavVariant, "tile">, string> = {
   full: "gap-3 px-3 py-2 text-sm",
-  rail: "group min-h-14 w-full flex-col justify-center gap-1 px-1 py-1.5 text-center text-[10.5px] leading-tight",
+  rail: RAIL_ITEM,
   tab: "group min-w-0 flex-1 flex-col justify-center gap-1 py-1 text-[10.5px] leading-tight tracking-tight",
 };
 

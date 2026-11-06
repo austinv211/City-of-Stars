@@ -4,9 +4,9 @@
  * same rendering engine as the Android WebView the Tauri app runs in, with a
  * real touch screen and coarse pointer.
  *
- * Signs in as the seeded test users, visits every top-level route, checks
- * what tends to break on a phone and saves a screenshot of each page to
- * artifacts/android/:
+ * Signs in as the seeded test users, visits every top-level route upright and
+ * then sideways, checks what tends to break on a phone and saves a screenshot
+ * of each page to artifacts/android/:
  *
  *   - the touch styles are in effect (pointer: coarse)
  *   - no horizontal page scroll
@@ -156,6 +156,18 @@ async function checkPage(page, label) {
 
 // ── Walking the app ─────────────────────────────────────────────────────────
 
+/**
+ * Waits for the app shell's navigation (the tab bar upright, the rail
+ * sideways). The network going quiet isn't enough: the app can still be on
+ * its loading spinner, and checking that would pass for the wrong reason.
+ */
+async function waitForShell(page) {
+  await page
+    .locator("[aria-label='More navigation']:visible, [aria-label='Navigation rail']:visible")
+    .first()
+    .waitFor({ timeout: 30_000 });
+}
+
 async function signIn(page, role) {
   await page.goto(`${BASE}/login`);
   await page.evaluate(() => {
@@ -163,20 +175,29 @@ async function signIn(page, role) {
   });
   await page.goto(`${BASE}/login`);
   await page.getByLabel(/email/i).fill(`${role}@test.local`);
+  // Enter, as on a phone keyboard: sideways, the open keyboard leaves the form
+  // fields over the Sign In button.
   await page.getByLabel(/^password$/i).fill(PASSWORDS[role]);
-  // "Sign In" is both the mode tab and the submit button, so scope to the form.
-  await page.locator("form").getByRole("button", { name: /sign in/i }).click();
-  await page.getByRole("button", { name: "More navigation" }).waitFor({ timeout: 30_000 });
+  await page.getByLabel(/^password$/i).press("Enter");
+  await waitForShell(page);
 }
 
-async function visit(page, role, route) {
-  const label = `${role} ${route}`;
+/** Turns the screen upright (0) or sideways (1), with auto-rotate off. */
+async function rotate(page, rotation) {
+  adb("shell", "settings", "put", "system", "accelerometer_rotation", "0");
+  adb("shell", "settings", "put", "system", "user_rotation", String(rotation));
+  await waitFor("the screen to turn", () => page.evaluate((sideways) => (innerWidth > innerHeight) === sideways, rotation === 1), 15_000);
+}
+
+async function visit(page, role, route, orientation) {
+  const label = `${role} ${route} (${orientation})`;
   console.log(`\n\x1b[1m${label}\x1b[0m`);
   await page.goto(`${BASE}${route}`);
+  await waitForShell(page);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(500); // let layout settle
   await checkPage(page, label);
-  const shot = `${OUT}/${role}${route.replaceAll("/", "-")}.png`;
+  const shot = `${OUT}/${orientation}/${role}${route.replaceAll("/", "-")}.png`;
   await page.screenshot({ path: shot });
   console.log(`    screenshot: ${shot}`);
 }
@@ -185,7 +206,7 @@ async function main() {
   // Signing in writes sessions; never point this at production.
   assertNotProduction();
   const avd = process.argv.includes("--avd") ? process.argv[process.argv.indexOf("--avd") + 1] : undefined;
-  mkdirSync(OUT, { recursive: true });
+  for (const orientation of ["portrait", "landscape"]) mkdirSync(`${OUT}/${orientation}`, { recursive: true });
 
   await ensureDevice(avd);
   const stopServer = await startServer();
@@ -196,9 +217,16 @@ async function main() {
 
     const browser = await chromium.connectOverCDP(`http://127.0.0.1:${String(CDP_PORT)}`);
     const page = await browser.contexts()[0].newPage();
-    for (const [role, routes] of Object.entries(ROUTES)) {
-      await signIn(page, role);
-      for (const route of routes) await visit(page, role, route);
+    try {
+      for (const [rotation, orientation] of [[0, "portrait"], [1, "landscape"]]) {
+        await rotate(page, rotation);
+        for (const [role, routes] of Object.entries(ROUTES)) {
+          await signIn(page, role);
+          for (const route of routes) await visit(page, role, route, orientation);
+        }
+      }
+    } finally {
+      await rotate(page, 0);
     }
     await page.close();
     await browser.close();
