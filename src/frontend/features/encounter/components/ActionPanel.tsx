@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/core/components/ui/badge";
+import { RichText } from "@/core/components/RichText";
 import { Separator } from "@/core/components/ui/separator";
 import { ScrollArea } from "@/core/components/ui/scroll-area";
 import type {
@@ -205,9 +206,9 @@ function PanelHeader({
         )}
       </CombatantBanner>
       {npc && participant.description && (
-        <p className="text-xs italic leading-relaxed text-muted-foreground">
+        <RichText source="srd" size="xs" className="italic text-muted-foreground">
           {participant.description}
-        </p>
+        </RichText>
       )}
     </>
   );

@@ -1,4 +1,5 @@
 import { Badge } from "@/core/components/ui/badge";
+import { RichText } from "@/core/components/RichText";
 import type { EncounterParticipant } from "../../types/encounter.types";
 import { CombatantBanner } from "../CombatantArt";
 
@@ -12,7 +13,7 @@ export function NpcProfile({ participant }: { participant: EncounterParticipant 
         </Badge>
       </CombatantBanner>
       {participant.description ? (
-        <p className="text-sm leading-relaxed text-muted-foreground">{participant.description}</p>
+        <RichText source="srd" className="text-muted-foreground">{participant.description}</RichText>
       ) : (
         <p className="text-xs italic text-muted-foreground">No description available.</p>
       )}

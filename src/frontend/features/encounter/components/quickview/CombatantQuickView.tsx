@@ -1,5 +1,6 @@
 import { Brain, Shield, Sparkles } from "lucide-react";
 import { Badge } from "@/core/components/ui/badge";
+import { RichText } from "@/core/components/RichText";
 import type { RollEntry } from "../../context/DiceContext";
 import { useQuickView } from "../../context/QuickViewContext";
 import { canSeeAc } from "../../lib/attack";
@@ -47,7 +48,7 @@ export function CombatantQuickView({
       <Status participant={p} effects={onThem} />
 
       {!p.is_player && p.description && (
-        <p className="text-sm italic leading-relaxed text-muted-foreground">{p.description}</p>
+        <RichText source="srd" className="italic text-muted-foreground">{p.description}</RichText>
       )}
 
       <section aria-label="Recent actions" className="space-y-1.5">
