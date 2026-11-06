@@ -146,7 +146,7 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
             <Button
               size="sm"
               variant={adv === "advantage" ? "default" : "outline"}
-              className={cn("h-7 text-xs px-2", adv === "advantage" && "bg-green-600 hover:bg-green-700")}
+              className={cn("h-7 text-xs px-2", adv === "advantage" && "bg-success text-background hover:bg-success/85")}
               disabled={disabled}
               onClick={() => setAdv((p) => p === "advantage" ? "none" : "advantage")}
             >
@@ -155,7 +155,7 @@ export function DicePoolBuilder({ disabled, onRoll }: Props) {
             <Button
               size="sm"
               variant={adv === "disadvantage" ? "default" : "outline"}
-              className={cn("h-7 text-xs px-2", adv === "disadvantage" && "bg-red-600 hover:bg-red-700")}
+              className={cn("h-7 text-xs px-2", adv === "disadvantage" && "bg-destructive text-destructive-foreground hover:bg-destructive/85")}
               disabled={disabled}
               onClick={() => setAdv((p) => p === "disadvantage" ? "none" : "disadvantage")}
             >

@@ -93,7 +93,7 @@ export function SkillsPanel({ finalScores, proficiencies, proficiencyBonus, half
                   } ${isBusy ? "opacity-40" : ""} ${
                     prof
                       ? prof.is_expertise
-                        ? "bg-yellow-400"
+                        ? "bg-secondary"
                         : "bg-primary"
                       : "border border-muted-foreground/40"
                   }`}

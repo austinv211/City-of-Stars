@@ -167,7 +167,7 @@ function FeatSelect({
             <span className="font-semibold text-foreground mr-1">{selected.category} Feat.</span>
           )}
           {selected.prerequisite && (
-            <span className="text-amber-600 dark:text-amber-400 mr-1">
+            <span className="text-secondary mr-1">
               Prerequisite: {selected.prerequisite}.
             </span>
           )}

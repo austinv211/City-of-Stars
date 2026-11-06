@@ -108,7 +108,7 @@ function SpellPopover({ spell }: { spell: CharacterSpell }) {
           </span>
           <div className="flex items-center gap-1 shrink-0">
             {spell.concentration && (
-              <span className="text-[9px] text-yellow-500 font-bold">C</span>
+              <span className="text-[9px] text-secondary font-bold">C</span>
             )}
             {spell.damage_dice && (
               <span className="text-[9px] text-muted-foreground">{spell.damage_dice}</span>
@@ -373,7 +373,7 @@ export function CharacterQuickRef({ character, participant, onApplyDamage, onHea
         <span className="font-semibold text-muted-foreground uppercase tracking-wide text-[10px] block mb-1">Hit Points</span>
         <HPAdjuster current={hpCurrent} max={hpMax} />
         {character.hp_temp > 0 && (
-          <Badge variant="secondary" className="text-blue-400 mt-1 text-[10px]">
+          <Badge variant="secondary" className="text-primary mt-1 text-[10px]">
             +{character.hp_temp} temp
           </Badge>
         )}
@@ -393,7 +393,7 @@ export function CharacterQuickRef({ character, participant, onApplyDamage, onHea
           <p className="font-semibold text-destructive mb-1 text-[10px] uppercase tracking-wide">Death Saves</p>
           <div className="flex gap-3">
             <div>
-              <span className="text-green-500">S: </span>
+              <span className="text-success">S: </span>
               {"●".repeat(character.death_save_successes)}
               {"○".repeat(Math.max(0, 3 - character.death_save_successes))}
             </div>
