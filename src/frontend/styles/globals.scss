@@ -534,6 +534,63 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   }
 }
 
+// ── Rich text sizing ───────────────────────────────────────────────────────
+// RichText's `size` and `clamp` props (core/components/RichText.tsx). Prose's
+// own spacing is made for articles; in a card or popover it leaves big gaps
+// above and below a two-line description. Each size scales spacing, headings
+// and pictures to the box the text sits in.
+@layer components {
+  .rich-note {
+    // The box hugs its text: no stray margin at the top or bottom.
+    > :first-child { margin-top: 0; }
+    > :last-child { margin-bottom: 0; }
+
+    // Links follow the theme rather than prose's grey.
+    a { color: var(--primary); }
+  }
+
+  .rich-note[data-size="xs"] {
+    line-height: 1.55;
+
+    p, ul, ol, blockquote, table, pre, aside[data-callout="read-aloud"] {
+      margin-top: 0.4em;
+      margin-bottom: 0.4em;
+    }
+
+    li { margin-top: 0.1em; margin-bottom: 0.1em; }
+
+    // Headings stay headings, just not taller than the card they sit in.
+    h1, h2, h3, h4 {
+      margin-top: 0.6em;
+      margin-bottom: 0.25em;
+      font-size: 1.1em;
+      line-height: 1.3;
+    }
+
+    img { max-height: 10rem; margin: 0.5em 0; }
+    th, td { padding: 0.25em 0.5em; }
+  }
+
+  .rich-note[data-size="sm"] {
+    h1 { font-size: 1.4em; }
+    h2 { font-size: 1.25em; }
+    img { max-height: 20rem; }
+  }
+
+  // A preview cut off after --rich-clamp lines. Everything flows as plain
+  // lines so the count is honest: no block gaps, no pictures, no big headings.
+  .rich-note[data-clamped] {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--rich-clamp);
+    overflow: hidden;
+
+    > * { margin-top: 0; margin-bottom: 0; }
+    h1, h2, h3, h4 { font-size: 1em; }
+    img, hr { display: none; }
+  }
+}
+
 // ── Wild magic ─────────────────────────────────────────────────────────────
 @layer components {
   // A slow shimmer behind an active surge. The [data-motion='reduce'] rule

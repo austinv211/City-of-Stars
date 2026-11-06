@@ -87,3 +87,35 @@ describe("RichText", () => {
     expect(container.querySelector("img")?.getAttribute("src") ?? null).toBeNull();
   });
 });
+
+describe("RichText sources and sizes", () => {
+  it("keeps single newlines in SRD text as line breaks", () => {
+    const { container } = render(
+      <RichText source="srd">{"You choose:\n**Audible Alarm.** A handbell rings."}</RichText>,
+    );
+    expect(container.querySelector("br")).not.toBeNull();
+    expect(container.querySelector("strong")?.textContent).toBe("Audible Alarm.");
+  });
+
+  it("joins single newlines in notes, as Markdown does", () => {
+    const { container } = render(<RichText>{"one\ntwo"}</RichText>);
+    expect(container.querySelector("br")).toBeNull();
+  });
+
+  it("does not read HTML in SRD text", () => {
+    const { container } = render(<RichText source="srd">{'<span data-font="epic">x</span>'}</RichText>);
+    expect(container.querySelector("span")).toBeNull();
+  });
+
+  it("marks its size and clamp for the stylesheet", () => {
+    const { container } = render(
+      <RichText size="xs" clamp={2}>
+        text
+      </RichText>,
+    );
+    const box = container.firstElementChild as HTMLElement;
+    expect(box.dataset.size).toBe("xs");
+    expect(box.hasAttribute("data-clamped")).toBe(true);
+    expect(box.style.getPropertyValue("--rich-clamp")).toBe("2");
+  });
+});
