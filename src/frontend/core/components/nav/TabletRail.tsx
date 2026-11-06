@@ -1,4 +1,4 @@
-import { LogOut, Scale, Settings } from "lucide-react";
+import { BookOpen, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/core/context/AuthContext";
 import { useRulesLookup } from "@/features/rules/context/RulesLookupContext";
 import { Separator } from "@/core/components/ui/separator";
@@ -40,7 +40,7 @@ export function TabletRail({ onOpenAccount }: { onOpenAccount: () => void }) {
       </div>
       <Separator />
       <div className="flex flex-col gap-0.5 px-1 py-1.5">
-        <RailButton label="Rules" name="Rules Reference" icon={Scale} onClick={openRules} />
+        <RailButton label="Rules" name="Rules Reference" icon={BookOpen} onClick={openRules} highlight />
         <RailButton label="Account" icon={Settings} onClick={onOpenAccount} />
         <RailButton
           label="Sign out"
@@ -60,10 +60,13 @@ function RailButton({
   name,
   icon: Icon,
   onClick,
+  highlight = false,
 }: {
   label: string;
   /** The accessible name, when the short label isn't the whole of it. */
   name?: string;
+  /** Draw it in the primary colour, for an action people should spot. */
+  highlight?: boolean;
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
 }) {
@@ -72,9 +75,13 @@ function RailButton({
       type="button"
       onClick={onClick}
       aria-label={name}
-      className={cn(RAIL_ITEM, "text-muted-foreground transition-colors hover:text-foreground")}
+      className={cn(
+        RAIL_ITEM,
+        "transition-colors",
+        highlight ? "text-primary" : "text-muted-foreground hover:text-foreground",
+      )}
     >
-      <span className={navIndicator(false)}>
+      <span className={cn(navIndicator(false), highlight && "bg-primary/15")}>
         <Icon className="h-5 w-5" />
       </span>
       {label}

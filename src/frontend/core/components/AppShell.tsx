@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet } from "react-router";
-import { LogOut, Scale, Settings } from "lucide-react";
+import { BookOpen, LogOut, Settings } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { DiceProvider } from "@/features/encounter/context/DiceContext";
@@ -31,10 +31,10 @@ function SidebarRulesButton() {
       variant="ghost"
       size="sm"
       aria-label="Rules Reference"
-      className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+      className="w-full justify-start gap-2 text-foreground hover:text-primary"
       onClick={openRules}
     >
-      <Scale className="h-4 w-4" />
+      <BookOpen className="h-4 w-4 text-primary" />
       Rules Reference
       <kbd className="ml-auto border border-border/60 px-1.5 font-sans text-[10px] text-muted-foreground">
         {mac ? "⌘K" : "Ctrl K"}
