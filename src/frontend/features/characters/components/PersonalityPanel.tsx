@@ -101,7 +101,7 @@ export function PersonalityPanel({ character, isOwn, onRefresh }: Props) {
                 </div>
               </div>
             ) : values[key] ? (
-              <RichText>{values[key]}</RichText>
+              <RichText size="xs">{values[key]}</RichText>
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 {isOwn ? `Click Edit to add ${label.toLowerCase()}.` : `No ${label.toLowerCase()} recorded.`}

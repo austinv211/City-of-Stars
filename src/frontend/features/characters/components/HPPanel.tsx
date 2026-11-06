@@ -353,22 +353,22 @@ export function HPPanel({
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs w-16 text-green-500 font-medium">Success</span>
+                <span className="text-xs w-16 text-success font-medium">Success</span>
                 <div className="flex gap-1.5">
                   {[0, 1, 2].map((i) => (
                     <Pip key={i} filled={successes > i} onClick={() => toggleSuccess(i)} />
                   ))}
                 </div>
-                {successes >= 3 && <span className="text-xs text-green-500 font-semibold">Stable!</span>}
+                {successes >= 3 && <span className="text-xs text-success font-semibold">Stable!</span>}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs w-16 text-red-500 font-medium">Failure</span>
+                <span className="text-xs w-16 text-destructive font-medium">Failure</span>
                 <div className="flex gap-1.5">
                   {[0, 1, 2].map((i) => (
                     <Pip key={i} filled={failures > i} onClick={() => toggleFailure(i)} />
                   ))}
                 </div>
-                {failures >= 3 && <span className="text-xs text-red-500 font-semibold">Dead!</span>}
+                {failures >= 3 && <span className="text-xs text-destructive font-semibold">Dead!</span>}
               </div>
             </div>
           </div>
@@ -414,7 +414,7 @@ export function HPPanel({
             </div>
           ) : (
             <div className="py-4 text-center space-y-2">
-              <p className="text-3xl font-black text-green-500">+{shortRestHealed} HP</p>
+              <p className="text-3xl font-black text-success">+{shortRestHealed} HP</p>
               <p className="text-sm text-muted-foreground">Healed from {diceToSpend} hit {diceToSpend === 1 ? "die" : "dice"}</p>
             </div>
           )}

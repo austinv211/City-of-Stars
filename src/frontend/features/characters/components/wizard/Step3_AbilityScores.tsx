@@ -121,7 +121,7 @@ function StandardArrayTab({ state, dispatch }: Pick<Props, "state" | "dispatch">
         })}
       </div>
       {!allAssigned && (
-        <p className="text-xs text-amber-600">Assign all 6 values to continue</p>
+        <p className="text-xs text-secondary">Assign all 6 values to continue</p>
       )}
     </div>
   );
@@ -148,7 +148,7 @@ function PointBuyTab({ state, dispatch }: Pick<Props, "state" | "dispatch">) {
       <div className="space-y-1">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Points remaining</span>
-          <span className={remaining === 0 ? "text-green-600 font-semibold" : "font-semibold"}>
+          <span className={remaining === 0 ? "text-success font-semibold" : "font-semibold"}>
             {remaining} / {POINT_BUY_BUDGET}
           </span>
         </div>

@@ -8,6 +8,7 @@ import { Textarea } from "@/core/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/core/components/ui/dialog";
 import { Plus, Trash2, ScrollText, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { RichText } from "@/core/components/RichText";
 import type { CharacterFeature } from "../types/character.types";
 import { addMissingClassFeatures, addMissingSpeciesFeatures } from "../lib/classFeatures";
 
@@ -142,9 +143,9 @@ export function FeaturesPanel({ characterId, className, species, level, canEdit 
                   )}
                 </div>
                 {f.description && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-3" title={f.description}>
+                  <RichText source="srd" size="xs" clamp={3} className="mt-1 text-muted-foreground">
                     {f.description}
-                  </p>
+                  </RichText>
                 )}
                 {canEdit ? (
                   <Input

@@ -20,6 +20,7 @@
 import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { assertNotProduction } from "./assert-not-production.mjs";
+import { findSmallTapTargets } from "./lib/tap-targets.mjs";
 
 const BASE = process.argv[2] ?? "http://localhost:1421";
 const OUT = "artifacts/responsive";
@@ -104,20 +105,7 @@ async function main() {
 
     // ── tap targets (phone only) ───────────────────────────────────────────
     if (vp.name === "phone") {
-      const small = await page.evaluate(() => {
-        const sel = "button, a[href], [role='button'], [role='tab']";
-        const bad = [];
-        for (const el of document.querySelectorAll(sel)) {
-          const r = el.getBoundingClientRect();
-          if (r.width === 0 || r.height === 0) continue; // hidden
-          if (r.height < 44 || r.width < 44) {
-            bad.push(
-              `${el.tagName.toLowerCase()}"${(el.textContent ?? "").trim().slice(0, 18)}" ${Math.round(r.width)}x${Math.round(r.height)}`,
-            );
-          }
-        }
-        return bad;
-      });
+      const small = await page.evaluate(findSmallTapTargets, 44);
       record(
         vp.name,
         "all tap targets >= 44px",

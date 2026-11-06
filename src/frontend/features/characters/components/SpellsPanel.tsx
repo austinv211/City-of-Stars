@@ -11,6 +11,7 @@ import { Plus, Trash2, Wand2, Search, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { searchSpells, getSpell, searchLocalSpells } from "@/lib/dnd5eApi";
 import { maxPreparedSpells } from "../data/dnd2024.constants";
+import { RichText } from "@/core/components/RichText";
 import type { DndSpellSummary, SrdSpell } from "@/lib/dnd5eApi";
 import type { CharacterSpell, CharacterSpellSlot } from "../types/character.types";
 
@@ -133,7 +134,9 @@ function SpellRow({
               {spell.components?.length && <p>Components: {spell.components.join(", ")}</p>}
               {spell.school && <p>School: {spell.school}</p>}
               {spell.description && (
-                <p className="whitespace-pre-wrap leading-relaxed">{spell.description}</p>
+                <RichText source="srd" size="xs" className="text-muted-foreground">
+                  {spell.description}
+                </RichText>
               )}
             </div>
           )}

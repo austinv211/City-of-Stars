@@ -20,7 +20,7 @@ export function SurgeTableList({ entries, onEdit, onDelete }: Props) {
             {e.description ? (
               <details>
                 <summary className="cursor-pointer font-medium">{e.name}</summary>
-                <RichText className="mt-1 text-muted-foreground">{e.description}</RichText>
+                <RichText size="xs" className="mt-1 text-muted-foreground">{e.description}</RichText>
               </details>
             ) : (
               <p className="font-medium">{e.name}</p>

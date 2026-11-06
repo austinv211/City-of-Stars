@@ -2,6 +2,8 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
 import { AppShell } from "./pages/AppShell";
+import { ROUTES } from "../scripts/lib/routes.mjs";
+import { findSmallTapTargets } from "../scripts/lib/tap-targets.mjs";
 
 /**
  * Structural checks on every top-level route, at every viewport (plan
@@ -10,7 +12,7 @@ import { AppShell } from "./pages/AppShell";
  *
  *   - no horizontal page scroll -- wide content scrolls in its own container
  *   - the right nav surface: the tab bar below 768px, the sidebar/rail above
- *   - on a phone, no tap target under 44px
+ *   - on a phone, no tap area under 44px
  *   - no serious or critical axe violations, bar the known debt below
  */
 
@@ -25,19 +27,6 @@ import { AppShell } from "./pages/AppShell";
  */
 const KNOWN_AXE_DEBT = new Set(["color-contrast"]);
 
-const ROUTES = {
-  player1: ["/characters", "/campaigns", "/encounter", "/schedule"],
-  dm: [
-    "/dm/campaigns",
-    "/dm/members",
-    "/dm/characters",
-    "/dm/sessions",
-    "/dm/encounters",
-    "/dm/monsters",
-    "/dm/wild-magic",
-    "/schedule",
-  ],
-} as const;
 
 async function horizontalOverflow(page: Page) {
   return page.evaluate(() => {
@@ -46,25 +35,13 @@ async function horizontalOverflow(page: Page) {
   });
 }
 
-/** Interactive elements rendered smaller than the 44px tap-target floor. */
+/**
+ * Interactive elements whose tap area is under 44px. Small controls may keep
+ * their desktop size on a phone if an invisible ::after makes up the rest
+ * (see the touch rules in globals.scss).
+ */
 async function smallTapTargets(page: Page) {
-  return page.evaluate(() => {
-    const bad: string[] = [];
-    for (const el of document.querySelectorAll(
-      "button, a[href], [role='button'], [role='tab']",
-    )) {
-      const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) continue; // not rendered
-      if (r.height < 44 || r.width < 44) {
-        const name =
-          el.getAttribute("aria-label") ?? (el.textContent ?? "").trim().slice(0, 24);
-        bad.push(
-          `"${name}" ${String(Math.round(r.width))}x${String(Math.round(r.height))}`,
-        );
-      }
-    }
-    return bad;
-  });
+  return page.evaluate(findSmallTapTargets, 44);
 }
 
 for (const [role, routes] of Object.entries(ROUTES) as [

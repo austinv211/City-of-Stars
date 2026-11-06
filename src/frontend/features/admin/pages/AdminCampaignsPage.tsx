@@ -1,3 +1,4 @@
+import { RichText } from "@/core/components/RichText";
 import { useEffect, useState } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
@@ -173,9 +174,9 @@ export default function AdminCampaignsPage() {
               <div className="min-w-0">
                 <p className="truncate font-medium md:max-w-xs">{c.name}</p>
                 {c.description && (
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground md:max-w-xs">
+                  <RichText size="xs" clamp={1} className="mt-0.5 text-muted-foreground md:max-w-xs">
                     {c.description}
-                  </p>
+                  </RichText>
                 )}
               </div>
             ),

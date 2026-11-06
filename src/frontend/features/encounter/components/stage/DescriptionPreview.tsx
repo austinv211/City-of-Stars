@@ -1,5 +1,5 @@
+import { RichText } from "@/core/components/RichText";
 import { useQuickView, type QuickViewSubject } from "../../context/QuickViewContext";
-import { renderInline } from "./renderInline";
 
 /**
  * An ability's text on its card: two lines, with "More" opening the full text
@@ -17,13 +17,17 @@ export function DescriptionPreview({
 }) {
   const quickView = useQuickView();
   if (!quickView) {
-    return <p className="text-xs leading-relaxed text-muted-foreground">{renderInline(text)}</p>;
+    return (
+      <RichText source="srd" size="xs" className="text-muted-foreground">
+        {text}
+      </RichText>
+    );
   }
   return (
     <div className="flex items-end gap-1.5">
-      <p className="line-clamp-2 min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
-        {renderInline(text)}
-      </p>
+      <RichText source="srd" size="xs" clamp={2} className="min-w-0 flex-1 text-muted-foreground">
+        {text}
+      </RichText>
       <button
         type="button"
         className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline"

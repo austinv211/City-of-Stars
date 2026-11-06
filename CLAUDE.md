@@ -95,16 +95,40 @@ Use `dev.ps1` instead of `make`. It mirrors all the same targets:
 
 If PowerShell blocks the script, run once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
+### Testing the Android UI
+
+`npm run verify:android` checks every top-level route on an Android
+emulator, in its Chrome (the engine the Android WebView uses), signed in as
+the seeded test users. It needs the local stack (`npm run e2e:up`) and an
+Android SDK with an AVD. It boots the first AVD (or `-- --avd <name>`) if
+no device is connected, serves the e2e build on :1421, and uses `adb reverse`
+so the phone reaches the app and local Supabase. It fails on horizontal page
+scroll, tap areas under 44px, missing touch styles, or native-looking
+checkboxes. Screenshots go to `artifacts/android/`.
+
+It tests the web UI, not the installed app: the launcher icon and anything
+Tauri does natively still need a real APK (`npm run tauri:android:init`, then
+`npm run tauri:android:dev`).
+
 ## Rich notes
 
 Notes (session notes, campaign description, character notes, wild magic
 surges) are stored as Markdown. `core/components/RichTextEditor.tsx` writes
 it; `core/components/RichText.tsx` is the only reader, so always render notes
-through `RichText`, never `ReactMarkdown` directly. Fonts, colours and
-read-aloud boxes have no Markdown syntax, so they are saved as a few HTML
-tags with data attributes from fixed lists (`core/components/richtext/extensions.ts`);
-`RichText` sanitises everything else away. Pictures go to the public
-`campaign-media` bucket under `<campaign_id>/`.
+through `RichText`, never `ReactMarkdown` directly. Fonts, colours,
+highlights and underline have no Markdown syntax, so they are saved as a few
+fixed inline tags (`<span data-font="epic">`, `<mark>`, `<u>`), and
+read-aloud boxes as a `:::read-aloud` … `:::` container
+(`core/components/richtext/extensions.ts`). `RichText` never parses HTML:
+`richtext/noteMarkup.ts` turns exactly those tags and that container into
+elements and drops any other HTML, and `rehype-sanitize` runs after it.
+`rehype-raw` is banned by Semgrep (`.semgrep/city-of-stars.yml`). Pictures go
+to the public `campaign-media` bucket under `<campaign_id>/`.
+
+SRD text (spells, features, rules, monster and NPC descriptions) is also
+Markdown, but a single newline is a line break. Render it with
+`<RichText source="srd">`. Pass `size` (`xs` for cards and popovers, `sm`
+by default, `base` for a full page) and `clamp={n}` for an n-line preview.
 
 ## CI and releasing
 

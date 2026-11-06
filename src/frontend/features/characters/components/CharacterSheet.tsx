@@ -294,7 +294,7 @@ export function CharacterSheet({
               </Button>
             )}
             {character.level_up_pending && !isOwn && (
-              <Badge variant="default" className="bg-yellow-500 text-black">
+              <Badge variant="default" className="bg-secondary text-secondary-foreground">
                 Level Up Pending
               </Badge>
             )}

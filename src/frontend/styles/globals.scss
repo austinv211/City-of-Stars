@@ -71,6 +71,11 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   // codebase routinely overrides buttons down to h-6/h-7 (24-28px).
   --tap-min: 44px;
 
+  // Height of a standard field or button (Input, SelectTrigger, Button).
+  // 40px with a mouse; a full tap target on touch screens (see the coarse
+  // pointer rules below), so a row of fields and buttons grows together.
+  --control-h: 2.5rem;
+
   // ── Shadow scale ─────────────────────────────────────────────────────────
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.65), 0 1px 2px rgba(0, 0, 0, 0.45);
 
@@ -104,6 +109,14 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     box-sizing: border-box;
   }
 
+  // Android (12 and later) stretches a page's content when you drag past
+  // its end. An app's own screens don't, and the desktop app can't, so
+  // turn it off for the page and for every scroll container below.
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
   html {
     color-scheme: dark;
   }
@@ -114,27 +127,112 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    // Android's WebView flashes a translucent box over anything tapped. The
+    // controls have their own hover and active states, so the flash only
+    // made buttons look unlike the desktop app.
+    -webkit-tap-highlight-color: transparent;
   }
 
-  // On a touch device, floor interactive controls at --tap-min. The codebase
-  // sets h-6/h-7 in many places for desktop density; this keeps those usable
-  // on a phone without auditing every call site. Opt out with .allow-dense
-  // where a control genuinely must stay small.
-  @media (pointer: coarse) {
-    button:not(.allow-dense),
-    [role='button']:not(.allow-dense),
-    [role='tab']:not(.allow-dense),
-    a[href]:not(.allow-dense),
-    summary:not(.allow-dense) {
-      min-height: var(--tap-min);
-      min-width: var(--tap-min);
+  // Native checkboxes and radios. Left alone, each platform draws its own:
+  // Android's are rounded Material controls in the system accent colour.
+  // These match ui/checkbox.tsx so a native input and a Radix one look alike.
+  // Set --control-color on an input to colour it with something other than
+  // --primary.
+  input[type='checkbox'],
+  input[type='radio'] {
+    appearance: none;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    border: 1px solid var(--control-color, var(--primary));
+    border-radius: var(--radius);
+    background: transparent center / 100% no-repeat;
+    cursor: pointer;
+
+    &:checked {
+      background-color: var(--control-color, var(--primary));
     }
 
-    // Inputs only need the vertical floor -- width is layout-driven.
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  // The tick and dot are drawn in --primary-foreground (#001f26). A data URI
+  // can't read a CSS variable, so the colour is spelled out here.
+  input[type='checkbox']:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23001f26' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  }
+
+  input[type='radio'] {
+    border-radius: 9999px;
+
+    &:checked {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3' fill='%23001f26'/%3E%3C/svg%3E");
+    }
+  }
+
+  // Native date and time fields. Android draws its own box around the
+  // value; without it they take Input's border, height and padding like
+  // every other field, and still open the system picker (dark, from
+  // color-scheme above).
+  input[type='date'],
+  input[type='time'] {
+    appearance: none;
+    text-align: left;
+
+    &::-webkit-date-and-time-value {
+      text-align: left;
+    }
+
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+    }
+  }
+
+  // ── Touch screens ──────────────────────────────────────────────────────
+  @media (pointer: coarse) {
+    :root {
+      --control-h: var(--tap-min);
+    }
+
+    // Fields grow to a full tap target, even where a call site set a
+    // desktop height like h-8.
     input:not([type='checkbox']):not([type='radio']):not(.allow-dense),
     select:not(.allow-dense),
-    textarea:not(.allow-dense) {
+    textarea:not(.allow-dense),
+    [role='combobox']:not(.allow-dense),
+    [role='option'] {
       min-height: var(--tap-min);
+    }
+
+    // Small buttons, tabs and links keep their desktop size, so dense rows
+    // still look the way they were designed, but get a 44px hit area: an
+    // invisible ::after that reaches past the edges of anything smaller.
+    // :where() keeps the specificity at zero, so a control's own position
+    // (absolute, sticky) or ::after (Button's sheen) still wins.
+    :where(button, [role='button'], [role='tab'], a[href], summary):where(:not(.allow-dense)) {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: min(0px, calc((100% - var(--tap-min)) / 2));
+      }
+    }
+
+    input[type='checkbox'],
+    input[type='radio'] {
+      width: 1.25rem;
+      height: 1.25rem;
     }
   }
 
@@ -151,9 +249,11 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   }
 
   // iOS/Android momentum scrolling inside the app's scroll containers.
+  // `none`, not `contain`: both stop a scroll spilling into the page behind,
+  // but only `none` also stops Android's stretch at the ends.
   [data-scroll-container] {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
   }
 
   // Slim, context-aware scrollbars
@@ -481,6 +581,63 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     img.ProseMirror-selectednode {
       outline: 2px solid var(--primary);
     }
+  }
+}
+
+// ── Rich text sizing ───────────────────────────────────────────────────────
+// RichText's `size` and `clamp` props (core/components/RichText.tsx). Prose's
+// own spacing is made for articles; in a card or popover it leaves big gaps
+// above and below a two-line description. Each size scales spacing, headings
+// and pictures to the box the text sits in.
+@layer components {
+  .rich-note {
+    // The box hugs its text: no stray margin at the top or bottom.
+    > :first-child { margin-top: 0; }
+    > :last-child { margin-bottom: 0; }
+
+    // Links follow the theme rather than prose's grey.
+    a { color: var(--primary); }
+  }
+
+  .rich-note[data-size="xs"] {
+    line-height: 1.55;
+
+    p, ul, ol, blockquote, table, pre, aside[data-callout="read-aloud"] {
+      margin-top: 0.4em;
+      margin-bottom: 0.4em;
+    }
+
+    li { margin-top: 0.1em; margin-bottom: 0.1em; }
+
+    // Headings stay headings, just not taller than the card they sit in.
+    h1, h2, h3, h4 {
+      margin-top: 0.6em;
+      margin-bottom: 0.25em;
+      font-size: 1.1em;
+      line-height: 1.3;
+    }
+
+    img { max-height: 10rem; margin: 0.5em 0; }
+    th, td { padding: 0.25em 0.5em; }
+  }
+
+  .rich-note[data-size="sm"] {
+    h1 { font-size: 1.4em; }
+    h2 { font-size: 1.25em; }
+    img { max-height: 20rem; }
+  }
+
+  // A preview cut off after --rich-clamp lines. Everything flows as plain
+  // lines so the count is honest: no block gaps, no pictures, no big headings.
+  .rich-note[data-clamped] {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--rich-clamp);
+    overflow: hidden;
+
+    > * { margin-top: 0; margin-bottom: 0; }
+    h1, h2, h3, h4 { font-size: 1em; }
+    img, hr { display: none; }
   }
 }
 
