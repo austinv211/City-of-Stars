@@ -106,6 +106,11 @@ tags with data attributes from fixed lists (`core/components/richtext/extensions
 `RichText` sanitises everything else away. Pictures go to the public
 `campaign-media` bucket under `<campaign_id>/`.
 
+SRD text (spells, features, rules, monster and NPC descriptions) is also
+Markdown, but a single newline is a line break. Render it with
+`<RichText source="srd">`. Pass `size` (`xs` for cards and popovers, `sm`
+by default, `base` for a full page) and `clamp={n}` for an n-line preview.
+
 ## CI and releasing
 
 - **CI** (`ci.yml`, CodeQL) runs on pull requests into master, and on demand.
