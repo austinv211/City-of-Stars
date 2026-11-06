@@ -21,6 +21,7 @@
     "test:watch": "vitest",
     "e2e:users": "node --env-file=.env.e2e scripts/seed-test-users.mjs",
     "verify:responsive": "node --env-file=.env.e2e scripts/verify-responsive.mjs",
+    "verify:android": "node --env-file=.env.e2e scripts/verify-android.mjs",
     "lint": "eslint . --max-warnings 706",
     "lint:fix": "eslint . --fix",
     "lint:report": "eslint . -f json -o lint-report.json",
