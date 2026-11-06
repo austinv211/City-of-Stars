@@ -19,7 +19,6 @@ import { TrackerRegion } from "./TrackerRegion";
 
 export interface LayoutProps {
   screen: EncounterScreen;
-  onRules: () => void;
   onEnd: () => void;
   onAddEffect: () => void;
   onChooseTarget: () => void;
@@ -32,7 +31,7 @@ export function EncounterDesktop(props: LayoutProps) {
   const { screen } = props;
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <EncounterHeader screen={screen} onRules={props.onRules} onEnd={props.onEnd} />
+      <EncounterHeader screen={screen} onEnd={props.onEnd} />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <aside
           data-scroll-container
@@ -63,7 +62,6 @@ export function EncounterTablet(props: LayoutProps) {
     <div className="flex h-full flex-col overflow-hidden">
       <EncounterHeader
         screen={screen}
-        onRules={props.onRules}
         onEnd={props.onEnd}
         onOpenSide={() => {
           setSideOpen(true);
@@ -112,7 +110,7 @@ export function EncounterPhone(props: LayoutProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <CompactEncounterHeader screen={screen} onRules={props.onRules} />
+      <CompactEncounterHeader screen={screen} />
       <Filmstrip
         participants={screen.participants}
         activeId={screen.encounter?.current_participant_id ?? null}

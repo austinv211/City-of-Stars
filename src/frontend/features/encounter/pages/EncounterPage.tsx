@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Swords } from "lucide-react";
 import { useBreakpoint } from "@/core/hooks/useBreakpoint";
-import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import { InitiativeRollScreen } from "../components/InitiativeRollScreen";
 import { AddEffectDialog } from "../components/stage/AddEffectDialog";
 import {
@@ -33,7 +32,6 @@ export default function EncounterPage({
   const screen = useEncounterScreen(playerMode);
   const { isPhone, isTablet } = useBreakpoint();
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const [rulesOpen, setRulesOpen] = useState(false);
   const [addEffectOpen, setAddEffectOpen] = useState(false);
   const [targetPickerOpen, setTargetPickerOpen] = useState(false);
 
@@ -63,9 +61,6 @@ export default function EncounterPage({
 
   const layout: LayoutProps = {
     screen,
-    onRules: () => {
-      setRulesOpen(true);
-    },
     onEnd: () => {
       setConfirmEnd(true);
     },
@@ -119,12 +114,6 @@ export default function EncounterPage({
         onPick={screen.setTargetId}
       />
 
-      <RulesLookup
-        open={rulesOpen}
-        onClose={() => {
-          setRulesOpen(false);
-        }}
-      />
       <QuickViewDialog screen={screen} />
     </QuickViewProvider>
   );

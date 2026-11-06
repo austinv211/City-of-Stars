@@ -1,6 +1,9 @@
 import { expect, type Page } from "@playwright/test";
 
-/** The Rules Reference dialog, opened from the encounter header. */
+/**
+ * The Rules Reference dialog, opened from the app's navigation: the phone app
+ * bar, the tablet rail or the desktop sidebar, whichever is on screen.
+ */
 export class RulesLookup {
   constructor(private readonly page: Page) {}
 

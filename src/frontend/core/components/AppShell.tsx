@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Outlet } from "react-router";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Scale, Settings } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { DiceProvider } from "@/features/encounter/context/DiceContext";
+import { RulesLookupProvider } from "@/features/rules/context/RulesLookupProvider";
+import { useRulesLookup } from "@/features/rules/context/RulesLookupContext";
 import { TooltipProvider } from "@/core/components/ui/tooltip";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
@@ -19,6 +21,27 @@ import DiceRollOverlay from "./DiceRollOverlay";
 import { AccountDialog } from "./AccountDialog";
 import { DisplayNamePrompt } from "./DisplayNamePrompt";
 import { SurgeAnnouncer } from "./wildmagic/SurgeAnnouncer";
+
+/** The desktop sidebar's way into the Rules Reference, with its shortcut. */
+function SidebarRulesButton() {
+  const { openRules } = useRulesLookup();
+  const mac = /Mac|iPhone|iPad/.test(navigator.userAgent);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label="Rules Reference"
+      className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+      onClick={openRules}
+    >
+      <Scale className="h-4 w-4" />
+      Rules Reference
+      <kbd className="ml-auto border border-border/60 px-1.5 font-sans text-[10px] text-muted-foreground">
+        {mac ? "⌘K" : "Ctrl K"}
+      </kbd>
+    </Button>
+  );
+}
 
 /** Identity + account controls, for the desktop sidebar footer. */
 function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
@@ -94,51 +117,56 @@ export default function AppShell() {
 
   return (
     <DiceProvider>
-      <TooltipProvider>
-        <div className="flex h-dvh flex-col overflow-hidden bg-background">
-          {/* Desktop Tauri window chrome; renders nothing on a mobile shell. */}
-          <TitleBar />
+      <RulesLookupProvider>
+        <TooltipProvider>
+          <div className="flex h-dvh flex-col overflow-hidden bg-background">
+            {/* Desktop Tauri window chrome; renders nothing on a mobile shell. */}
+            <TitleBar />
 
-          {/* Phone: the campaign and the light bar, under the status bar. */}
-          <PhoneAppBar />
+            {/* Phone: the campaign and the light bar, under the status bar. */}
+            <PhoneAppBar />
 
-          <div className="flex flex-1 overflow-hidden">
-            {/* ── Tablet: labelled rail ─────────────────────────────────── */}
-            <TabletRail onOpenAccount={openAccount} />
+            <div className="flex flex-1 overflow-hidden">
+              {/* ── Tablet: labelled rail ─────────────────────────────────── */}
+              <TabletRail onOpenAccount={openAccount} />
 
-            {/* ── Desktop: full sidebar ──────────────────────────────────── */}
-            <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">
-              <div className="flex h-12 items-center border-b border-border/40 px-4">
-                <CampaignSelector />
-              </div>
-              <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
-                <NavSections variant="full" />
-              </div>
-              <Separator />
-              <SidebarFooter onOpenAccount={openAccount} />
-            </aside>
+              {/* ── Desktop: full sidebar ──────────────────────────────────── */}
+              <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">
+                <div className="flex h-12 items-center border-b border-border/40 px-4">
+                  <CampaignSelector />
+                </div>
+                <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
+                  <NavSections variant="full" />
+                </div>
+                <div className="px-3 pt-2">
+                  <SidebarRulesButton />
+                </div>
+                <Separator className="mt-2" />
+                <SidebarFooter onOpenAccount={openAccount} />
+              </aside>
 
-            {/* ── Content ────────────────────────────────────────────────── */}
-            {/* Below md the tab bar takes the bottom inset; beside a rail or
-                sidebar (a phone held sideways) the content meets the screen's
-                bottom and far edge itself. */}
-            <main
-              data-scroll-container
-              className="flex min-w-0 flex-1 flex-col overflow-auto md:pb-[var(--safe-bottom)] md:pr-[var(--safe-right)]"
-            >
-              <Outlet />
-            </main>
+              {/* ── Content ────────────────────────────────────────────────── */}
+              {/* Below md the tab bar takes the bottom inset; beside a rail or
+                  sidebar (a phone held sideways) the content meets the screen's
+                  bottom and far edge itself. */}
+              <main
+                data-scroll-container
+                className="flex min-w-0 flex-1 flex-col overflow-auto md:pb-[var(--safe-bottom)] md:pr-[var(--safe-right)]"
+              >
+                <Outlet />
+              </main>
+            </div>
+
+            {/* Phone bottom tab bar + overflow sheet. */}
+            <MobileNav onOpenAccount={openAccount} />
           </div>
 
-          {/* Phone bottom tab bar + overflow sheet. */}
-          <MobileNav onOpenAccount={openAccount} />
-        </div>
-
-        <DiceRollOverlay />
-        <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
-        <DisplayNamePrompt />
-        <SurgeAnnouncer />
-      </TooltipProvider>
+          <DiceRollOverlay />
+          <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+          <DisplayNamePrompt />
+          <SurgeAnnouncer />
+        </TooltipProvider>
+      </RulesLookupProvider>
     </DiceProvider>
   );
 }

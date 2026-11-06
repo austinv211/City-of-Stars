@@ -1,4 +1,4 @@
-import { BookOpen, ChevronLeft, PanelRight, SkipForward, Swords } from "lucide-react";
+import { ChevronLeft, PanelRight, SkipForward, Swords } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Badge } from "@/core/components/ui/badge";
 import { Button } from "@/core/components/ui/button";
@@ -7,22 +7,21 @@ import type { EncounterScreen } from "../../hooks/useEncounterScreen";
 
 interface Props {
   screen: EncounterScreen;
-  onRules: () => void;
   onEnd: () => void;
   /** Tablet only: open the roll log / character sheet slide-over. */
   onOpenSide?: () => void;
 }
 
-/** Name, turn bar, and the DM's turn controls, in one row (tablet and desktop). */
-export function EncounterHeader({ screen, onRules, onEnd, onOpenSide }: Props) {
+/**
+ * Name, turn bar, and the DM's turn controls, in one row (tablet and desktop).
+ * The Rules Reference is in the app's own navigation, on every screen.
+ */
+export function EncounterHeader({ screen, onEnd, onOpenSide }: Props) {
   const { isDM, stage } = screen;
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border/40 bg-card px-3">
       <EncounterTitle screen={screen} />
       <div className="min-w-0 flex-1">{stage && <TurnBar stage={stage} />}</div>
-      <Button variant="ghost" size="sm" onClick={onRules} title="Rules Reference">
-        <BookOpen className="h-4 w-4" />
-      </Button>
       {onOpenSide && (
         <Button
           variant="ghost"
@@ -49,11 +48,8 @@ export function EncounterHeader({ screen, onRules, onEnd, onOpenSide }: Props) {
   );
 }
 
-/** The phone's header: back, the turn bar, and the rules -- nothing else fits. */
-export function CompactEncounterHeader({
-  screen,
-  onRules,
-}: Pick<Props, "screen" | "onRules">) {
+/** The phone's header: back and the turn bar. The rules are in the app bar above. */
+export function CompactEncounterHeader({ screen }: Pick<Props, "screen">) {
   const navigate = useNavigate();
   return (
     <div className="flex h-12 shrink-0 items-center gap-1 border-b border-border/40 bg-card px-1">
@@ -70,14 +66,6 @@ export function CompactEncounterHeader({
       <div className="min-w-0 flex-1 px-1">
         {screen.stage && <TurnBar stage={screen.stage} />}
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onRules}
-        aria-label="Rules Reference"
-      >
-        <BookOpen className="h-5 w-5" />
-      </Button>
     </div>
   );
 }
