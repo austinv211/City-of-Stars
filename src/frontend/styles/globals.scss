@@ -71,6 +71,11 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   // codebase routinely overrides buttons down to h-6/h-7 (24-28px).
   --tap-min: 44px;
 
+  // Height of a standard field or button (Input, SelectTrigger, Button).
+  // 40px with a mouse; a full tap target on touch screens (see the coarse
+  // pointer rules below), so a row of fields and buttons grows together.
+  --control-h: 2.5rem;
+
   // ── Shadow scale ─────────────────────────────────────────────────────────
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.65), 0 1px 2px rgba(0, 0, 0, 0.45);
 
@@ -166,25 +171,60 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     }
   }
 
-  // On a touch device, floor interactive controls at --tap-min. The codebase
-  // sets h-6/h-7 in many places for desktop density; this keeps those usable
-  // on a phone without auditing every call site. Opt out with .allow-dense
-  // where a control genuinely must stay small.
-  @media (pointer: coarse) {
-    button:not(.allow-dense),
-    [role='button']:not(.allow-dense),
-    [role='tab']:not(.allow-dense),
-    a[href]:not(.allow-dense),
-    summary:not(.allow-dense) {
-      min-height: var(--tap-min);
-      min-width: var(--tap-min);
+  // Native date and time fields. Android draws its own box around the
+  // value; without it they take Input's border, height and padding like
+  // every other field, and still open the system picker (dark, from
+  // color-scheme above).
+  input[type='date'],
+  input[type='time'] {
+    appearance: none;
+    text-align: left;
+
+    &::-webkit-date-and-time-value {
+      text-align: left;
     }
 
-    // Inputs only need the vertical floor -- width is layout-driven.
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+    }
+  }
+
+  // ── Touch screens ──────────────────────────────────────────────────────
+  @media (pointer: coarse) {
+    :root {
+      --control-h: var(--tap-min);
+    }
+
+    // Fields grow to a full tap target, even where a call site set a
+    // desktop height like h-8.
     input:not([type='checkbox']):not([type='radio']):not(.allow-dense),
     select:not(.allow-dense),
-    textarea:not(.allow-dense) {
+    textarea:not(.allow-dense),
+    [role='combobox']:not(.allow-dense),
+    [role='option'] {
       min-height: var(--tap-min);
+    }
+
+    // Small buttons, tabs and links keep their desktop size, so dense rows
+    // still look the way they were designed, but get a 44px hit area: an
+    // invisible ::after that reaches past the edges of anything smaller.
+    // :where() keeps the specificity at zero, so a control's own position
+    // (absolute, sticky) or ::after (Button's sheen) still wins.
+    :where(button, [role='button'], [role='tab'], a[href], summary):where(:not(.allow-dense)) {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: min(0px, calc((100% - var(--tap-min)) / 2));
+      }
+    }
+
+    input[type='checkbox'],
+    input[type='radio'] {
+      width: 1.25rem;
+      height: 1.25rem;
     }
   }
 
