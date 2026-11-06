@@ -16,6 +16,9 @@ import { parseEnv } from "node:util";
 const e2eEnv = parseEnv(readFileSync(".env.e2e", "utf8")) as Record<string, string>;
 Object.assign(process.env, e2eEnv);
 
+/** Specs about layout alone, which also run at the in-between sizes. */
+const LAYOUT_SPECS = /(responsive|encounter-layout)\.spec\.ts/;
+
 const PORT = 1421;
 const OUT_DIR = "dist-e2e";
 // 127.0.0.1, not localhost: on Windows localhost is dual-stack, and under a
@@ -70,6 +73,19 @@ export default defineConfig({
         ...devices["Pixel 7"],
         viewport: { width: 412, height: 915 },
       },
+    },
+    // Layout-only projects for the in-between sizes: the desktop app's
+    // default window, and a phone held sideways. They run the layout specs,
+    // not the whole suite.
+    {
+      name: "app",
+      testMatch: LAYOUT_SPECS,
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1200, height: 800 } },
+    },
+    {
+      name: "phone-landscape",
+      testMatch: LAYOUT_SPECS,
+      use: { ...devices["Pixel 7 landscape"], viewport: { width: 915, height: 412 } },
     },
   ],
   // A production build, served by `vite preview`: what ships, and none of
