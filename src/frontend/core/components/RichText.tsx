@@ -2,14 +2,15 @@ import type { CSSProperties } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { cn } from "@/lib/utils";
 import { NOTE_COLORS, NOTE_FONTS } from "./richtext/extensions";
+import { remarkNoteMarkup } from "./richtext/noteMarkup";
 import "./richtext/fonts";
 
 /**
- * GitHub's sanitising schema plus exactly what the note editor writes:
+ * A second line of defence after remarkNoteMarkup, which only ever builds
+ * these elements. GitHub's sanitising schema plus exactly what the note editor writes:
  * spans with a known font or colour, highlights, underline, and read-aloud
  * boxes. Any other attribute value is stripped, and scripts, styles and
  * event handlers never survive.
@@ -34,15 +35,17 @@ type Source = "note" | "srd";
 /**
  * Where the text came from decides how it is parsed.
  *
- * - `note`: written in the RichTextEditor. Markdown plus the few HTML tags
- *   the editor uses for fonts, colours and read-aloud boxes.
+ * - `note`: written in the RichTextEditor. Markdown plus the editor's fonts,
+ *   colours, highlights and read-aloud boxes, rebuilt by remarkNoteMarkup from
+ *   a fixed list. HTML is never parsed.
  * - `srd`: rules text from the SRD and players' own descriptions. Plain
- *   Markdown, where a single newline is a line break, not a space.
+ *   Markdown, where a single newline is a line break, not a space. HTML is
+ *   dropped.
  */
 const SOURCES: Record<Source, { remark: Plugins; rehype: Plugins }> = {
   note: {
-    remark: [remarkGfm],
-    rehype: [rehypeRaw, [rehypeSanitize, schema]],
+    remark: [remarkGfm, remarkNoteMarkup],
+    rehype: [[rehypeSanitize, schema]],
   },
   srd: {
     remark: [remarkGfm, remarkBreaks],

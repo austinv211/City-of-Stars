@@ -115,11 +115,15 @@ Tauri does natively still need a real APK (`npm run tauri:android:init`, then
 Notes (session notes, campaign description, character notes, wild magic
 surges) are stored as Markdown. `core/components/RichTextEditor.tsx` writes
 it; `core/components/RichText.tsx` is the only reader, so always render notes
-through `RichText`, never `ReactMarkdown` directly. Fonts, colours and
-read-aloud boxes have no Markdown syntax, so they are saved as a few HTML
-tags with data attributes from fixed lists (`core/components/richtext/extensions.ts`);
-`RichText` sanitises everything else away. Pictures go to the public
-`campaign-media` bucket under `<campaign_id>/`.
+through `RichText`, never `ReactMarkdown` directly. Fonts, colours,
+highlights and underline have no Markdown syntax, so they are saved as a few
+fixed inline tags (`<span data-font="epic">`, `<mark>`, `<u>`), and
+read-aloud boxes as a `:::read-aloud` … `:::` container
+(`core/components/richtext/extensions.ts`). `RichText` never parses HTML:
+`richtext/noteMarkup.ts` turns exactly those tags and that container into
+elements and drops any other HTML, and `rehype-sanitize` runs after it.
+`rehype-raw` is banned by Semgrep (`.semgrep/city-of-stars.yml`). Pictures go
+to the public `campaign-media` bucket under `<campaign_id>/`.
 
 SRD text (spells, features, rules, monster and NPC descriptions) is also
 Markdown, but a single newline is a line break. Render it with
