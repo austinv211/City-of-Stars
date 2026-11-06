@@ -71,6 +71,11 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   // codebase routinely overrides buttons down to h-6/h-7 (24-28px).
   --tap-min: 44px;
 
+  // How far toasts sit above the bottom edge (ui/sonner.tsx). On a phone
+  // they clear the tab bar (about 4rem) and the gesture area, instead of
+  // covering the tabs; see the max-width rule below.
+  --toast-bottom: 24px;
+
   // Height of a standard field or button (Input, SelectTrigger, Button).
   // 40px with a mouse; a full tap target on touch screens (see the coarse
   // pointer rules below), so a row of fields and buttons grows together.
@@ -98,6 +103,13 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   --shadow-glow:
     0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent),
     0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+// Phones: toasts sit above the bottom tab bar (MobileNav) and the gesture area.
+@media (max-width: 767px) {
+  :root {
+    --toast-bottom: calc(4rem + var(--safe-bottom) + 0.5rem);
+  }
 }
 
 // ── Base ──────────────────────────────────────────────────────────────────────
