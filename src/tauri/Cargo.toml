@@ -1,6 +1,6 @@
 [package]
 name = "cityofstars"
-version = "0.10.0"
+version = "0.10.1"
 description = "City of Stars D&D Companion App"
 authors = []
 edition = "2021"
