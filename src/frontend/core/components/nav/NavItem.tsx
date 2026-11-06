@@ -1,6 +1,7 @@
 import { NavLink } from "react-router";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/core/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { navIndicator } from "./navStyles";
 import type { NavEntry } from "./navConfig";
 
 export type NavVariant = "full" | "rail" | "tab" | "tile";
@@ -13,24 +14,24 @@ export type NavVariant = "full" | "rail" | "tab" | "tile";
  *         88px wide, every target at least 56px tall. It used to be a bare
  *         16px icon with the label in a hover tooltip, which on a tablet --
  *         a touch device, with no hover -- meant no label at all.
- *   tab   phone tab bar   — stacked icon over label, top accent bar when active
+ *   tab   phone tab bar   — icon over label; when active the icon sits in a
+ *         filled indicator, as in Android's own navigation bars (navStyles)
  *   tile  phone More sheet — a card: icon chip, label, one-line description.
  *         Rendered by TileItem below rather than through these tables, since
  *         its anatomy differs rather than just its spacing.
  */
 const LAYOUT: Record<Exclude<NavVariant, "tile">, string> = {
   full: "gap-3 px-3 py-2 text-sm",
-  rail: "group min-h-14 w-full flex-col justify-center gap-1 px-1 py-1.5 text-center text-[11px] leading-tight",
-  tab: "flex-1 flex-col justify-center gap-1 py-1.5 text-[11px]",
+  rail: "group min-h-14 w-full flex-col justify-center gap-1 px-1 py-1.5 text-center text-[10.5px] leading-tight",
+  tab: "group min-w-0 flex-1 flex-col justify-center gap-1 py-1 text-[10.5px] leading-tight tracking-tight",
 };
 
 const ACTIVE: Record<Exclude<NavVariant, "tile">, string> = {
   full: "border-l-2 border-primary bg-primary/10",
-  // The chip carries the active state (see chip below), not the whole row.
+  // The indicator carries the active state (navIndicator), not the whole row.
   rail: "",
-  // Top bar rather than left: the tab bar sits at the bottom of the screen,
-  // so the accent reads better against the content above it.
-  tab: "bg-primary/10 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-primary",
+  // The indicator around the icon carries it (navIndicator), as on the rail.
+  tab: "",
 };
 
 const iconSize = (v: NavVariant) => (v === "full" ? "h-4 w-4" : "h-5 w-5");
@@ -51,6 +52,8 @@ interface Props {
   disabled?: boolean;
   disabledTip?: string;
   onNavigate?: () => void;
+  /** Replace the current history entry instead of adding one. */
+  replace?: boolean;
 }
 
 /**
@@ -85,8 +88,8 @@ function DisabledItem({
             LAYOUT[variant],
           )}
         >
-          {variant === "rail" ? (
-            <span className={chip(false)}>
+          {variant === "rail" || variant === "tab" ? (
+            <span className={navIndicator(false)}>
               <Icon className={iconSize(variant)} />
             </span>
           ) : (
@@ -109,6 +112,7 @@ function ActiveItem({
   variant,
   showLiveDot,
   onNavigate,
+  replace,
 }: Props & { variant: Exclude<NavVariant, "tile"> }) {
   const { to, icon: Icon } = entry;
   const rail = variant === "rail";
@@ -121,11 +125,9 @@ function ActiveItem({
           aria-hidden="true"
           className={cn(
             "absolute rounded-full bg-success",
-            rail
-              ? "right-3 top-1 h-2 w-2 ring-2 ring-card"
-              : variant === "full"
-                ? "-right-1 -top-1 h-1.5 w-1.5"
-                : "-right-1.5 -top-0.5 h-1.5 w-1.5",
+            variant === "full"
+              ? "-right-1 -top-1 h-1.5 w-1.5"
+              : "right-3 top-1 h-2 w-2 ring-2 ring-card",
           )}
         />
       )}
@@ -135,6 +137,7 @@ function ActiveItem({
   return (
     <NavLink
       to={to}
+      replace={replace}
       onClick={onNavigate}
       // The rail's short label ("Sessions") is what shows; the full one is
       // the accessible name, as it is everywhere else.
@@ -155,21 +158,17 @@ function ActiveItem({
     >
       {({ isActive }) => (
         <>
-          <span className={rail ? chip(isActive) : "relative shrink-0"}>{icon}</span>
+          <span
+            className={rail || variant === "tab" ? navIndicator(isActive) : "relative shrink-0"}
+          >
+            {icon}
+          </span>
           <span className={rail ? "line-clamp-2 w-full break-words" : "truncate"}>
             {textFor(variant, entry)}
           </span>
         </>
       )}
     </NavLink>
-  );
-}
-
-/** The rail's indicator: the icon sits in it, and it fills when active. */
-function chip(active: boolean) {
-  return cn(
-    "relative flex h-8 w-14 shrink-0 items-center justify-center transition-colors",
-    active ? "bg-primary/20 text-primary" : "group-hover:bg-accent/30",
   );
 }
 
@@ -184,7 +183,7 @@ function chip(active: boolean) {
  * No tooltip in the disabled state: there is no hover on touch, so the reason
  * replaces the description inline instead.
  */
-function TileItem({ entry, showLiveDot, disabled, disabledTip, onNavigate }: Props) {
+function TileItem({ entry, showLiveDot, disabled, disabledTip, onNavigate, replace }: Props) {
   const { to, label, description, icon: Icon } = entry;
 
   const body = (active: boolean) => (
@@ -233,6 +232,7 @@ function TileItem({ entry, showLiveDot, disabled, disabledTip, onNavigate }: Pro
   return (
     <NavLink
       to={to}
+      replace={replace}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(

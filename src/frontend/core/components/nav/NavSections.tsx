@@ -7,6 +7,8 @@ interface Props {
   variant: NavVariant;
   /** Called after any navigation — lets a containing sheet close itself. */
   onNavigate?: () => void;
+  /** Navigate by replacing the current history entry (see NavItem). */
+  replace?: boolean;
   /**
    * Destinations to leave out. The phone More sheet passes whatever the tab
    * bar already shows, so nothing appears twice on one screen.
@@ -23,7 +25,7 @@ interface Props {
  * are implemented once. The variants differ only in how a group is laid out:
  * a column of rows, a column of icons, or a two-up grid of cards.
  */
-export function NavSections({ variant, onNavigate, exclude = [], className }: Props) {
+export function NavSections({ variant, onNavigate, replace, exclude = [], className }: Props) {
   const { activeEncounterId } = useCampaign();
   const groups = useNavGroups(exclude);
   const rail = variant === "rail";
@@ -89,6 +91,7 @@ export function NavSections({ variant, onNavigate, exclude = [], className }: Pr
                   disabledTip="No active encounter"
                   showLiveDot={entry.requiresEncounter && !!activeEncounterId}
                   onNavigate={onNavigate}
+                  replace={replace}
                 />
               );
             })}

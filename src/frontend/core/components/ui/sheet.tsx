@@ -58,14 +58,19 @@ interface SheetContentProps
     VariantProps<typeof sheetVariants> {
   /** Hide the built-in close button when the content supplies its own. */
   hideClose?: boolean;
+  /**
+   * Dim and blur what's behind. Off for a panel that fills the screen: there
+   * is nothing behind it to see, and the blur only shows while it slides in.
+   */
+  overlay?: boolean;
 }
 
 const SheetContent = React.forwardRef<
   React.ComponentRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", hideClose = false, className, children, ...props }, ref) => (
+>(({ side = "right", hideClose = false, overlay = true, className, children, ...props }, ref) => (
   <SheetPortal>
-    <SheetOverlay />
+    {overlay && <SheetOverlay />}
     <SheetPrimitive.Content
       ref={ref}
       className={cn(sheetVariants({ side }), className)}

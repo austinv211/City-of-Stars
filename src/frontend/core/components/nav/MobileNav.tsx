@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { LayoutGrid, LogOut, Settings, X } from "lucide-react";
 import {
   Sheet,
@@ -13,6 +12,7 @@ import { useAuth } from "@/core/context/AuthContext";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { cn } from "@/lib/utils";
 import { NavItem } from "./NavItem";
+import { navIndicator } from "./navStyles";
 import { NavSections } from "./NavSections";
 import { useNavGroups } from "./useNavGroups";
 import { playerNav, dmNav } from "./navConfig";
@@ -24,23 +24,48 @@ const matches = (pathname: string, to: string) =>
   pathname === to || pathname.startsWith(`${to}/`);
 
 /**
- * Phone navigation: a fixed bottom tab bar plus a "More" bottom sheet.
+ * The More panel's open state, kept in the browser history: opening it adds
+ * an entry for the same page, so Android's back gesture (which wry maps to
+ * history.back) closes the panel instead of leaving the page. Destinations
+ * inside it navigate with `replace`, so that entry never lingers behind them.
+ */
+function useMorePanel() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const state = (location.state ?? {}) as Record<string, unknown>;
+  const here = { pathname: location.pathname, search: location.search, hash: location.hash };
+
+  const open = state.more === true;
+  const openMore = () => {
+    void navigate(here, { state: { ...state, more: true } });
+  };
+  const closeMore = () => {
+    // Opened by a reload or a shared link, there's no entry of ours to go
+    // back past; drop the flag in place instead.
+    if (location.key === "default") {
+      void navigate(here, { replace: true, state: { ...state, more: false } });
+    } else {
+      void navigate(-1);
+    }
+  };
+  return { open, openMore, closeMore };
+}
+
+/**
+ * Phone navigation: a bottom tab bar, and a full-screen "More" panel.
  *
- * A 224px sidebar leaves 136px of content on a 360px screen, so below `md` the
- * nav moves to the bottom edge — within thumb reach — and everything secondary
- * goes behind "More".
+ * The bar sits within thumb reach, as Android's own apps put it, and runs
+ * under the home gesture handle with its tabs just above it. It carries at
+ * most three primary destinations plus More. Which three depends on role: a
+ * player gets the player nav; a DM-only account would otherwise see an empty
+ * bar, so it gets the three DM destinations used while running a session.
  *
- * The bar carries at most three primary destinations plus More. Which three
- * depends on role: a player gets the player nav; a DM-only account would
- * otherwise see an empty bar, so it gets the three DM destinations that
- * actually get used while running a session.
- *
- * More opens from the bottom, where the thumb already is, as a grid of
- * labelled, described tiles rather than a desktop sidebar squeezed into a
- * drawer. Destinations the tab bar already shows are left out of it.
+ * More fills the screen with a grid of labelled, described tiles; the
+ * destinations the bar already shows are left out of it. The campaign and
+ * light bar are in PhoneAppBar, at the top.
  */
 export function MobileNav({ onOpenAccount }: { onOpenAccount: () => void }) {
-  const [open, setOpen] = useState(false);
+  const { open, openMore, closeMore } = useMorePanel();
   const { pathname } = useLocation();
   const { isPlayerRole } = useAuth();
   const { activeEncounterId } = useCampaign();
@@ -50,7 +75,7 @@ export function MobileNav({ onOpenAccount }: { onOpenAccount: () => void }) {
     : dmNav.filter((e) => DM_PRIMARY.includes(e.to));
   const primaryPaths = primary.map((e) => e.to);
 
-  // When the current page lives behind More, More is the tab that is "on" —
+  // When the current page lives behind More, More is the tab that is "on" --
   // otherwise the bar shows no selection at all and the user loses their place.
   const overflowActive = useNavGroups(primaryPaths).some((g) =>
     g.entries.some((e) => matches(pathname, e.to)),
@@ -60,9 +85,9 @@ export function MobileNav({ onOpenAccount }: { onOpenAccount: () => void }) {
   return (
     <>
       {/* ── Bottom tab bar ───────────────────────────────────────────────── */}
-      <div
-        className="flex shrink-0 border-t border-border/40 bg-card pb-[var(--safe-bottom)] md:hidden"
-        style={{ boxShadow: "var(--shadow-md)" }}
+      <nav
+        aria-label="Sections"
+        className="flex shrink-0 border-t border-border/40 bg-card pb-[max(var(--safe-bottom),0.25rem)] pl-[var(--safe-left)] pr-[var(--safe-right)] pt-1 md:hidden"
       >
         {primary.map((entry) => {
           const blocked = entry.requiresEncounter && !activeEncounterId;
@@ -77,39 +102,37 @@ export function MobileNav({ onOpenAccount }: { onOpenAccount: () => void }) {
             />
           );
         })}
-
         <button
           type="button"
-          onClick={() => {
-            setOpen(true);
-          }}
+          onClick={openMore}
           aria-label="More navigation"
           aria-haspopup="dialog"
           aria-expanded={open}
           className={cn(
-            "relative flex flex-1 flex-col items-center justify-center gap-1 py-1.5 text-[11px] transition-colors",
-            moreActive
-              ? "bg-primary/10 font-medium text-primary before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-primary"
-              : "text-muted-foreground hover:text-foreground",
+            "group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 py-1 text-[10.5px] leading-tight tracking-tight transition-colors",
+            moreActive ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <LayoutGrid className="h-5 w-5 shrink-0" />
+          <span className={navIndicator(moreActive)}>
+            <LayoutGrid className="h-5 w-5 shrink-0" />
+          </span>
           More
         </button>
-      </div>
+      </nav>
 
-      {/* ── More sheet ───────────────────────────────────────────────────── */}
-      <Sheet open={open} onOpenChange={setOpen}>
+      {/* ── More panel ───────────────────────────────────────────────────── */}
+      <Sheet
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) closeMore();
+        }}
+      >
         <SheetContent
           side="bottom"
           hideClose
-          className="max-h-[85dvh] gap-0 p-0 md:hidden"
+          overlay={false}
+          className="top-0 gap-0 border-0 p-0 pl-[var(--safe-left)] pr-[var(--safe-right)] pt-[var(--safe-top)] shadow-none md:hidden"
         >
-          {/* Grab handle — the bottom-sheet affordance, as in ResponsiveDialog. */}
-          <div
-            aria-hidden="true"
-            className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30"
-          />
           <SheetTitle className="sr-only">More</SheetTitle>
           <SheetDescription className="sr-only">
             Other destinations and your account.
@@ -117,7 +140,7 @@ export function MobileNav({ onOpenAccount }: { onOpenAccount: () => void }) {
 
           <ProfileCard
             onOpenAccount={() => {
-              setOpen(false);
+              closeMore();
               onOpenAccount();
             }}
           />
@@ -126,13 +149,7 @@ export function MobileNav({ onOpenAccount }: { onOpenAccount: () => void }) {
             data-scroll-container
             className="min-h-0 flex-1 overflow-y-auto px-3 py-3"
           >
-            <NavSections
-              variant="tile"
-              exclude={primaryPaths}
-              onNavigate={() => {
-                setOpen(false);
-              }}
-            />
+            <NavSections variant="tile" exclude={primaryPaths} replace />
           </div>
 
           <SignOutRow />
@@ -167,7 +184,7 @@ function ProfileCard({ onOpenAccount }: { onOpenAccount: () => void }) {
     "flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground active:bg-accent/30";
 
   return (
-    <div className="flex items-center gap-3 border-b border-border/40 px-4 pb-3 pt-2">
+    <div className="flex items-center gap-3 border-b border-border/40 px-4 py-3">
       <div
         aria-hidden="true"
         className="flex h-11 w-11 shrink-0 items-center justify-center bg-primary/15 text-sm font-semibold text-primary"
