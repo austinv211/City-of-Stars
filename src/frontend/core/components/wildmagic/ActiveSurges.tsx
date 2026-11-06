@@ -32,7 +32,7 @@ export function ActiveSurges({ characterId, canEnd }: Props) {
                 Wild magic{s.roll !== null && ` · rolled ${String(s.roll)}`}
               </p>
               <p className="font-semibold">{s.name}</p>
-              {s.description && <RichText className="mt-1 text-muted-foreground">{s.description}</RichText>}
+              {s.description && <RichText size="xs" className="mt-1 text-muted-foreground">{s.description}</RichText>}
             </div>
             {canEnd && (
               <Button

@@ -104,7 +104,7 @@ function NoteBlock({ kind, content, saving, onSave }: {
           </div>
         </div>
       )}
-      {!editing && (content ? <RichText>{content}</RichText> : <p className="text-sm italic text-muted-foreground">{kind.empty}</p>)}
+      {!editing && (content ? <RichText size="base">{content}</RichText> : <p className="text-sm italic text-muted-foreground">{kind.empty}</p>)}
     </div>
   );
 }

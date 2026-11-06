@@ -219,7 +219,7 @@ export default function DmCampaignsPage() {
                         Session {c.current_session}
                       </p>
                       {c.description && (
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">{c.description}</p>
+                        <RichText size="xs" clamp={1} className="mt-0.5 text-muted-foreground">{c.description}</RichText>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
