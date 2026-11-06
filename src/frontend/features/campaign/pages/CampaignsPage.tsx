@@ -1,66 +1,21 @@
 import { Skeleton } from "@/core/components/ui/skeleton";
-import { RichText } from "@/core/components/RichText";
 import { NextSessionBanner } from "@/core/components/schedule/NextSessionBanner";
 import { useScheduledSessions } from "@/core/hooks/useScheduledSessions";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/core/components/ui/tabs";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
 import { CampaignHeader } from "../components/CampaignHeader";
-import { PartyStatsPanel } from "../components/PartyStatsPanel";
-import { CharacterStatMeter } from "../components/CharacterStatMeter";
+import { CampaignSessionTabs } from "../components/CampaignSessionTabs";
 import { useSessionNotes } from "../hooks/useSessionNotes";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import {
-  ScrollText,
   Swords,
   BookOpen,
   Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { SessionNote } from "../types/campaign.types";
 
-function SessionBlock({
-  sessionNumber,
-  sessionLabel,
-  partyNote,
-  isCurrent,
-}: {
-  sessionNumber: number;
-  sessionLabel: string;
-  partyNote: SessionNote | undefined;
-  isCurrent: boolean;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <ScrollText className="h-4 w-4 text-muted-foreground" />
-        <h2 className="font-semibold">
-          {sessionLabel} {sessionNumber}
-        </h2>
-        {isCurrent && (
-          <Badge variant="default" className="text-xs">
-            Current
-          </Badge>
-        )}
-      </div>
-
-      {partyNote?.content ? (
-        <RichText>{partyNote.content}</RichText>
-      ) : (
-        <p className="text-sm text-muted-foreground italic">
-          No party notes for this session.
-        </p>
-      )}
-    </div>
-  );
-}
 
 export default function CampaignsPage() {
   const {
@@ -97,11 +52,6 @@ export default function CampaignsPage() {
 
   const currentSession = campaign?.current_session ?? 1;
   const sessionLabel = campaign?.session_label ?? "Session";
-  const prevSession = currentSession - 1;
-
-  function getPartyNote(session: number) {
-    return notes.find((n) => n.session_number === session && n.visibility === "party");
-  }
 
   return (
     <div className="px-4 sm:px-6 py-8 space-y-6">
@@ -200,48 +150,12 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              <Tabs defaultValue="sessions">
-                <TabsList>
-                  <TabsTrigger value="sessions">Session Notes</TabsTrigger>
-                  <TabsTrigger value="party">Party Stats</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="sessions" className="mt-6 space-y-8">
-                  <SessionBlock
-                    sessionNumber={currentSession}
-                    sessionLabel={sessionLabel}
-                    partyNote={getPartyNote(currentSession)}
-                    isCurrent
-                  />
-                  {prevSession >= 1 && (
-                    <>
-                      <Separator />
-                      <SessionBlock
-                        sessionNumber={prevSession}
-                        sessionLabel={sessionLabel}
-                        partyNote={getPartyNote(prevSession)}
-                        isCurrent={false}
-                      />
-                    </>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="party" className="mt-6 space-y-6">
-                  <PartyStatsPanel />
-                  {activeCharacters.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-primary">
-                        Per-Character Stats
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {activeCharacters.map((c) => (
-                          <CharacterStatMeter key={c.id} character={c} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+              <CampaignSessionTabs
+                currentSession={currentSession}
+                sessionLabel={sessionLabel}
+                notes={notes}
+                activeCharacters={activeCharacters}
+              />
 
             </>
           )}

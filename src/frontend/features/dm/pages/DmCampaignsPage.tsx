@@ -5,13 +5,6 @@ import { Label } from "@/core/components/ui/label";
 import { Badge } from "@/core/components/ui/badge";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { Separator } from "@/core/components/ui/separator";
-import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/core/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -20,8 +13,8 @@ import {
   DialogFooter,
 } from "@/core/components/ui/dialog";
 import {
-  Plus, Trash2, BookOpen, Radio, ScrollText,
-  Lock, TrendingUp, Swords,
+  Plus, Trash2, BookOpen, Radio,
+  TrendingUp, Swords,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/core/context/AuthContext";
@@ -29,14 +22,12 @@ import { useCampaign } from "@/core/context/CampaignContext";
 import { useSessionNotes } from "@/features/campaign/hooks/useSessionNotes";
 import { useCharacters } from "@/features/characters/hooks/useCharacters";
 import { CampaignHeader } from "@/features/campaign/components/CampaignHeader";
-import { PartyStatsPanel } from "@/features/campaign/components/PartyStatsPanel";
-import { CharacterStatMeter } from "@/features/campaign/components/CharacterStatMeter";
+import { CampaignSessionTabs } from "@/features/campaign/components/CampaignSessionTabs";
 import { RichTextEditor } from "@/core/components/RichTextEditor";
 import { RichText } from "@/core/components/RichText";
 import { NextSessionBanner } from "@/core/components/schedule/NextSessionBanner";
 import { useScheduledSessions } from "@/core/hooks/useScheduledSessions";
 import { cn } from "@/lib/utils";
-import type { SessionNote } from "@/features/campaign/types/campaign.types";
 
 interface Campaign {
   id: string;
@@ -47,47 +38,6 @@ interface Campaign {
   created_by: string;
 }
 
-function SessionBlock({
-  sessionNumber, sessionLabel, partyNote, dmNote, isCurrent,
-}: {
-  sessionNumber: number;
-  sessionLabel: string;
-  partyNote: SessionNote | undefined;
-  dmNote: SessionNote | undefined;
-  isCurrent: boolean;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <ScrollText className="h-4 w-4 text-muted-foreground" />
-        <h2 className="font-semibold">{sessionLabel} {sessionNumber}</h2>
-        {isCurrent && <Badge variant="default" className="text-xs">Current</Badge>}
-      </div>
-
-      {partyNote?.content ? (
-        <RichText>{partyNote.content}</RichText>
-      ) : (
-        <p className="text-sm text-muted-foreground italic">No party notes for this session.</p>
-      )}
-
-      <Card className="border border-primary/20 bg-primary/5">
-        <CardHeader className="pb-2 pt-3 px-4">
-          <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
-            <Lock className="h-3 w-3" />
-            DM Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-3 px-4">
-          {dmNote?.content ? (
-            <RichText>{dmNote.content}</RichText>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">No DM notes for this session.</p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 export default function DmCampaignsPage() {
   const { user } = useAuth();
@@ -161,12 +111,7 @@ export default function DmCampaignsPage() {
   const activeCharacters = characters.filter((c) => c.status === "active");
   const currentLevel = activeCharacters[0]?.level ?? 1;
   const currentSession = activeCampaign?.current_session ?? 1;
-  const sessionLabel = (activeCampaign as any)?.session_label ?? "Session";
-  const prevSession = currentSession - 1;
-
-  function getNote(session: number, visibility: "dm_only" | "party") {
-    return notes.find((n) => n.session_number === session && n.visibility === visibility);
-  }
+  const sessionLabel = activeCampaign?.session_label ?? "Session";
 
   return (
     <div className="px-4 sm:px-6 py-8 space-y-6">
@@ -287,50 +232,13 @@ export default function DmCampaignsPage() {
                 </Button>
               </div>
 
-              <Tabs defaultValue="sessions">
-                <TabsList>
-                  <TabsTrigger value="sessions">Session Notes</TabsTrigger>
-                  <TabsTrigger value="party">Party Stats</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="sessions" className="mt-6 space-y-8">
-                  <SessionBlock
-                    sessionNumber={currentSession}
-                    sessionLabel={sessionLabel}
-                    partyNote={getNote(currentSession, "party")}
-                    dmNote={getNote(currentSession, "dm_only")}
-                    isCurrent
-                  />
-                  {prevSession >= 1 && (
-                    <>
-                      <Separator />
-                      <SessionBlock
-                        sessionNumber={prevSession}
-                        sessionLabel={sessionLabel}
-                        partyNote={getNote(prevSession, "party")}
-                        dmNote={getNote(prevSession, "dm_only")}
-                        isCurrent={false}
-                      />
-                    </>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="party" className="mt-6 space-y-6">
-                  <PartyStatsPanel />
-                  {activeCharacters.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-primary">
-                        Per-Character Stats
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {activeCharacters.map((c) => (
-                          <CharacterStatMeter key={c.id} character={c} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+              <CampaignSessionTabs
+                currentSession={currentSession}
+                sessionLabel={sessionLabel}
+                notes={notes}
+                activeCharacters={activeCharacters}
+                showDmNotes
+              />
             </>
           )}
         </>
