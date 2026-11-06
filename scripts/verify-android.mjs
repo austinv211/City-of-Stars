@@ -12,6 +12,7 @@
  *   - no horizontal page scroll
  *   - no tap area under 44px
  *   - native checkboxes use the app's style, not Android's
+ *   - scrolling past an end doesn't stretch the page (Android 12+)
  *
  * Needs the local test stack (npm run e2e:up) and an Android SDK with an
  * emulator image. Boots the first AVD (or --avd <name>) if no device is
@@ -123,10 +124,12 @@ function record(page, check, pass, detail = "") {
 function measure() {
   const el = document.scrollingElement ?? document.body;
   const box = document.querySelector("input[type='checkbox']");
+  const scrollers = [el, ...document.querySelectorAll("[data-scroll-container]")];
   return {
     coarse: matchMedia("(pointer: coarse)").matches,
     overflow: el.scrollWidth - el.clientWidth,
     checkbox: box ? getComputedStyle(box).appearance : null,
+    stretchy: scrollers.filter((s) => getComputedStyle(s).overscrollBehaviorY !== "none").length,
   };
 }
 
@@ -134,6 +137,7 @@ async function checkPage(page, label) {
   const m = await page.evaluate(measure);
   record(label, "touch styles apply (pointer: coarse)", m.coarse);
   record(label, "no horizontal page scroll", m.overflow <= 1, `${String(m.overflow)}px over`);
+  record(label, "no overscroll stretch", m.stretchy === 0, `${String(m.stretchy)} scroll areas can stretch`);
   const small = await page.evaluate(findSmallTapTargets, 44);
   record(
     label,

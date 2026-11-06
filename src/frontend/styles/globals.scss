@@ -109,6 +109,14 @@ $panel-highlight: rgb(255 255 255 / 0.06);
     box-sizing: border-box;
   }
 
+  // Android (12 and later) stretches a page's content when you drag past
+  // its end. An app's own screens don't, and the desktop app can't, so
+  // turn it off for the page and for every scroll container below.
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
   html {
     color-scheme: dark;
   }
@@ -241,9 +249,11 @@ $panel-highlight: rgb(255 255 255 / 0.06);
   }
 
   // iOS/Android momentum scrolling inside the app's scroll containers.
+  // `none`, not `contain`: both stop a scroll spilling into the page behind,
+  // but only `none` also stops Android's stretch at the ends.
   [data-scroll-container] {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
   }
 
   // Slim, context-aware scrollbars
