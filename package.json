@@ -33,7 +33,8 @@
     "quality": "npm run lint && npm test && npx tsc --noEmit && npx tsc --noEmit -p e2e && npm run knip:strict && npm run types:coverage && npm run dup",
     "tauri:dev": "cd src/tauri && tauri dev",
     "tauri:build": "cd src/tauri && tauri build",
-    "tauri:android:init": "cd src/tauri && tauri android init",
+    "tauri:android:init": "cd src/tauri && tauri android init && cd ../.. && npm run android:icons",
+    "android:icons": "node scripts/apply-android-icons.mjs",
     "tauri:android:dev": "cd src/tauri && tauri android dev",
     "tauri:android:build": "cd src/tauri && tauri android build",
     "tauri": "cd src/tauri && tauri"
