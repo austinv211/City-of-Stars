@@ -7,6 +7,13 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "@/core/components/ui/responsive-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/core/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs";
 import {
   searchRulesGlossary,
@@ -301,15 +308,16 @@ function ClassFeaturesPanel() {
   return (
     <div className="flex h-[65dvh] flex-col gap-4 md:h-[520px] md:flex-row">
       <div className="flex max-h-[45%] shrink-0 flex-col gap-2 md:max-h-none md:w-64">
-        <select
-          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          value={selectedClass}
-          onChange={(e) => setSelectedClass(e.target.value)}
-        >
-          {CLASSES.map((c) => (
-            <option key={c.name} value={c.name}>{c.name}</option>
-          ))}
-        </select>
+        <Select value={selectedClass} onValueChange={setSelectedClass}>
+          <SelectTrigger aria-label="Class" className="bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CLASSES.map((c) => (
+              <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className={listPanelCls}>
           {loading ? (
             <p className="text-xs text-muted-foreground p-2 italic">Loading…</p>
