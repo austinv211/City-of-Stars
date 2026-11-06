@@ -101,8 +101,10 @@ If PowerShell blocks the script, run once: `Set-ExecutionPolicy -Scope CurrentUs
 emulator, in its Chrome (the engine the Android WebView uses), signed in as
 the seeded test users. It needs the local stack (`npm run e2e:up`) and an
 Android SDK with an AVD. It boots the first AVD (or `-- --avd <name>`) if
-no device is connected, serves the e2e build on :1421, and uses `adb reverse`
-so the phone reaches the app and local Supabase. It fails on horizontal page
+no device is connected, builds the app as the Android shell lays it out
+(`VITE_PREVIEW_SHELL=android`: no desktop title bar), serves it on :1422,
+and uses `adb reverse` so the phone reaches the app and local Supabase.
+It fails on horizontal page
 scroll, tap areas under 44px, missing touch styles, or native-looking
 checkboxes. Screenshots go to `artifacts/android/`.
 

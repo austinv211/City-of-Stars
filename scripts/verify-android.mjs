@@ -14,9 +14,14 @@
  *   - native checkboxes use the app's style, not Android's
  *   - scrolling past an end doesn't stretch the page (Android 12+)
  *
+ * The app is built as the Android shell lays it out (VITE_PREVIEW_SHELL, see
+ * usePlatform): no desktop title bar, the phone header and so on. It is
+ * always built fresh and served on :1422, so a stale server from another run
+ * can't stand in for it.
+ *
  * Needs the local test stack (npm run e2e:up) and an Android SDK with an
  * emulator image. Boots the first AVD (or --avd <name>) if no device is
- * connected, and serves the e2e build on :1421 if nothing is there yet.
+ * connected.
  *
  * Usage:
  *   npm run verify:android [-- --avd Medium_Phone_API_37.0]
@@ -30,7 +35,8 @@ import { assertNotProduction } from "./assert-not-production.mjs";
 import { ROUTES } from "./lib/routes.mjs";
 import { findSmallTapTargets } from "./lib/tap-targets.mjs";
 
-const PORT = 1421;
+const PORT = 1422;
+const DIST = "dist-e2e-android";
 const BASE = `http://127.0.0.1:${String(PORT)}`;
 const SUPABASE_PORT = new URL(process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54321").port;
 const CDP_PORT = 9223;
@@ -89,15 +95,15 @@ const reachable = () =>
     .then((r) => r.ok)
     .catch(() => false);
 
-/** Serves the e2e build on :1421 unless something already does. Returns a stop function. */
-async function ensureServer() {
-  if (await reachable()) return () => {};
-  console.log("Building and serving the e2e build on :1421…");
+/** Builds the Android-shell preview and serves it on PORT. Returns a stop function. */
+async function startServer() {
+  if (await reachable()) throw new Error(`Port ${String(PORT)} is already in use. Stop whatever is serving it.`);
+  console.log(`Building the Android shell preview and serving it on :${String(PORT)}…`);
   const server = spawn(
-    `npx vite build --mode e2e --outDir dist-e2e --emptyOutDir && npx vite preview --mode e2e --outDir dist-e2e --host 127.0.0.1 --port ${String(PORT)} --strictPort`,
-    { shell: true, stdio: "ignore", env: process.env },
+    `npx vite build --mode e2e --outDir ${DIST} --emptyOutDir && npx vite preview --mode e2e --outDir ${DIST} --host 127.0.0.1 --port ${String(PORT)} --strictPort`,
+    { shell: true, stdio: "ignore", env: { ...process.env, VITE_PREVIEW_SHELL: "android" } },
   );
-  await waitFor("the e2e build to be served", reachable, 300_000);
+  await waitFor("the preview build to be served", reachable, 300_000);
   return () => {
     if (process.platform === "win32") execFileSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], { stdio: "ignore" });
     else server.kill();
@@ -182,7 +188,7 @@ async function main() {
   mkdirSync(OUT, { recursive: true });
 
   await ensureDevice(avd);
-  const stopServer = await ensureServer();
+  const stopServer = await startServer();
   try {
     bridgePorts();
     adb("shell", "am", "start", "-n", "com.android.chrome/com.google.android.apps.chrome.Main", "-d", `${BASE}/login`);

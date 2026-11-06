@@ -26,6 +26,13 @@ interface ImportMetaEnv {
   readonly VITE_DICE_MODE?: "deterministic";
 
   /**
+   * Set to "android" by `npm run verify:android` to lay the app out as the
+   * Android shell does in a plain browser (see usePlatform). Undefined in
+   * every normal build.
+   */
+  readonly VITE_PREVIEW_SHELL?: "android";
+
+  /**
    * Target OS, injected by the Tauri CLI. Undefined in a browser build —
    * which is how usePlatform() detects "browser". See src/frontend/core/hooks/usePlatform.ts.
    */
