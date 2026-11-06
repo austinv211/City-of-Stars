@@ -20,6 +20,11 @@ export default {
   content: ["./index.html", "./src/frontend/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      screens: {
+        // A phone held sideways: plenty of width, little height. The rail
+        // turns into compact labelled rows (TabletRail).
+        short: { raw: "(max-height: 500px)" },
+      },
       colors: {
         border: token("--border"),
         input: token("--input"),

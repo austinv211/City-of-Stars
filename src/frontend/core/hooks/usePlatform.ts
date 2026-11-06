@@ -50,7 +50,14 @@ const platform: ShellPlatform =
     : "browser";
 
 const isTauri = platform !== "browser";
-const isAndroid = platform === "android";
+/**
+ * `VITE_PREVIEW_SHELL=android` lays the app out as the Android shell does
+ * while still running in a browser, so `npm run verify:android` can check the
+ * phone layout in an emulator's Chrome. It changes layout only: `platform`
+ * and `isTauri` stay "browser", so no Tauri API is ever called.
+ */
+const previewAndroid = import.meta.env.VITE_PREVIEW_SHELL === "android";
+const isAndroid = platform === "android" || previewAndroid;
 const isIOS = platform === "ios";
 
 const resolved: Platform = {

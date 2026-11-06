@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Outlet } from "react-router";
-import { LogOut, Settings } from "lucide-react";
+import { BookOpen, LogOut, Settings } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { useAuth } from "@/core/context/AuthContext";
 import { DiceProvider } from "@/features/encounter/context/DiceContext";
+import { RulesLookupProvider } from "@/features/rules/context/RulesLookupProvider";
+import { useRulesLookup } from "@/features/rules/context/RulesLookupContext";
 import { TooltipProvider } from "@/core/components/ui/tooltip";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
-import { AnimatedStar, TitleBar } from "@/core/components/TitleBar";
+import { TitleBar } from "@/core/components/TitleBar";
 import { NavSections } from "@/core/components/nav/NavSections";
 import { MobileNav } from "@/core/components/nav/MobileNav";
+import { PhoneAppBar } from "@/core/components/nav/PhoneAppBar";
 import { CampaignSelector } from "@/core/components/nav/CampaignSelector";
 import { TabletRail } from "@/core/components/nav/TabletRail";
 import { useMotionAttribute } from "@/core/hooks/useFeelPrefs";
@@ -18,6 +21,27 @@ import DiceRollOverlay from "./DiceRollOverlay";
 import { AccountDialog } from "./AccountDialog";
 import { DisplayNamePrompt } from "./DisplayNamePrompt";
 import { SurgeAnnouncer } from "./wildmagic/SurgeAnnouncer";
+
+/** The desktop sidebar's way into the Rules Reference, with its shortcut. */
+function SidebarRulesButton() {
+  const { openRules } = useRulesLookup();
+  const mac = /Mac|iPhone|iPad/.test(navigator.userAgent);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label="Rules Reference"
+      className="w-full justify-start gap-2 text-foreground hover:text-primary"
+      onClick={openRules}
+    >
+      <BookOpen className="h-4 w-4 text-primary" />
+      Rules Reference
+      <kbd className="ml-auto border border-border/60 px-1.5 font-sans text-[10px] text-muted-foreground">
+        {mac ? "⌘K" : "Ctrl K"}
+      </kbd>
+    </Button>
+  );
+}
 
 /** Identity + account controls, for the desktop sidebar footer. */
 function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
@@ -76,7 +100,7 @@ function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
  * nav tree on every resize across a boundary, and would flash the wrong layout
  * for a frame on first paint. Media queries do it for free.
  *
- *   < 768px     phone  — brand header on top, bottom tab bar below
+ *   < 768px     phone  — campaign app bar on top, tab bar at the bottom
  *   768-1279px  tablet — 64px icon rail with tooltips
  *   >= 1280px   desktop — 224px labelled sidebar (the original layout)
  *
@@ -93,56 +117,56 @@ export default function AppShell() {
 
   return (
     <DiceProvider>
-      <TooltipProvider>
-        <div className="flex h-dvh flex-col overflow-hidden bg-background">
-          {/* Desktop Tauri window chrome; renders nothing on a mobile shell. */}
-          <TitleBar />
+      <RulesLookupProvider>
+        <TooltipProvider>
+          <div className="flex h-dvh flex-col overflow-hidden bg-background">
+            {/* Desktop Tauri window chrome; renders nothing on a mobile shell. */}
+            <TitleBar />
 
-          {/* Phone header — the sidebar's brand block, relocated. */}
-          <header className="flex h-12 shrink-0 items-center gap-2.5 border-b border-border/40 bg-card px-3 pt-[var(--safe-top)] md:hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/15">
-              <AnimatedStar size={20} />
-            </div>
-            <CampaignSelector />
-          </header>
+            {/* Phone: the campaign and the light bar, under the status bar. */}
+            <PhoneAppBar />
 
-          <div className="flex flex-1 overflow-hidden">
-            {/* ── Tablet: labelled rail ─────────────────────────────────── */}
-            <TabletRail onOpenAccount={openAccount} />
+            <div className="flex flex-1 overflow-hidden">
+              {/* ── Tablet: labelled rail ─────────────────────────────────── */}
+              <TabletRail onOpenAccount={openAccount} />
 
-            {/* ── Desktop: full sidebar ──────────────────────────────────── */}
-            <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">
-              <div className="flex h-12 items-center gap-2.5 border-b border-border/40 px-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/15">
-                  <AnimatedStar size={20} />
+              {/* ── Desktop: full sidebar ──────────────────────────────────── */}
+              <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">
+                <div className="flex h-12 items-center border-b border-border/40 px-4">
+                  <CampaignSelector />
                 </div>
-                <CampaignSelector />
-              </div>
-              <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
-                <NavSections variant="full" />
-              </div>
-              <Separator />
-              <SidebarFooter onOpenAccount={openAccount} />
-            </aside>
+                <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
+                  <NavSections variant="full" />
+                </div>
+                <div className="px-3 pt-2">
+                  <SidebarRulesButton />
+                </div>
+                <Separator className="mt-2" />
+                <SidebarFooter onOpenAccount={openAccount} />
+              </aside>
 
-            {/* ── Content ────────────────────────────────────────────────── */}
-            <main
-              data-scroll-container
-              className="flex min-w-0 flex-1 flex-col overflow-auto"
-            >
-              <Outlet />
-            </main>
+              {/* ── Content ────────────────────────────────────────────────── */}
+              {/* Below md the tab bar takes the bottom inset; beside a rail or
+                  sidebar (a phone held sideways) the content meets the screen's
+                  bottom and far edge itself. */}
+              <main
+                data-scroll-container
+                className="flex min-w-0 flex-1 flex-col overflow-auto md:pb-[var(--safe-bottom)] md:pr-[var(--safe-right)]"
+              >
+                <Outlet />
+              </main>
+            </div>
+
+            {/* Phone bottom tab bar + overflow sheet. */}
+            <MobileNav onOpenAccount={openAccount} />
           </div>
 
-          {/* Phone bottom tab bar + overflow sheet. */}
-          <MobileNav onOpenAccount={openAccount} />
-        </div>
-
-        <DiceRollOverlay />
-        <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
-        <DisplayNamePrompt />
-        <SurgeAnnouncer />
-      </TooltipProvider>
+          <DiceRollOverlay />
+          <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+          <DisplayNamePrompt />
+          <SurgeAnnouncer />
+        </TooltipProvider>
+      </RulesLookupProvider>
     </DiceProvider>
   );
 }

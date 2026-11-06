@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Input } from "@/core/components/ui/input";
-import { RulesLookup } from "@/features/rules/components/RulesLookup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/core/components/ui/card";
 import { Separator } from "@/core/components/ui/separator";
 import { AbilityScoreBlock } from "./AbilityScoreBlock";
@@ -143,7 +142,6 @@ export function CharacterSheet({
   const [editingCurrency, setEditingCurrency] = useState(false);
   const [currencyDraft, setCurrencyDraft] = useState(String(character.currency_dollars));
   const [levelUpOpen, setLevelUpOpen] = useState(false);
-  const [rulesOpen, setRulesOpen] = useState(false);
   const [armorRows, setArmorRows] = useState<ArmorItem[]>([]);
 
   // Load the SRD armor table once so AC can be derived from equipped armor.
@@ -307,14 +305,6 @@ export function CharacterSheet({
             {character.background}
             {character.alignment ? ` · ${character.alignment}` : ""}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 h-7 text-xs"
-            onClick={() => setRulesOpen(true)}
-          >
-            Rules Reference
-          </Button>
         </div>
       </div>
 
@@ -595,7 +585,6 @@ export function CharacterSheet({
         />
       )}
 
-      <RulesLookup open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>
   );
 }

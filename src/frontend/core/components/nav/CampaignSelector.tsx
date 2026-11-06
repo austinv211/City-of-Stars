@@ -1,42 +1,34 @@
 import { ChevronDown, Swords } from "lucide-react";
 import { useCampaign } from "@/core/context/CampaignContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/core/components/ui/popover";
-import { AnimatedStar } from "@/core/components/TitleBar";
+import { CampaignIcon } from "@/core/components/CampaignIcon";
 import { useBreakpoint } from "@/core/hooks/useBreakpoint";
+import type { Campaign } from "@/features/campaign/types/campaign.types";
 import { cn } from "@/lib/utils";
 
 /**
- * Brand + active campaign, with a switcher when there is more than one.
- * Shared by the desktop sidebar header and the phone header.
+ * The selected campaign, as the app's identity: the icon its DM chose, its
+ * name and session, and a switcher when there is more than one. Shared by the
+ * desktop sidebar header and the phone header. With no campaign yet it shows
+ * the City of Stars star and name.
  */
 export function CampaignSelector() {
   const { campaign, campaigns } = useCampaign();
   const { isPhone } = useBreakpoint();
+  const switchable = campaigns.length > 1;
+  const identity = <CampaignIdentity campaign={campaign} switchable={switchable} />;
 
-  if (campaigns.length <= 1) {
-    return (
-      <div className="min-w-0">
-        <Brand />
-        {campaign && (
-          <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
-            {campaign.name}
-          </p>
-        )}
-      </div>
-    );
-  }
+  if (!switchable) return <div className="flex min-w-0 items-center gap-2.5">{identity}</div>;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" className="group min-w-0 text-left">
-          <Brand />
-          <div className="mt-0.5 flex items-center gap-1">
-            <p className="truncate text-[11px] leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
-              {campaign?.name ?? "Select campaign"}
-            </p>
-            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-          </div>
+        <button
+          type="button"
+          aria-label={`Switch campaign (current: ${campaign?.name ?? "none"})`}
+          className="group flex min-w-0 items-center gap-2.5 text-left"
+        >
+          {identity}
         </button>
       </PopoverTrigger>
       {/* side="right" pushes a 208px panel off-screen on a narrow viewport,
@@ -46,11 +38,35 @@ export function CampaignSelector() {
   );
 }
 
+function CampaignIdentity({ campaign, switchable }: { campaign: Campaign | null; switchable: boolean }) {
+  return (
+    <>
+      <CampaignIcon icon={campaign?.icon} />
+      <span className="min-w-0">
+        <span className="flex items-center gap-1">
+          {campaign ? (
+            <span className="truncate text-sm font-semibold leading-tight text-foreground transition-colors group-hover:text-primary">
+              {campaign.name}
+            </span>
+          ) : (
+            <Brand />
+          )}
+          {switchable && <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+        </span>
+        {campaign && (
+          <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted-foreground">
+            {campaign.session_label} {campaign.current_session}
+          </span>
+        )}
+      </span>
+    </>
+  );
+}
+
 /**
- * The tablet rail's version: no room for the name beside the logo, so the
- * logo is the button and the campaign's initials sit under it -- enough to
- * tell two campaigns apart at a glance. Before this the rail had no campaign
- * switcher at all; a tablet user could not change campaign.
+ * The rail's version: no room for the name beside the icon, so the icon is
+ * the button and the campaign's initials sit under it -- enough to tell two
+ * campaigns apart at a glance.
  */
 export function RailCampaignSelector() {
   const { campaign, campaigns } = useCampaign();
@@ -58,9 +74,7 @@ export function RailCampaignSelector() {
 
   const face = (
     <>
-      <span className="flex h-9 w-9 items-center justify-center bg-primary/15">
-        <AnimatedStar size={20} />
-      </span>
+      <CampaignIcon icon={campaign?.icon} size="lg" />
       <span className="flex max-w-full items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span className="truncate">{initials(campaign?.name)}</span>
         {multiple && <ChevronDown className="h-3 w-3 shrink-0" />}
@@ -94,16 +108,16 @@ export function RailCampaignSelector() {
 
 function Brand() {
   return (
-    <p className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-sm font-bold leading-tight tracking-tight text-transparent">
+    <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-sm font-bold leading-tight tracking-tight text-transparent">
       City of Stars
-    </p>
+    </span>
   );
 }
 
 function CampaignList({ side }: { side: "bottom" | "right" }) {
   const { campaign, campaigns, campaignEncounters, switchCampaign } = useCampaign();
   return (
-    <PopoverContent side={side} align="start" className="w-56 p-1">
+    <PopoverContent side={side} align="start" className="w-60 p-1">
       <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         Switch Campaign
       </p>
@@ -121,12 +135,10 @@ function CampaignList({ side }: { side: "bottom" | "right" }) {
               : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground",
           )}
         >
+          <CampaignIcon icon={c.icon} size="sm" />
           <span className="flex-1 truncate">{c.name}</span>
           {campaignEncounters[c.id] && (
-            <Swords
-              className="h-3 w-3 shrink-0 text-success"
-              aria-label="Encounter running"
-            />
+            <Swords className="h-3 w-3 shrink-0 text-success" aria-label="Encounter running" />
           )}
         </button>
       ))}

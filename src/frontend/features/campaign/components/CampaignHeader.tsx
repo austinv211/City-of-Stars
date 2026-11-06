@@ -4,6 +4,8 @@ import { Button } from "@/core/components/ui/button";
 import { Users, Pencil, Check, X } from "lucide-react";
 import { RichTextEditor } from "@/core/components/RichTextEditor";
 import { RichText } from "@/core/components/RichText";
+import { CampaignIcon } from "@/core/components/CampaignIcon";
+import { CampaignIconPicker } from "./CampaignIconPicker";
 import type { Campaign } from "../types/campaign.types";
 
 interface Props {
@@ -11,9 +13,11 @@ interface Props {
   isDM: boolean;
   memberCount: number;
   onEditDescription?: (description: string) => Promise<void>;
+  /** Given to the DM: lets them choose the campaign's icon. */
+  onChangeIcon?: (icon: string | null) => Promise<void>;
 }
 
-export function CampaignHeader({ campaign, isDM, memberCount, onEditDescription }: Props) {
+export function CampaignHeader({ campaign, isDM, memberCount, onEditDescription, onChangeIcon }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(campaign.description ?? "");
   const [saving, setSaving] = useState(false);
@@ -34,6 +38,11 @@ export function CampaignHeader({ campaign, isDM, memberCount, onEditDescription 
   return (
     <div className="space-y-1 min-w-0">
       <div className="flex items-center gap-3 flex-wrap">
+        {onChangeIcon ? (
+          <CampaignIconPicker icon={campaign.icon} onChange={onChangeIcon} />
+        ) : (
+          <CampaignIcon icon={campaign.icon} size="lg" />
+        )}
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{campaign.name}</h1>
         {isDM && <Badge>DM</Badge>}
       </div>

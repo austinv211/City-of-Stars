@@ -46,6 +46,7 @@ export default tseslint.config(
     ignores: [
       "dist/**",
       "dist-e2e/**",
+      "dist-e2e-android/**",
       // Generated from the live schema; regenerate, never hand-edit.
       "src/frontend/types/database.ts",
       "node_modules/**",

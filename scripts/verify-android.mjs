@@ -4,9 +4,9 @@
  * same rendering engine as the Android WebView the Tauri app runs in, with a
  * real touch screen and coarse pointer.
  *
- * Signs in as the seeded test users, visits every top-level route, checks
- * what tends to break on a phone and saves a screenshot of each page to
- * artifacts/android/:
+ * Signs in as the seeded test users, visits every top-level route upright and
+ * then sideways, checks what tends to break on a phone and saves a screenshot
+ * of each page to artifacts/android/:
  *
  *   - the touch styles are in effect (pointer: coarse)
  *   - no horizontal page scroll
@@ -14,9 +14,14 @@
  *   - native checkboxes use the app's style, not Android's
  *   - scrolling past an end doesn't stretch the page (Android 12+)
  *
+ * The app is built as the Android shell lays it out (VITE_PREVIEW_SHELL, see
+ * usePlatform): no desktop title bar, the phone header and so on. It is
+ * always built fresh and served on :1422, so a stale server from another run
+ * can't stand in for it.
+ *
  * Needs the local test stack (npm run e2e:up) and an Android SDK with an
  * emulator image. Boots the first AVD (or --avd <name>) if no device is
- * connected, and serves the e2e build on :1421 if nothing is there yet.
+ * connected.
  *
  * Usage:
  *   npm run verify:android [-- --avd Medium_Phone_API_37.0]
@@ -30,7 +35,8 @@ import { assertNotProduction } from "./assert-not-production.mjs";
 import { ROUTES } from "./lib/routes.mjs";
 import { findSmallTapTargets } from "./lib/tap-targets.mjs";
 
-const PORT = 1421;
+const PORT = 1422;
+const DIST = "dist-e2e-android";
 const BASE = `http://127.0.0.1:${String(PORT)}`;
 const SUPABASE_PORT = new URL(process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54321").port;
 const CDP_PORT = 9223;
@@ -89,15 +95,15 @@ const reachable = () =>
     .then((r) => r.ok)
     .catch(() => false);
 
-/** Serves the e2e build on :1421 unless something already does. Returns a stop function. */
-async function ensureServer() {
-  if (await reachable()) return () => {};
-  console.log("Building and serving the e2e build on :1421…");
+/** Builds the Android-shell preview and serves it on PORT. Returns a stop function. */
+async function startServer() {
+  if (await reachable()) throw new Error(`Port ${String(PORT)} is already in use. Stop whatever is serving it.`);
+  console.log(`Building the Android shell preview and serving it on :${String(PORT)}…`);
   const server = spawn(
-    `npx vite build --mode e2e --outDir dist-e2e --emptyOutDir && npx vite preview --mode e2e --outDir dist-e2e --host 127.0.0.1 --port ${String(PORT)} --strictPort`,
-    { shell: true, stdio: "ignore", env: process.env },
+    `npx vite build --mode e2e --outDir ${DIST} --emptyOutDir && npx vite preview --mode e2e --outDir ${DIST} --host 127.0.0.1 --port ${String(PORT)} --strictPort`,
+    { shell: true, stdio: "ignore", env: { ...process.env, VITE_PREVIEW_SHELL: "android" } },
   );
-  await waitFor("the e2e build to be served", reachable, 300_000);
+  await waitFor("the preview build to be served", reachable, 300_000);
   return () => {
     if (process.platform === "win32") execFileSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], { stdio: "ignore" });
     else server.kill();
@@ -150,6 +156,18 @@ async function checkPage(page, label) {
 
 // ── Walking the app ─────────────────────────────────────────────────────────
 
+/**
+ * Waits for the app shell's navigation (the tab bar upright, the rail
+ * sideways). The network going quiet isn't enough: the app can still be on
+ * its loading spinner, and checking that would pass for the wrong reason.
+ */
+async function waitForShell(page) {
+  await page
+    .locator("[aria-label='More navigation']:visible, [aria-label='Navigation rail']:visible")
+    .first()
+    .waitFor({ timeout: 30_000 });
+}
+
 async function signIn(page, role) {
   await page.goto(`${BASE}/login`);
   await page.evaluate(() => {
@@ -157,45 +175,74 @@ async function signIn(page, role) {
   });
   await page.goto(`${BASE}/login`);
   await page.getByLabel(/email/i).fill(`${role}@test.local`);
+  // Enter, as on a phone keyboard: sideways, the open keyboard leaves the form
+  // fields over the Sign In button.
   await page.getByLabel(/^password$/i).fill(PASSWORDS[role]);
-  // "Sign In" is both the mode tab and the submit button, so scope to the form.
-  await page.locator("form").getByRole("button", { name: /sign in/i }).click();
-  await page.getByRole("button", { name: "More navigation" }).waitFor({ timeout: 30_000 });
+  await page.getByLabel(/^password$/i).press("Enter");
+  await waitForShell(page);
 }
 
-async function visit(page, role, route) {
-  const label = `${role} ${route}`;
+/** Turns the screen upright (0) or sideways (1), with auto-rotate off. */
+async function rotate(page, rotation) {
+  adb("shell", "settings", "put", "system", "accelerometer_rotation", "0");
+  adb("shell", "settings", "put", "system", "user_rotation", String(rotation));
+  await waitFor("the screen to turn", () => page.evaluate((sideways) => (innerWidth > innerHeight) === sideways, rotation === 1), 15_000);
+}
+
+async function visit(page, role, route, orientation) {
+  const label = `${role} ${route} (${orientation})`;
   console.log(`\n\x1b[1m${label}\x1b[0m`);
   await page.goto(`${BASE}${route}`);
+  await waitForShell(page);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(500); // let layout settle
   await checkPage(page, label);
-  const shot = `${OUT}/${role}${route.replaceAll("/", "-")}.png`;
+  const shot = `${OUT}/${orientation}/${role}${route.replaceAll("/", "-")}.png`;
   await page.screenshot({ path: shot });
   console.log(`    screenshot: ${shot}`);
+}
+
+/**
+ * Closes tabs left on this app by earlier runs. Each one keeps realtime
+ * connections open to local Supabase, and Chrome allows six per host, so a
+ * few leftovers leave a new sign-in waiting forever.
+ */
+async function closeAppTabs(context) {
+  for (const tab of context.pages()) {
+    if (tab.url().startsWith("http://127.0.0.1:14")) await tab.close();
+  }
 }
 
 async function main() {
   // Signing in writes sessions; never point this at production.
   assertNotProduction();
   const avd = process.argv.includes("--avd") ? process.argv[process.argv.indexOf("--avd") + 1] : undefined;
-  mkdirSync(OUT, { recursive: true });
+  for (const orientation of ["portrait", "landscape"]) mkdirSync(`${OUT}/${orientation}`, { recursive: true });
 
   await ensureDevice(avd);
-  const stopServer = await ensureServer();
+  const stopServer = await startServer();
   try {
     bridgePorts();
     adb("shell", "am", "start", "-n", "com.android.chrome/com.google.android.apps.chrome.Main", "-d", `${BASE}/login`);
     await waitFor("Chrome's DevTools socket", () => fetch(`http://127.0.0.1:${String(CDP_PORT)}/json/version`).then((r) => r.ok, () => false), 30_000);
 
     const browser = await chromium.connectOverCDP(`http://127.0.0.1:${String(CDP_PORT)}`);
-    const page = await browser.contexts()[0].newPage();
-    for (const [role, routes] of Object.entries(ROUTES)) {
-      await signIn(page, role);
-      for (const route of routes) await visit(page, role, route);
+    const context = browser.contexts()[0];
+    await closeAppTabs(context);
+    const page = await context.newPage();
+    try {
+      for (const [rotation, orientation] of [[0, "portrait"], [1, "landscape"]]) {
+        await rotate(page, rotation);
+        for (const [role, routes] of Object.entries(ROUTES)) {
+          await signIn(page, role);
+          for (const route of routes) await visit(page, role, route, orientation);
+        }
+      }
+    } finally {
+      await rotate(page, 0);
+      await page.close();
+      await browser.close();
     }
-    await page.close();
-    await browser.close();
   } finally {
     stopServer();
   }

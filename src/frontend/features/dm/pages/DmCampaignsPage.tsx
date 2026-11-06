@@ -225,6 +225,9 @@ export default function DmCampaignsPage() {
                       .update({ description: desc.trim() || null })
                       .eq("id", activeCampaign.id);
                   }}
+                  onChangeIcon={async (icon) => {
+                    await supabase.from("campaigns").update({ icon }).eq("id", activeCampaign.id);
+                  }}
                 />
                 <Button variant="outline" onClick={() => setLevelUpOpen(true)}>
                   <TrendingUp className="h-4 w-4 mr-2" />

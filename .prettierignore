@@ -1,5 +1,6 @@
 dist
 dist-e2e
+dist-e2e-android
 node_modules
 src/tauri/target
 src/tauri/gen

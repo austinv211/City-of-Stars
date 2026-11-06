@@ -1,8 +1,24 @@
 {
   "$schema": "https://schema.tauri.app/config/2/capability",
   "identifier": "mobile",
-  "description": "Android and iOS. The system draws the window chrome, so no window-management permissions; native features from Phase 4 add theirs here.",
-  "platforms": ["android", "iOS"],
-  "windows": ["main"],
-  "permissions": ["core:default", "opener:allow-open-url", "deep-link:default"]
+  "description": "Android and iOS. The system draws the window chrome, so no window-management permissions. Opening URLs is limited to this repo's GitHub releases, for the update notice's download link.",
+  "platforms": [
+    "android",
+    "iOS"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/austinv211/City-of-Stars/releases/*"
+        }
+      ]
+    },
+    "deep-link:default"
+  ]
 }

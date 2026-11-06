@@ -47,14 +47,12 @@ export const playerNav: NavEntry[] = [
   {
     to: "/characters",
     label: "Characters",
-    shortLabel: "Chars",
     description: "Your sheets and progress",
     icon: Users,
   },
   {
     to: "/campaigns",
     label: "Campaigns",
-    shortLabel: "Campaign",
     description: "Campaigns you belong to",
     icon: BookOpen,
   },
