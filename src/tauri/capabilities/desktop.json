@@ -2,8 +2,14 @@
   "$schema": "https://schema.tauri.app/config/2/capability",
   "identifier": "desktop",
   "description": "Desktop window chrome: the custom TitleBar's minimise, maximise, close and drag. Meaningless on a phone, so scoped to desktop platforms.",
-  "platforms": ["linux", "macOS", "windows"],
-  "windows": ["main"],
+  "platforms": [
+    "linux",
+    "macOS",
+    "windows"
+  ],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-close",
@@ -13,7 +19,14 @@
     "core:window:allow-start-dragging",
     "updater:default",
     "process:allow-restart",
-    "opener:allow-open-url",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/austinv211/City-of-Stars/releases/*"
+        }
+      ]
+    },
     "deep-link:default"
   ]
 }

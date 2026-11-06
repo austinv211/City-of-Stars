@@ -95,6 +95,28 @@ describe("useUpdateCheck", () => {
     expect(openDownload).toHaveBeenCalledWith("https://dl/apk");
   });
 
+  it("says so, with the link, when the download can't be opened", async () => {
+    vi.mocked(openDownload).mockRejectedValueOnce(new Error("not allowed by scope"));
+    vi.mocked(checkForUpdate).mockResolvedValue({
+      kind: "link",
+      version: "9.1.5",
+      url: "https://dl/apk",
+    });
+    renderHook(() => {
+      useUpdateCheck();
+    });
+    await waitFor(() => {
+      expect(toast).toHaveBeenCalled();
+    });
+    lastToastOptions().action.onClick(clickEvent());
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Couldn't open the download",
+        expect.objectContaining({ description: "Download it from https://dl/apk" }),
+      );
+    });
+  });
+
   it("does not repeat a notice for a version already shown", async () => {
     vi.mocked(checkForUpdate).mockResolvedValue({
       kind: "link",

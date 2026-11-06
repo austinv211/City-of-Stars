@@ -39,7 +39,13 @@ export function notifyUpdate(result: UpdateCheck, { force = false } = {}): boole
         label: "Download",
         onClick: () => {
           openDownload(result.url).catch((err: unknown) => {
+            // Silence here is what hid an unscoped opener permission on
+            // Android: the tap did nothing. Say so, and give the link.
             console.warn("[updater] could not open download", err);
+            toast.error("Couldn't open the download", {
+              description: `Download it from ${result.url}`,
+              duration: Infinity,
+            });
           });
         },
       },
