@@ -80,7 +80,7 @@ export function LegendaryActionBar({
         <input
           id="lair-actions"
           type="checkbox"
-          className="h-4 w-4 accent-[var(--secondary)]"
+          className="h-4 w-4 [--control-color:var(--secondary)]"
           checked={lairInit !== null}
           onChange={(e) => {
             onSetLair(e.target.checked ? DEFAULT_LAIR_COUNT : null);

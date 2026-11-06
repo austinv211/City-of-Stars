@@ -191,7 +191,7 @@ function Toggle({
       <input
         id={id}
         type="checkbox"
-        className="h-4 w-4 accent-[var(--primary)]"
+        className="h-4 w-4"
         checked={checked}
         onChange={(e) => {
           onChange(e.target.checked);
