@@ -31,6 +31,7 @@ import {
 } from "@/lib/dnd5eApi";
 import { isAsiLevel, isEpicBoonLevel, useLevelUp } from "../hooks/useLevelUp";
 import { slotsForClass } from "../hooks/useSpellSlots";
+import { RichText } from "@/core/components/RichText";
 import { abilityModifier, finalAbilityScores } from "../types/character.types";
 import { CLASSES, resolveSpellcastingAbility } from "../data/dnd2024.constants";
 import type { CharacterWithScores, AbilityName } from "../types/character.types";
@@ -93,7 +94,7 @@ function FeatureItem({
         </PopoverTrigger>
         <PopoverContent className="max-h-72 w-[min(20rem,calc(100vw-2rem))] space-y-1 overflow-y-auto p-3 text-xs leading-relaxed">
           <p className="font-semibold text-sm mb-1">{name}</p>
-          <p className="whitespace-pre-wrap text-muted-foreground">{detail.description}</p>
+          <RichText source="srd" size="xs" className="text-muted-foreground">{detail.description}</RichText>
         </PopoverContent>
       </Popover>
     </li>
@@ -171,7 +172,7 @@ function FeatSelect({
               Prerequisite: {selected.prerequisite}.
             </span>
           )}
-          <span className="whitespace-pre-wrap">{selected.description}</span>
+          <RichText source="srd" size="xs" className="mt-1 text-muted-foreground">{selected.description}</RichText>
         </div>
       )}
     </div>

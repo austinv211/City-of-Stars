@@ -21,6 +21,7 @@ import {
 } from "@/lib/dnd5eApi";
 import { CLASSES } from "@/features/characters/data/dnd2024.constants";
 import { cn } from "@/lib/utils";
+import { RichText } from "@/core/components/RichText";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ const SCHOOL_COLORS: Record<string, string> = {
   Abjuration:    "bg-primary/15 text-primary border-primary/30",
   Conjuration:   "bg-success/15 text-success border-success/30",
   Divination:    "bg-primary/10 text-primary/80 border-primary/20",
-  Enchantment:   "bg-[#f5c2e715] text-[#f5c2e7] border-[#f5c2e730]",
+  Enchantment:   "bg-surge/15 text-surge border-surge/30",
   Illusion:      "bg-accent/20 text-accent-foreground border-accent/30",
   Necromancy:    "bg-muted/25 text-muted-foreground border-muted-foreground/40",
   Transmutation: "bg-secondary/15 text-secondary border-secondary/30",
@@ -51,24 +52,18 @@ function useDebounce<T>(value: T, delay = 300): T {
   return debounced;
 }
 
-// Renders plain text where _keyword_ spans are highlighted in the primary color.
-function RulesText({ text }: { text: string }) {
-  const parts = text.split(/(_[^_\n]+_)/g);
+/**
+ * SRD rules text. Italic terms are glossary keywords, so they stand out in
+ * the primary colour rather than slanting.
+ */
+function RulesText({ text, className }: { text: string; className?: string }) {
   return (
-    <>
-      {parts.map((part, i) =>
-        part.startsWith("_") && part.endsWith("_") && part.length > 2 ? (
-          <span
-            key={i}
-            className="text-primary font-semibold not-italic"
-          >
-            {part.slice(1, -1)}
-          </span>
-        ) : (
-          part
-        )
-      )}
-    </>
+    <RichText
+      source="srd"
+      className={cn("text-muted-foreground [&_em]:font-semibold [&_em]:not-italic [&_em]:text-primary", className)}
+    >
+      {text}
+    </RichText>
   );
 }
 
@@ -168,9 +163,7 @@ function GlossaryPanel() {
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              <RulesText text={selected.content} />
-            </p>
+            <RulesText text={selected.content} />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground italic text-center mt-16">
@@ -280,9 +273,7 @@ function SpellsPanel() {
               </div>
             )}
             {selected.description && (
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap border-t border-border pt-3">
-                <RulesText text={selected.description} />
-              </p>
+              <RulesText text={selected.description} className="border-t border-border pt-3" />
             )}
           </div>
         ) : (
@@ -356,9 +347,7 @@ function ClassFeaturesPanel() {
                 <Badge variant="secondary" className="text-[10px]">Level {selected.level}</Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              <RulesText text={selected.description} />
-            </p>
+            <RulesText text={selected.description} />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground italic text-center mt-16">
@@ -450,9 +439,7 @@ function FeatsPanel() {
                 Prerequisite: {selected.prerequisite}
               </p>
             )}
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap border-t border-border pt-3">
-              <RulesText text={selected.description} />
-            </p>
+            <RulesText text={selected.description} className="border-t border-border pt-3" />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground italic text-center mt-16">

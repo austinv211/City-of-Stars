@@ -32,6 +32,7 @@ import type { CharacterResource, CharacterFeature,
   AbilityName } from "@/features/characters/types/character.types";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { RichText } from "@/core/components/RichText";
 
 import type { EncounterParticipant } from "../types/encounter.types";
 
@@ -173,9 +174,9 @@ function SpellPopover({ spell }: { spell: CharacterSpell }) {
         </div>
 
         {spell.description && (
-          <p className="text-xs text-muted-foreground leading-relaxed border-t pt-2 max-h-40 overflow-y-auto">
+          <RichText source="srd" size="xs" className="max-h-40 overflow-y-auto border-t pt-2 text-muted-foreground">
             {spell.description}
-          </p>
+          </RichText>
         )}
       </PopoverContent>
     </Popover>
