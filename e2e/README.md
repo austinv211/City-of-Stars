@@ -1,7 +1,10 @@
 # E2E suite
 
 Playwright against the **local** Supabase stack, at three viewports
-(`desktop` 1440×900, `tablet` 820×1180, `phone` Pixel 7 412×915).
+(`desktop` 1440×900, `tablet` 820×1180, `phone` Pixel 7 412×915). Two
+more projects run only the layout specs (`responsive`, `encounter-layout`):
+`app` 1200×800, the desktop app's default window, and `phone-landscape`
+915×412, a phone held sideways.
 
 ```powershell
 npm run e2e:up     # once: start the stack, reset schema + seeds (Docker)
@@ -43,10 +46,11 @@ and signs each role in once. Specs start already signed in.
 | `encounter-realtime` | DM + two players through a whole fight, every assertion in the player's own browser |
 | `encounter-attack`   | target, to-hit judged against real AC, damage applied in one tap                    |
 | `responsive`         | every top-level route at every viewport: no page scroll, right nav, 44px taps, axe  |
+| `encounter-layout`   | the DM's and a player's encounter screen: no page scroll, nothing clipped at the top |
 | `character-create`   | the six-step wizard as a player, checked against the database                       |
 | `level-up`           | the DM levels the party; the player's open sheet runs the wizard live               |
 | `monster-import`     | SRD search → pre-filled form → saved to the library (API replayed, see below)       |
-| `rules-lookup`       | glossary search and entry from the encounter screen                                 |
+| `rules-lookup`       | the Rules Reference from any screen, and Ctrl+K on desktop                          |
 | `quick-rolls`        | rolling a check with advantage from the character sheet, out of combat              |
 
 The suite runs against a production build (`vite build --mode e2e` then
