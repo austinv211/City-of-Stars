@@ -215,6 +215,7 @@ export type Database = {
           created_by: string
           current_session: number
           description: string | null
+          icon: string | null
           id: string
           name: string
           session_label: string
@@ -224,6 +225,7 @@ export type Database = {
           created_by: string
           current_session?: number
           description?: string | null
+          icon?: string | null
           id?: string
           name: string
           session_label?: string
@@ -233,6 +235,7 @@ export type Database = {
           created_by?: string
           current_session?: number
           description?: string | null
+          icon?: string | null
           id?: string
           name?: string
           session_label?: string

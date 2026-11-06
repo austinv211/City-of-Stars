@@ -6,6 +6,11 @@ export interface Campaign {
   created_at: string;
   current_session: number;
   session_label: string;
+  /**
+   * An id from core/lib/campaignIcons, or null for the default star. Optional
+   * because a database without the 20261106000001 migration has no column.
+   */
+  icon?: string | null;
 }
 
 export interface CampaignMember {

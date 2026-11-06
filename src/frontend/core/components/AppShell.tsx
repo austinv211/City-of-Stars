@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/core/components/ui/tooltip";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
 import { Separator } from "@/core/components/ui/separator";
-import { AnimatedStar, TitleBar } from "@/core/components/TitleBar";
+import { TitleBar } from "@/core/components/TitleBar";
 import { NavSections } from "@/core/components/nav/NavSections";
 import { MobileNav } from "@/core/components/nav/MobileNav";
 import { CampaignSelector } from "@/core/components/nav/CampaignSelector";
@@ -100,9 +100,6 @@ export default function AppShell() {
 
           {/* Phone header — the sidebar's brand block, relocated. */}
           <header className="flex h-12 shrink-0 items-center gap-2.5 border-b border-border/40 bg-card px-3 pt-[var(--safe-top)] md:hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/15">
-              <AnimatedStar size={20} />
-            </div>
             <CampaignSelector />
           </header>
 
@@ -112,10 +109,7 @@ export default function AppShell() {
 
             {/* ── Desktop: full sidebar ──────────────────────────────────── */}
             <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">
-              <div className="flex h-12 items-center gap-2.5 border-b border-border/40 px-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/15">
-                  <AnimatedStar size={20} />
-                </div>
+              <div className="flex h-12 items-center border-b border-border/40 px-4">
                 <CampaignSelector />
               </div>
               <div data-scroll-container className="flex-1 overflow-y-auto p-2 pt-3">
