@@ -202,6 +202,17 @@ async function visit(page, role, route, orientation) {
   console.log(`    screenshot: ${shot}`);
 }
 
+/**
+ * Closes tabs left on this app by earlier runs. Each one keeps realtime
+ * connections open to local Supabase, and Chrome allows six per host, so a
+ * few leftovers leave a new sign-in waiting forever.
+ */
+async function closeAppTabs(context) {
+  for (const tab of context.pages()) {
+    if (tab.url().startsWith("http://127.0.0.1:14")) await tab.close();
+  }
+}
+
 async function main() {
   // Signing in writes sessions; never point this at production.
   assertNotProduction();
@@ -216,7 +227,9 @@ async function main() {
     await waitFor("Chrome's DevTools socket", () => fetch(`http://127.0.0.1:${String(CDP_PORT)}/json/version`).then((r) => r.ok, () => false), 30_000);
 
     const browser = await chromium.connectOverCDP(`http://127.0.0.1:${String(CDP_PORT)}`);
-    const page = await browser.contexts()[0].newPage();
+    const context = browser.contexts()[0];
+    await closeAppTabs(context);
+    const page = await context.newPage();
     try {
       for (const [rotation, orientation] of [[0, "portrait"], [1, "landscape"]]) {
         await rotate(page, rotation);
@@ -227,9 +240,9 @@ async function main() {
       }
     } finally {
       await rotate(page, 0);
+      await page.close();
+      await browser.close();
     }
-    await page.close();
-    await browser.close();
   } finally {
     stopServer();
   }
