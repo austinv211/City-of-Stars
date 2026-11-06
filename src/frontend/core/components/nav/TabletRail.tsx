@@ -5,19 +5,24 @@ import { Separator } from "@/core/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CampaignSelector, RailCampaignSelector } from "./CampaignSelector";
 import { NavSections } from "./NavSections";
-import { RAIL_ITEM, navIndicator } from "./navStyles";
+import { navIndicator } from "./navStyles";
 
 /**
- * The 768-1279px navigation: a labelled rail, 88px wide.
+ * The 768-1023px navigation: a labelled rail, 88px wide. From 1024px the app
+ * shell shows the full sidebar instead.
  *
  * Every destination is an icon in an indicator chip over a short label, at
  * least 56px tall -- the touch-tablet pattern -- rather than a bare 16px icon
- * whose name only appeared in a hover tooltip a touch screen cannot show.
- * Campaign switching, which the rail previously lacked, lives in the logo.
+ * whose name only appeared in a hover tooltip a touch screen cannot show. The
+ * campaign's icon sits at the top and switches campaign.
  *
  * On a short screen -- a phone held sideways, 400-odd pixels tall -- the rail
- * widens into compact rows of icon and label (RAIL_ITEM), and the campaign
- * becomes one row of icon and name, so more of it fits without scrolling.
+ * widens into compact rows of icon and label, the campaign becomes one row of
+ * icon and name, and Rules, Account and Sign out share one row of icons, so
+ * the destinations fit without scrolling.
+ *
+ * The rail starts below the status bar and above the gesture bar: on Android
+ * the app draws under both.
  */
 export function TabletRail({ onOpenAccount }: { onOpenAccount: () => void }) {
   const { signOut } = useAuth();
@@ -25,7 +30,7 @@ export function TabletRail({ onOpenAccount }: { onOpenAccount: () => void }) {
   return (
     <aside
       aria-label="Navigation rail"
-      className="hidden w-[5.5rem] shrink-0 flex-col border-r border-border/40 bg-card pb-[var(--safe-bottom)] pl-[var(--safe-left)] md:flex xl:hidden short:w-48"
+      className="hidden w-[5.5rem] shrink-0 flex-col border-r border-border/40 bg-card pb-[var(--safe-bottom)] pl-[var(--safe-left)] pt-[var(--safe-top)] md:flex lg:hidden short:w-48"
     >
       <div className="shrink-0 border-b border-border/40">
         <div className="short:hidden">
@@ -39,7 +44,7 @@ export function TabletRail({ onOpenAccount }: { onOpenAccount: () => void }) {
         <NavSections variant="rail" />
       </div>
       <Separator />
-      <div className="flex flex-col gap-0.5 px-1 py-1.5">
+      <div className="flex flex-col gap-0.5 px-1 py-1.5 short:flex-row short:py-1">
         <RailButton label="Rules" name="Rules Reference" icon={BookOpen} onClick={openRules} highlight />
         <RailButton label="Account" icon={Settings} onClick={onOpenAccount} />
         <RailButton
@@ -54,10 +59,13 @@ export function TabletRail({ onOpenAccount }: { onOpenAccount: () => void }) {
   );
 }
 
-/** A rail item that acts rather than navigates; same shape as the links. */
+/**
+ * A rail item that acts rather than navigates: icon over label, like the
+ * links above it. On a short screen it's just the icon, three to a row.
+ */
 function RailButton({
   label,
-  name,
+  name = label,
   icon: Icon,
   onClick,
   highlight = false,
@@ -65,7 +73,10 @@ function RailButton({
   label: string;
   /** The accessible name, when the short label isn't the whole of it. */
   name?: string;
-  /** Draw it in the primary colour, for an action people should spot. */
+  /**
+   * Colour it, for an action people should spot. Colour only: a filled
+   * indicator is how the rail marks the current page, and Rules isn't a page.
+   */
   highlight?: boolean;
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
@@ -75,16 +86,17 @@ function RailButton({
       type="button"
       onClick={onClick}
       aria-label={name}
+      title={name}
       className={cn(
-        RAIL_ITEM,
-        "transition-colors",
-        highlight ? "text-primary" : "text-muted-foreground hover:text-foreground",
+        "group flex min-h-14 w-full flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10.5px] leading-tight transition-colors",
+        "short:min-h-11 short:flex-1 short:py-0",
+        highlight ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
       )}
     >
-      <span className={cn(navIndicator(false), highlight && "bg-primary/15")}>
+      <span className={navIndicator(false)}>
         <Icon className="h-5 w-5" />
       </span>
-      {label}
+      <span className="short:sr-only">{label}</span>
     </button>
   );
 }

@@ -101,8 +101,11 @@ function SidebarFooter({ onOpenAccount }: { onOpenAccount: () => void }) {
  * for a frame on first paint. Media queries do it for free.
  *
  *   < 768px     phone  — campaign app bar on top, tab bar at the bottom
- *   768-1279px  tablet — 64px icon rail with tooltips
- *   >= 1280px   desktop — 224px labelled sidebar (the original layout)
+ *   768-1023px  tablet — 88px icon rail (TabletRail); on a short screen,
+ *               a phone held sideways, compact rows instead
+ *   >= 1024px   desktop — 224px labelled sidebar. From lg, not xl: the
+ *               desktop app opens at 1200x800, and at 1024 the sidebar still
+ *               leaves 800px of content
  *
  * `h-dvh` rather than `h-screen`: `vh` on mobile browsers includes the area
  * behind the retracting URL bar, which would push the bottom tab bar off-screen.
@@ -131,7 +134,7 @@ export default function AppShell() {
               <TabletRail onOpenAccount={openAccount} />
 
               {/* ── Desktop: full sidebar ──────────────────────────────────── */}
-              <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] xl:flex">
+              <aside className="hidden w-56 shrink-0 flex-col border-r border-border/40 bg-card pl-[var(--safe-left)] pt-[var(--safe-top)] lg:flex">
                 <div className="flex h-12 items-center border-b border-border/40 px-4">
                   <CampaignSelector />
                 </div>
@@ -149,9 +152,14 @@ export default function AppShell() {
               {/* Below md the tab bar takes the bottom inset; beside a rail or
                   sidebar (a phone held sideways) the content meets the screen's
                   bottom and far edge itself. */}
+              {/* Focusable, so a keyboard can scroll it when a page has nothing
+                  focusable in it -- on a short screen, a list of names can
+                  still be taller than the window. */}
               <main
                 data-scroll-container
-                className="flex min-w-0 flex-1 flex-col overflow-auto md:pb-[var(--safe-bottom)] md:pr-[var(--safe-right)]"
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- axe's scrollable-region-focusable asks exactly this of a scrolling region
+                tabIndex={0}
+                className="flex min-w-0 flex-1 flex-col overflow-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/40 md:pb-[var(--safe-bottom)] md:pr-[var(--safe-right)] md:pt-[var(--safe-top)]"
               >
                 <Outlet />
               </main>
