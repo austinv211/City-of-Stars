@@ -35,6 +35,16 @@ writeFileSync(
 `,
 );
 
+/** A file's text, or null if there is no such file. */
+function readIfPresent(file) {
+  try {
+    return readFileSync(file, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return null;
+    throw err;
+  }
+}
+
 const MARKER = "<!-- Customize your theme here. -->";
 const THEME = `${MARKER}
         <!-- City of Stars: always dark (scripts/apply-android-resources.mjs). -->
@@ -47,8 +57,10 @@ const THEME = `${MARKER}
 
 for (const variant of ["values", "values-night"]) {
   const file = `${res}/${variant}/themes.xml`;
-  if (!existsSync(file)) continue;
-  const xml = readFileSync(file, "utf8");
+  // Read it outright rather than checking it exists first: a check and a
+  // later read can see different files.
+  const xml = readIfPresent(file);
+  if (xml === null) continue;
   if (xml.includes("City of Stars: always dark")) continue; // already applied
   if (!xml.includes(MARKER)) {
     // Tauri's template changed: fail rather than ship the default theme.
