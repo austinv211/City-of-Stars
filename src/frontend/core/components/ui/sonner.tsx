@@ -9,11 +9,20 @@ import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
+/**
+ * Where toasts sit above the bottom edge: --toast-bottom (globals.scss), which
+ * on a phone clears the tab bar and the gesture area. Sonner's own mobile
+ * offset applies below 600px; ours follows the app's phone breakpoint.
+ */
+const OFFSET = { bottom: "var(--toast-bottom)" }
+
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="dark"
       className="toaster group"
+      offset={OFFSET}
+      mobileOffset={OFFSET}
       icons={{
         success: <CircleCheck className="h-4 w-4" />,
         info: <Info className="h-4 w-4" />,

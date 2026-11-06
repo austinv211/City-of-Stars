@@ -64,9 +64,9 @@ function CampaignIdentity({ campaign, switchable }: { campaign: Campaign | null;
 }
 
 /**
- * The rail's version: no room for the name beside the icon, so the icon is
- * the button and the campaign's initials sit under it -- enough to tell two
- * campaigns apart at a glance.
+ * The rail's version: no room for the name, so the campaign's icon is the
+ * button (its name is the tooltip and the accessible name). Initials under it
+ * read as a cryptic title ("COS"); the icon is what tells campaigns apart.
  */
 export function RailCampaignSelector() {
   const { campaign, campaigns } = useCampaign();
@@ -75,10 +75,7 @@ export function RailCampaignSelector() {
   const face = (
     <>
       <CampaignIcon icon={campaign?.icon} size="lg" />
-      <span className="flex max-w-full items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        <span className="truncate">{initials(campaign?.name)}</span>
-        {multiple && <ChevronDown className="h-3 w-3 shrink-0" />}
-      </span>
+      {multiple && <ChevronDown aria-hidden="true" className="h-3 w-3 shrink-0 text-muted-foreground" />}
     </>
   );
   const shape = "flex w-full flex-col items-center gap-1 px-1 py-2";
@@ -96,6 +93,7 @@ export function RailCampaignSelector() {
         <button
           type="button"
           aria-label={`Switch campaign (current: ${campaign?.name ?? "none"})`}
+          title={campaign?.name}
           className={cn(shape, "transition-colors hover:bg-accent/30")}
         >
           {face}
@@ -144,15 +142,4 @@ function CampaignList({ side }: { side: "bottom" | "right" }) {
       ))}
     </PopoverContent>
   );
-}
-
-/** "The Shattered Vault" -> "TSV"; at most three letters. */
-function initials(name: string | undefined): string {
-  if (!name) return "";
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 3)
-    .map((w) => w[0])
-    .join("");
 }

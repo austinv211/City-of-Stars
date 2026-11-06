@@ -22,9 +22,10 @@ import { useMediaQuery } from "./useMediaQuery";
 export interface Breakpoint {
   /** < 768px. Bottom tab bar, off-canvas nav, stacked layouts. */
   isPhone: boolean;
-  /** 768px - 1279px. Icon rail, two-column encounter layout. */
+  /** 768px - 1279px. Two-column encounter layout. (The app shell's icon rail
+   *  stops at 1023px; from lg it shows the full sidebar.) */
   isTablet: boolean;
-  /** >= 1280px. Full sidebar, three-column encounter layout. */
+  /** >= 1280px. Three-column encounter layout. */
   isDesktop: boolean;
   /** Primary pointer is coarse — touch. Independent of width: a 1920px kiosk
    *  can be touch, and a 600px desktop window is not. Drives hit-target sizing. */

@@ -76,7 +76,10 @@ export function InitiativeRollScreen({ encounterId, campaignId, participants, ow
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full gap-8 px-6 py-12">
+    // shrink-0: <main> is a flex column, and min-h-full alone would let this
+    // shrink to the screen's height, centring its overflow off the top --
+    // unreachable on a phone held sideways.
+    <div className="flex shrink-0 flex-col items-center justify-center min-h-full gap-8 px-6 py-12">
       <div className="flex flex-col items-center gap-3 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <Swords className="h-8 w-8 text-primary" />

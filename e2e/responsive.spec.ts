@@ -12,7 +12,7 @@ import { findSmallTapTargets } from "../scripts/lib/tap-targets.mjs";
  *
  *   - no horizontal page scroll -- wide content scrolls in its own container
  *   - the right nav surface: the tab bar below 768px, the sidebar/rail above
- *   - on a phone, no tap area under 44px
+ *   - on a touch screen, no tap area under 44px
  *   - no serious or critical axe violations, bar the known debt below
  */
 
@@ -63,7 +63,10 @@ for (const [role, routes] of Object.entries(ROUTES) as [
         "horizontal page scroll",
       ).toBeLessThanOrEqual(1);
 
-      const phone = testInfo.project.name === "phone";
+      // The tab bar is the phone layout, below 768px; touch screens of any
+      // width need full-size tap areas.
+      const phone = (page.viewportSize()?.width ?? 1440) < 768;
+      const touch = testInfo.project.use.hasTouch === true;
       await expect(page.getByRole("button", { name: "More navigation" })).toBeVisible({
         visible: phone,
       });
@@ -71,7 +74,7 @@ for (const [role, routes] of Object.entries(ROUTES) as [
         visible: !phone,
       });
 
-      if (phone)
+      if (touch)
         expect(await smallTapTargets(page), "tap targets under 44px").toEqual([]);
 
       const axe = await new AxeBuilder({ page }).analyze();
